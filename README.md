@@ -6,6 +6,6 @@ Temporary project: AeroTwin_AI
 ---
 ## For all the Teammates/collaborators
 
-Kindly go through the AeroTwin_AI_SIH_2026_Project_Blueprint.md file.
+Kindly download the AeroTwin_AI_SIH_2026_Project_Blueprint.md file and provide it to your AI model.
 
 ---
