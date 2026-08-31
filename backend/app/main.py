@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from app.api.routes import health
 from app.api.routes import entrepreneur
-from app.api.routes import financial
+from app.api.routes import advisory
 
 
 app = FastAPI(
@@ -13,4 +13,4 @@ app = FastAPI(
 
 app.include_router(health.router)
 app.include_router(entrepreneur.router)
-app.include_router(financial.router)
+app.include_router(advisory.router)
