@@ -1,0 +1,91 @@
+[
+  {
+    "name": "Pradhan Mantri Formalisation of Micro Food Processing Enterprises (PMFME)",
+    "description": "Provides support for eligible micro food processing enterprises, including credit-linked capital subsidy for individual micro food processing units.",
+    "target_segment": "Micro food processing enterprises",
+    "business_categories": [
+      "food processing",
+      "food manufacturing",
+      "agri-food processing"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "eligibility_rules": [
+      "Applicant should be involved in an eligible micro food processing activity.",
+      "Individual micro food processing units may receive credit-linked capital subsidy of 35% of eligible project cost, subject to a maximum of Rs.10 lakh per unit.",
+      "Beneficiary contribution should be at least 10% of the project cost."
+    ],
+    "support_type": "Credit-linked capital subsidy",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Business/project details",
+      "Bank-related documents",
+      "Project report"
+    ],
+    "official_url": "https://www.mofpi.gov.in/en/pmfme/shgs-fpos-co-operatives-individual-micro-food-enterprise",
+    "last_verified": "2026-09-01"
+  },
+  {
+    "name": "Prime Minister's Employment Generation Programme (PMEGP)",
+    "description": "A credit-linked subsidy programme supporting eligible new micro-enterprises in manufacturing and service/trading activities.",
+    "target_segment": "New micro-enterprises",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "eligibility_rules": [
+      "The applicant must satisfy the eligibility conditions specified in the current PMEGP guidelines.",
+      "Maximum project cost for manufacturing units is Rs.50 lakh.",
+      "Maximum project cost for service/trading units is Rs.20 lakh.",
+      "Bank financing and beneficiary contribution are subject to the applicable PMEGP guidelines."
+    ],
+    "support_type": "Credit-linked margin money subsidy",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Project report",
+      "Educational or training documents where applicable",
+      "Bank-related documents"
+    ],
+    "official_url": "https://www.kviconline.gov.in/pmegpeportal/",
+    "last_verified": "2026-09-01"
+  },
+  {
+    "name": "Pradhan Mantri MUDRA Yojana (PMMY)",
+    "description": "Provides collateral-free institutional credit to eligible micro enterprises for income-generating activities.",
+    "target_segment": "Micro enterprises",
+    "business_categories": [
+      "manufacturing",
+      "trading",
+      "services",
+      "dairy",
+      "poultry",
+      "beekeeping"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "eligibility_rules": [
+      "Loans are intended for eligible non-agricultural income-generating micro enterprise activities, including specified allied agricultural activities.",
+      "Shishu loans are up to Rs.50,000.",
+      "Kishore loans are above Rs.50,000 and up to Rs.5 lakh.",
+      "Tarun loans are above Rs.5 lakh and up to Rs.10 lakh.",
+      "Tarun Plus loans are above Rs.10 lakh and up to Rs.20 lakh for entrepreneurs who have successfully repaid a previous Tarun-category loan."
+    ],
+    "support_type": "Collateral-free business loan",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Business/project information",
+      "Bank-related documents"
+    ],
+    "official_url": "https://financialservices.gov.in/pradhan-mantri-mudra-yojana-pmmy",
+    "last_verified": "2026-09-01"
+  }
+]
