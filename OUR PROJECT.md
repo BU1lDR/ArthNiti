@@ -244,33 +244,47 @@ Real-time engine telemetry → Digital Twin → anomaly detection → health sco
 
 Open a web application and demonstrate:
 ```
-                 ENGINE SIMULATOR
-                       │
-                       ▼
-              Real-time telemetry
-                       │
-                       ▼
-                DIGITAL TWIN
-                       │
-             ┌───────┴───────┐
-             ▼                   ▼
-       Expected State        Actual State
-             │                   │
-             └───────┬───────┘
-                       ▼
-                  AI ANALYSIS
-                       │
-       ┌───────────┼────────────┐
-       ▼              ▼               ▼
-   Anomaly         Fault Type       Health
-   Detection       Prediction       Score
-       │               │               │
-       └───────────┼────────────┘
-                       ▼
-                  MISSION RISK
-                       │
-                       ▼
-                 WEB DASHBOARD
+               +------------------+
+               | ENGINE SIMULATOR |
+               +--------+---------+
+                        |
+                        v
+               Real-Time Telemetry
+                        |
+                        v
+                 +--------------+
+                 | DIGITAL TWIN |
+                 +------+-------+
+                        |
+              +---------+---------+
+              |                   |
+              v                   v
+       Expected State       Actual State
+              |                   |
+              +---------+---------+
+                        |
+                        v
+                 +--------------+
+                 | AI ANALYSIS  |
+                 +------+-------+
+                        |
+         +--------------+--------------+
+         |              |              |
+         v              v              v
+      Anomaly       Fault Type       Health
+     Detection      Prediction       Score
+         |              |              |
+         +--------------+--------------+
+                        |
+                        v
+                 +--------------+
+                 | MISSION RISK |
+                 +------+-------+
+                        |
+                        v
+               +-----------------+
+               |  WEB DASHBOARD  |
+               +-----------------+
 ```
 
 ---
