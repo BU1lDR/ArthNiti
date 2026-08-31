@@ -13,3 +13,8 @@ class Scheme(BaseModel):
     documents: List[str]
     official_url: str
     last_verified: str
+
+
+class SchemeMatchRequest(BaseModel):
+    business_category: str
+    state: str
