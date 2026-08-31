@@ -1,6 +1,0 @@
-{
-  "editor.formatOnSave": true,
-  "python.formatting.provider": "black",
-  "files.insertFinalNewline": true,
-  "files.trimTrailingWhitespace": true
-}
