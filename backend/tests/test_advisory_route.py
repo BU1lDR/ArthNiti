@@ -17,6 +17,11 @@ def test_advisory_recommendation_endpoint():
         }
     )
 
+    assert "risk_assessment" in data
+
+    assert data["risk_assessment"]["pressure_ratio_percent"] == 50
+    assert data["risk_assessment"]["risk_level"] == "moderate"
+
     assert response.status_code == 200
 
     data = response.json()
