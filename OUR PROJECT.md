@@ -47,7 +47,7 @@ Mission impact
 That's where the project becomes much more interesting than a conventional IoT monitoring project.
 
 ### The Dashboard
-  
+```  
 +------------------------------------------------------=+
 |       UAV ENGINE DIGITAL TWIN -- ENGINE #01           |
 +-----------------------------------------------------=-+
@@ -69,6 +69,7 @@ That's where the project becomes much more interesting than a conventional IoT m
 |  MISSION STATUS       [LOW RISK]                      |
 |                                                       |
 +-------------------------------------------------------+
+```
 Below this:  
 - RPM graph  
 - Temperature graph  
