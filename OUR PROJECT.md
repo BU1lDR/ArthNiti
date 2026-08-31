@@ -48,27 +48,27 @@ That's where the project becomes much more interesting than a conventional IoT m
 
 ### The Dashboard
   
-╔═══════════════════════════════════════╗  
-║       UAV ENGINE DIGITAL TWIN — ENGINE #01        ║  
-╠═══════════════════════════════════════╣  
-║                                                   ║  
-║ RPM              6120        🟢 NORMAL           ║  
-║ Oil Pressure     4.2 bar     🟢 NORMAL           ║  
-║ CHT              165°C       🟡 HIGH             ║  
-║ EGT              715°C       🟢 NORMAL           ║  
-║ Vibration        3.8 mm/s    🟡 RISING           ║  
-║ Fuel Flow        5.7 L/hr    🟢 NORMAL           ║  
-║                                                  ║  
-║ ENGINE HEALTH                                    ║  
-║ █████████████████░░░  86%                  ║  
-║                                                  ║  
-║ ANOMALY SCORE       0.31                         ║  
-║ FAULT PROBABILITY   12%                          ║  
-║ RUL                 42 hours*                    ║  
-║                                                  ║  
-║ MISSION STATUS      🟢 LOW RISK                  ║  
-║                                                  ║  
-╚═══════════════════════════════════════╝  
++------------------------------------------------------=+
+|       UAV ENGINE DIGITAL TWIN -- ENGINE #01           |
++-----------------------------------------------------=-+
+|                                                       |
+|  RPM               6120       🟢[NORMAL]             |
+|  Oil Pressure      4.2 bar    🟢[NORMAL]             |
+|  CHT               165 deg C  🔴[HIGH]               |
+|  EGT               715 deg C  🟢[NORMAL]             |
+|  Vibration         3.8 mm/s   🟡[RISING]             |
+|  Fuel Flow         5.7 L/hr   🟢[NORMAL]             |
+|                                                       |
+|  ENGINE HEALTH                                        |
+|  [===================---] 86%                         |
+|                                                       |
+|  ANOMALY SCORE        0.31                            |
+|  FAULT PROBABILITY    12%                             |
+|  RUL                  42 hours*                       |
+|                                                       |
+|  MISSION STATUS       [LOW RISK]                      |
+|                                                       |
++-------------------------------------------------------+
 Below this:  
 - RPM graph  
 - Temperature graph  
