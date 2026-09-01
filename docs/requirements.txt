@@ -1,1 +1,1 @@
-This is a file containing all the requirements for our project.
+This is a file containing the requirements for our project.
