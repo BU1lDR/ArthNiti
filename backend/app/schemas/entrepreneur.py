@@ -8,6 +8,6 @@ class EntrepreneurProfile(BaseModel):
 
     available_capital: float = Field(..., ge=0)
     monthly_expenses: float = Field(..., ge=0)
-    expected_monthly_revenue: float = Field(..., ge=0)
+    expected_monthly_revenue_after_3_months: float = Field(..., ge=0)
 
     goals: str = Field(..., min_length=2)
