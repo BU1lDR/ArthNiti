@@ -20,6 +20,13 @@ class UnifiedAnalysisRequest(BaseModel):
     employees: int = Field(default=0, ge=0)
     existing_debt: float = Field(default=0, ge=0)
 
+    # MVP accessibility and rural entrepreneur context
+    user_language: str = Field(default="Hindi", min_length=2)
+    preferred_dialect: str | None = Field(default=None, min_length=2)
+    literacy_level: str = Field(default="low", min_length=2)
+    entrepreneur_type: str | None = Field(default=None, min_length=2)
+    location_type: str = Field(default="rural", min_length=2)
+
 
 class UnifiedAnalysisResponse(BaseModel):
     financial_analysis: dict
@@ -27,3 +34,4 @@ class UnifiedAnalysisResponse(BaseModel):
     business_analysis: dict
     scheme_matches: list[dict]
     advisory: dict
+    mvp_summary: dict
