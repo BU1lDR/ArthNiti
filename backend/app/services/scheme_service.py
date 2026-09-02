@@ -30,9 +30,13 @@ def calculate_match_score(
         item.lower().strip()
         for item in scheme["states"]
     ]
-
     # Business category must match
-    if category not in scheme_categories:
+    category_matches = any(
+        scheme_category in category
+        for scheme_category in scheme_categories
+    )
+
+    if not category_matches:
         return 0, []
 
     score += 60

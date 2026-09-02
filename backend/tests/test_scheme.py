@@ -95,3 +95,34 @@ def test_match_schemes_returns_dairy_scheme():
     assert matches
     assert matches[0]["name"] == "Pradhan Mantri MUDRA Yojana (PMMY)"
     assert matches[0]["match_score"] == 100
+
+
+def test_category_matching_supports_business_phrases():
+    matches = match_schemes(
+        business_category="dairy farming",
+        state="Uttar Pradesh",
+    )
+
+    assert matches
+    assert matches[0]["name"] == "Pradhan Mantri MUDRA Yojana (PMMY)"
+    assert matches[0]["match_score"] == 100
+
+
+def test_unrelated_category_still_returns_no_match():
+    matches = match_schemes(
+        business_category="textile",
+        state="Uttar Pradesh",
+    )
+
+    assert matches == []
+
+
+def test_category_matching_handles_services():
+    matches = match_schemes(
+        business_category="services",
+        state="Uttar Pradesh",
+    )
+
+    assert matches
+    assert matches[0]["name"] == "Prime Minister's Employment Generation Programme (PMEGP)"
+    assert matches[0]["match_score"] == 100
