@@ -18,7 +18,7 @@ Full URL:
 
 ### Request Body
 
-``json
+```json
 {
   "business_category": "dairy",
   "state": "Delhi",
@@ -31,7 +31,7 @@ Full URL:
   "employees": 2,
   "existing_debt": 50000
 }
-``
+```
 
 ## Required Fields
 
@@ -53,7 +53,7 @@ Full URL:
 
 A successful response contains five top-level sections:
 
-``json
+```json
 {
   "financial_analysis": {},
   "risk_analysis": {},
@@ -61,7 +61,7 @@ A successful response contains five top-level sections:
   "scheme_matches": [],
   "advisory": {}
 }
-``
+```
 
 ## Validation Errors
 
@@ -96,13 +96,13 @@ Allowed frontend development origins:
 
 From the `backend` directory:
 
-``powershell
+```powershell
 uvicorn app.main:app --reload
-``
+```
 
 ## Frontend Request Example
 
-``javascript
+```javascript
 const response = await fetch("http://localhost:8000/api/analysis/run", {
   method: "POST",
   headers: {
@@ -123,7 +123,7 @@ const response = await fetch("http://localhost:8000/api/analysis/run", {
 });
 
 const data = await response.json();
-``
+```
 
 ## Integration Notes
 
