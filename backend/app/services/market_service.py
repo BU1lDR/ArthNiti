@@ -1,13 +1,8 @@
-import json
-from pathlib import Path
-
-
-DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "market_data.json"
+from app.core.data_loader import load_json
 
 
 def load_market_data() -> list[dict]:
-    with DATA_FILE.open("r", encoding="utf-8") as file:
-        return json.load(file)
+    return load_json("market_data.json")
 
 
 def get_market_context(
