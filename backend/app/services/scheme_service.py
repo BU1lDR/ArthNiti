@@ -1,13 +1,9 @@
 import json
-from pathlib import Path
-
-
-DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "schemes.json"
+from app.core.data_loader import load_json
 
 
 def load_schemes():
-    with open(DATA_FILE, "r", encoding="utf-8") as file:
-        return json.load(file)
+    return load_json("schemes.json")
 
 
 def calculate_match_score(
