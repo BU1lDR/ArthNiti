@@ -31,6 +31,11 @@ def run_analysis(
         monthly_operating_expenses=request.monthly_operating_expenses,
         employees=request.employees,
         existing_debt=request.existing_debt,
+        user_language=request.user_language,
+        preferred_dialect=request.preferred_dialect,
+        literacy_level=request.literacy_level,
+        entrepreneur_type=request.entrepreneur_type,
+        location_type=request.location_type,
     )
 
     return result
