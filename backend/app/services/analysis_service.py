@@ -3,6 +3,7 @@ from app.services.risk_service import calculate_repayment_pressure
 from app.services.business_service import calculate_business_analysis
 from app.services.scheme_service import match_schemes
 from app.services.advisory_service import generate_advice
+from app.services.mvp_service import build_mvp_summary
 
 
 def run_unified_analysis(
@@ -16,6 +17,11 @@ def run_unified_analysis(
     monthly_operating_expenses: float,
     employees: int = 0,
     existing_debt: float = 0,
+    user_language: str = "Hindi",
+    preferred_dialect: str | None = None,
+    literacy_level: str = "low",
+    entrepreneur_type: str | None = None,
+    location_type: str = "rural",
 ):
     """
     Run all available business advisory engines and
@@ -58,10 +64,26 @@ def run_unified_analysis(
         available_capital=available_capital,
     )
 
+    # 6. Low-literacy-friendly MVP summary
+    mvp_summary = build_mvp_summary(
+        financial_analysis=financial_analysis,
+        risk_analysis=risk_analysis,
+        business_analysis=business_analysis,
+        advisory=advisory,
+        user_language=user_language,
+        preferred_dialect=preferred_dialect,
+        literacy_level=literacy_level,
+    )
+
+    # Additional context for future personalization
+    mvp_summary["entrepreneur_type"] = entrepreneur_type
+    mvp_summary["location_type"] = location_type
+
     return {
         "financial_analysis": financial_analysis,
         "risk_analysis": risk_analysis,
         "business_analysis": business_analysis,
         "scheme_matches": scheme_matches,
         "advisory": advisory,
+        "mvp_summary": mvp_summary,
     }
