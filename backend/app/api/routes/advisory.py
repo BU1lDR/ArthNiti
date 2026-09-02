@@ -4,6 +4,7 @@ from app.schemas.advisory import AdvisoryRequest
 from app.services.financial_service import calculate_financial_metrics
 from app.services.advisory_service import generate_advice
 from app.services.risk_service import calculate_repayment_pressure
+from app.services.market_service import get_market_context
 
 
 router = APIRouter(
@@ -32,9 +33,19 @@ def recommend(data: AdvisoryRequest):
         available_capital=financial_metrics["available_capital"]
     )
 
+    market_context = []
+
+    if data.state and data.district and data.business_category:
+        market_context = get_market_context(
+            data.state,
+            data.district,
+            data.business_category
+        )
+
     return {
         "success": True,
         "financial_analysis": financial_metrics,
         "risk_assessment": risk_assessment,
-        "advisory": advice
+        "advisory": advice,
+        "market_context": market_context
     }
