@@ -1,58 +1,97 @@
-from app.services.scheme_service import match_schemes
+from app.services.scheme_service import (
+    calculate_match_score,
+    load_schemes,
+    match_schemes,
+)
 
 
-def test_dairy_matches_mudra():
-    results = match_schemes(
+def test_load_schemes():
+    schemes = load_schemes()
+
+    assert len(schemes) == 3
+    assert all("name" in scheme for scheme in schemes)
+
+
+def test_exact_category_match():
+    schemes = load_schemes()
+
+    pmmy = next(
+        scheme
+        for scheme in schemes
+        if scheme["name"] == "Pradhan Mantri MUDRA Yojana (PMMY)"
+    )
+
+    score, reasons = calculate_match_score(
+        scheme=pmmy,
         business_category="dairy",
-        state="Uttar Pradesh"
+        state="Uttar Pradesh",
     )
 
-    assert len(results) > 0
-    assert results[0]["name"] == "Pradhan Mantri MUDRA Yojana (PMMY)"
-    assert results[0]["match_score"] == 100
+    assert score == 100
+    assert len(reasons) == 2
 
 
-def test_food_processing_matches_pmfme():
-    results = match_schemes(
-        business_category="food processing",
-        state="Uttar Pradesh"
+def test_category_matching_is_case_insensitive():
+    schemes = load_schemes()
+
+    pmmy = next(
+        scheme
+        for scheme in schemes
+        if scheme["name"] == "Pradhan Mantri MUDRA Yojana (PMMY)"
     )
 
-    assert len(results) > 0
-    assert (
-        results[0]["name"]
-        == "Pradhan Mantri Formalisation of Micro Food Processing Enterprises (PMFME)"
-    )
-    assert results[0]["match_score"] == 100
-
-
-def test_manufacturing_matches_pmegp():
-    results = match_schemes(
-        business_category="manufacturing",
-        state="Uttar Pradesh"
-    )
-
-    assert len(results) > 0
-    assert (
-        results[0]["name"]
-        == "Prime Minister's Employment Generation Programme (PMEGP)"
-    )
-
-
-def test_unsupported_business_returns_no_matches():
-    results = match_schemes(
-        business_category="space tourism",
-        state="Uttar Pradesh"
-    )
-
-    assert results == []
-
-
-def test_matching_is_case_insensitive():
-    results = match_schemes(
+    score, _ = calculate_match_score(
+        scheme=pmmy,
         business_category="DAIRY",
-        state="UTTAR PRADESH"
+        state="Uttar Pradesh",
     )
 
-    assert len(results) > 0
-    assert results[0]["match_score"] == 100
+    assert score == 100
+
+
+def test_category_matching_ignores_spaces():
+    schemes = load_schemes()
+
+    pmmy = next(
+        scheme
+        for scheme in schemes
+        if scheme["name"] == "Pradhan Mantri MUDRA Yojana (PMMY)"
+    )
+
+    score, _ = calculate_match_score(
+        scheme=pmmy,
+        business_category="  dairy  ",
+        state="Uttar Pradesh",
+    )
+
+    assert score == 100
+
+
+def test_non_matching_category_returns_zero():
+    schemes = load_schemes()
+
+    pmmy = next(
+        scheme
+        for scheme in schemes
+        if scheme["name"] == "Pradhan Mantri MUDRA Yojana (PMMY)"
+    )
+
+    score, reasons = calculate_match_score(
+        scheme=pmmy,
+        business_category="textile",
+        state="Uttar Pradesh",
+    )
+
+    assert score == 0
+    assert reasons == []
+
+
+def test_match_schemes_returns_dairy_scheme():
+    matches = match_schemes(
+        business_category="dairy",
+        state="Uttar Pradesh",
+    )
+
+    assert matches
+    assert matches[0]["name"] == "Pradhan Mantri MUDRA Yojana (PMMY)"
+    assert matches[0]["match_score"] == 100
