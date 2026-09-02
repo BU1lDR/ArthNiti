@@ -5,6 +5,7 @@ from app.api.routes import entrepreneur
 from app.api.routes import advisory
 from app.api.routes import schemes
 from app.api.routes import business
+from app.api.routes import analysis
 
 app = FastAPI(
     title="Rural Business Advisor API",
@@ -17,3 +18,4 @@ app.include_router(entrepreneur.router)
 app.include_router(advisory.router)
 app.include_router(schemes.router)
 app.include_router(business.router)
+app.include_router(analysis.router)
