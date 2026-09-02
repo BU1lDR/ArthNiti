@@ -1,0 +1,52 @@
+[
+  {
+    "state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "business_category": "dairy",
+    "indicative_price": 55.0,
+    "demand_indicator": "medium",
+    "seasonality": "Demand is generally stable with moderate seasonal variation.",
+    "source": "Prototype estimate / illustrative data",
+    "last_verified": "2026-09-02"
+  },
+  {
+    "state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "business_category": "poultry",
+    "indicative_price": 125.0,
+    "demand_indicator": "medium",
+    "seasonality": "Demand may increase during festival and wedding seasons.",
+    "source": "Prototype estimate / illustrative data",
+    "last_verified": "2026-09-02"
+  },
+  {
+    "state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "business_category": "food processing",
+    "indicative_price": 120.0,
+    "demand_indicator": "high",
+    "seasonality": "Demand varies by product and local seasonal consumption.",
+    "source": "Prototype estimate / illustrative data",
+    "last_verified": "2026-09-02"
+  },
+  {
+    "state": "Uttar Pradesh",
+    "district": "Varanasi",
+    "business_category": "dairy",
+    "indicative_price": 56.0,
+    "demand_indicator": "medium",
+    "seasonality": "Demand is generally stable with moderate seasonal variation.",
+    "source": "Prototype estimate / illustrative data",
+    "last_verified": "2026-09-02"
+  },
+  {
+    "state": "Uttar Pradesh",
+    "district": "Varanasi",
+    "business_category": "tailoring",
+    "indicative_price": 350.0,
+    "demand_indicator": "high",
+    "seasonality": "Demand can increase around festivals and wedding periods.",
+    "source": "Prototype estimate / illustrative data",
+    "last_verified": "2026-09-02"
+  }
+]
