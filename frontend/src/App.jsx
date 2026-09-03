@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Button from './components/Button'
 import { Link, Routes, Route } from 'react-router-dom'
 
 
@@ -20,20 +21,19 @@ function LandingPage() {
         </p>
 
         <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-          <Link
-            to="/profile"
-            className="rounded-xl bg-green-600 px-8 py-4 font-semibold text-white transition hover:bg-green-700"
-          >
-            Start My Business Journey
-          </Link>
+  <Link to="/profile">
+    <Button className="w-full px-8 py-4 sm:w-auto">
+      Start My Business Journey
+    </Button>
+  </Link>
 
-          <button
-            type="button"
-            className="rounded-xl border border-slate-300 bg-white px-8 py-4 font-semibold text-slate-700 transition hover:bg-slate-100"
-          >
-            🎙️ Try Voice Assistant
-          </button>
-        </div>
+  <Button
+    className="border border-slate-300 bg-white px-8 py-4 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+  >
+    🎙️ Try Voice Assistant
+  </Button>
+</div>
+
 
         <div className="mt-16 grid w-full max-w-4xl gap-4 sm:grid-cols-3">
           <Feature icon="📍" title="Local Insights">
@@ -152,12 +152,9 @@ function ProfilePage() {
               />
             </div>
 
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-green-600 px-6 py-4 font-semibold text-white transition hover:bg-green-700"
-            >
-              Continue →
-            </button>
+            <Button type="submit" className="w-full py-4">
+  Continue →
+</Button>
           </form>
         </div>
       </div>
