@@ -2,7 +2,9 @@ import Button from './components/Button'
 import { Link, Routes, Route } from 'react-router-dom'
 import ProfilePage from './pages/ProfilePage'
 import BusinessPage from './pages/BusinessPage'
-
+import LocationPage from './pages/LocationPage'
+import AnalysisPage from './pages/AnalysisPage'
+import FinancePage from './pages/FinancePage'
 
 function LandingPage() {
   return (
@@ -72,6 +74,10 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/business" element={<BusinessPage />} />
+      <Route path="/location" element={<LocationPage />} />
+      <Route path="/analysis" element={<AnalysisPage />} />
+      <Route path="/finance" element={<FinancePage />} />
+      
     </Routes>
   )
 }

@@ -19,11 +19,14 @@ function BusinessPage() {
     }))
   }
 
-  const handleContinue = (event) => {
-    event.preventDefault()
 
-    console.log('Business data:', business)
-  }
+  const handleContinue = (event) => {
+  event.preventDefault()
+
+  console.log('Business data:', business)
+
+  window.location.href = '/location'
+}
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-12">
