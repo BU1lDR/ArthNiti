@@ -1,14 +1,21 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
+import { runAnalysis } from '../services/api'
 
 function FinancePage() {
-  const { applicationData, updateSection } = useApp()
+  const { applicationData, updateSection, setResult } = useApp()
   const navigate = useNavigate()
+
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const finance = applicationData.finance
   const business = applicationData.business
+  const profile = applicationData.profile
+  const location = applicationData.location
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -26,21 +33,62 @@ function FinancePage() {
   const monthlyRevenue = Number(business.monthlyRevenue) || 0
 
   const fundingGap = Math.max(investment - availableCapital, 0)
+
   const monthlySurplus = Math.max(
     monthlyRevenue - monthlyExpenses - monthlyEmi,
     0,
   )
 
-  const handleContinue = (event) => {
+  const handleContinue = async (event) => {
     event.preventDefault()
 
-    console.log('Financial data:', {
-      ...applicationData.finance,
-      fundingGap,
-      monthlySurplus,
-    })
+    setLoading(true)
+    setError('')
 
-    navigate('/analysis')
+    const payload = {
+      business_category: business.category,
+      state: location.state || profile.state,
+
+      available_capital: availableCapital,
+      monthly_expenses: monthlyExpenses,
+      expected_monthly_revenue: monthlyRevenue,
+      monthly_emi: monthlyEmi,
+
+      initial_investment: investment,
+      monthly_operating_expenses:
+        Number(business.monthlyOperatingExpenses) || 0,
+
+      employees: Number(business.employees) || 0,
+      existing_debt: Number(business.existingDebt) || 0,
+
+      user_language: profile.language || 'Hindi',
+      preferred_dialect: profile.dialect || null,
+      literacy_level: profile.literacyLevel || 'low',
+      entrepreneur_type: profile.entrepreneurType || null,
+
+      location_type: location.locationType || 'rural',
+    }
+
+    try {
+      console.log('Sending analysis payload:', payload)
+
+      const result = await runAnalysis(payload)
+
+      console.log('Analysis API response:', result)
+
+      setResult(result)
+
+      navigate('/analysis')
+    } catch (err) {
+      console.error('Analysis API error:', err)
+
+      setError(
+        err.message ||
+          'Unable to connect to the analysis service. Please try again.',
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -54,7 +102,9 @@ function FinancePage() {
         </Link>
 
         <div className="mt-8">
-          <p className="text-sm font-semibold text-green-600">Step 4 of 6</p>
+          <p className="text-sm font-semibold text-green-600">
+            Step 4 of 6
+          </p>
 
           <h1 className="mt-2 text-3xl font-bold text-slate-900">
             Plan your finances
@@ -150,8 +200,20 @@ function FinancePage() {
             />
           </div>
 
-          <Button type="submit" className="w-full py-4">
-            Continue to Analysis →
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4"
+          >
+            {loading
+              ? 'Analyzing your business...'
+              : 'Continue to Analysis →'}
           </Button>
         </form>
       </div>
@@ -190,11 +252,17 @@ function InputField({
 function SummaryCard({ title, value, description }) {
   return (
     <div className="rounded-2xl bg-white p-6 shadow-sm">
-      <p className="text-sm font-medium text-slate-500">{title}</p>
+      <p className="text-sm font-medium text-slate-500">
+        {title}
+      </p>
 
-      <p className="mt-2 text-2xl font-bold text-green-700">{value}</p>
+      <p className="mt-2 text-2xl font-bold text-green-700">
+        {value}
+      </p>
 
-      <p className="mt-2 text-sm text-slate-600">{description}</p>
+      <p className="mt-2 text-sm text-slate-600">
+        {description}
+      </p>
     </div>
   )
 }
