@@ -76,15 +76,16 @@ function BusinessPage() {
                 required
               >
                 <option value="">Select business category</option>
-                <option value="Retail">Retail</option>
-                <option value="Food">Food / Food Processing</option>
-                <option value="Handicrafts">Handicrafts</option>
-                <option value="Tailoring">Tailoring / Garments</option>
-                <option value="Agriculture">Agriculture</option>
-                <option value="Livestock">Livestock / Dairy</option>
-                <option value="Services">Services</option>
-                <option value="Manufacturing">Manufacturing</option>
-                <option value="Other">Other</option>
+
+                <option value="retail">Retail</option>
+                <option value="food processing">Food / Food Processing</option>
+                <option value="handicrafts">Handicrafts</option>
+                <option value="tailoring">Tailoring / Garments</option>
+                <option value="agriculture">Agriculture</option>
+                <option value="dairy">Livestock / Dairy</option>
+                <option value="services">Services</option>
+                <option value="manufacturing">Manufacturing</option>
+                <option value="other">Other</option>
               </select>
             </div>
 

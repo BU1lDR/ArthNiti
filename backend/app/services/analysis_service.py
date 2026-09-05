@@ -1,6 +1,7 @@
 from app.services.financial_service import calculate_financial_metrics
 from app.services.risk_service import calculate_repayment_pressure
 from app.services.business_service import calculate_business_analysis
+from app.services.market_service import get_market_context
 from app.services.scheme_service import match_schemes
 from app.services.advisory_service import generate_advice
 from app.services.mvp_service import build_mvp_summary
@@ -22,10 +23,23 @@ def run_unified_analysis(
     literacy_level: str = "low",
     entrepreneur_type: str | None = None,
     location_type: str = "rural",
+    district: str = "",
+    village: str = "",
+    market_type: str = "",
+    customers: str = "",
 ):
     """
     Run all available business advisory engines and
     combine their results into one unified response.
+
+    The unified pipeline includes:
+    - Financial analysis
+    - Risk analysis
+    - Business feasibility analysis
+    - Hyperlocal market context
+    - Government scheme matching
+    - Advisory generation
+    - Low-literacy-friendly MVP summary
     """
 
     # 1. Financial analysis
@@ -51,20 +65,27 @@ def run_unified_analysis(
         existing_debt=existing_debt,
     )
 
-    # 4. Government scheme matching
+    # 4. Hyperlocal market context
+    market_context = get_market_context(
+        state=state,
+        district=district,
+        business_category=business_category,
+    )
+
+    # 5. Government scheme matching
     scheme_matches = match_schemes(
         business_category=business_category,
         state=state,
     )
 
-    # 5. Advisory generation
+    # 6. Advisory generation
     advisory = generate_advice(
         financial_status=financial_analysis["financial_status"],
         profit_margin_percent=financial_analysis["profit_margin_percent"],
         available_capital=available_capital,
     )
 
-    # 6. Low-literacy-friendly MVP summary
+    # 7. Low-literacy-friendly MVP summary
     mvp_summary = build_mvp_summary(
         financial_analysis=financial_analysis,
         risk_analysis=risk_analysis,
@@ -75,7 +96,7 @@ def run_unified_analysis(
         literacy_level=literacy_level,
     )
 
-    # Additional context for future personalization
+    # Additional context for personalization
     mvp_summary["entrepreneur_type"] = entrepreneur_type
     mvp_summary["location_type"] = location_type
 
@@ -83,6 +104,7 @@ def run_unified_analysis(
         "financial_analysis": financial_analysis,
         "risk_analysis": risk_analysis,
         "business_analysis": business_analysis,
+        "market_context": market_context,
         "scheme_matches": scheme_matches,
         "advisory": advisory,
         "mvp_summary": mvp_summary,

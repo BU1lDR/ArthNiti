@@ -20,6 +20,12 @@ class UnifiedAnalysisRequest(BaseModel):
     employees: int = Field(default=0, ge=0)
     existing_debt: float = Field(default=0, ge=0)
 
+    # Local / hyperlocal market context
+    district: str = Field(default="")
+    village: str = Field(default="")
+    market_type: str = Field(default="")
+    customers: str = Field(default="")
+
     # MVP accessibility and rural entrepreneur context
     user_language: str = Field(default="Hindi", min_length=2)
     preferred_dialect: str | None = Field(default=None, min_length=2)
@@ -32,6 +38,7 @@ class UnifiedAnalysisResponse(BaseModel):
     financial_analysis: dict
     risk_analysis: dict
     business_analysis: dict
+    market_context: list[dict]
     scheme_matches: list[dict]
     advisory: dict
     mvp_summary: dict

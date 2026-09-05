@@ -26,7 +26,7 @@ def build_mvp_summary(
     if financial_status == "profitable" and risk_level == "low":
         status = "good"
         message = "Your business situation looks positive."
-    elif risk_level in {"medium", "high"}:
+    elif risk_level in {"moderate", "high"}:
         status = "attention_needed"
         message = "Your business needs attention before taking additional financial risk."
     else:

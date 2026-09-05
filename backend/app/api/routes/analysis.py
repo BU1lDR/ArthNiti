@@ -36,6 +36,10 @@ def run_analysis(
         literacy_level=request.literacy_level,
         entrepreneur_type=request.entrepreneur_type,
         location_type=request.location_type,
+        district=request.district,
+        village=request.village,
+        market_type=request.market_type,
+        customers=request.customers,
     )
 
     return result

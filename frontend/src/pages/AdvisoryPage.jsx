@@ -1,7 +1,85 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import Button from '../components/Button'
+import { useApp } from '../context/AppContext'
 
 function AdvisoryPage() {
+  const { applicationData } = useApp()
+
+  const result = applicationData?.result
+
+  const financial = result?.financial_analysis
+  const risk = result?.risk_analysis
+  const business = result?.business_analysis
+  const advisory = result?.advisory
+  const schemes = result?.scheme_matches || []
+
+  const recommendations = advisory?.recommendations || []
+  const observations = business?.observations || []
+
+  const financialStatus = financial?.financial_status || 'Not available'
+  const monthlyProfit = financial?.monthly_profit
+  const profitMargin = financial?.profit_margin_percent
+
+  const riskLevel = risk?.risk_level || risk?.risk_status || 'Not available'
+  const repaymentPressure = risk?.pressure_ratio_percent
+
+  const feasibility =
+    business?.feasibility ||
+    business?.feasibility_status ||
+    'Not available'
+
+  const getFinancialRecommendation = () => {
+    if (financialStatus === 'loss') {
+      return 'Improve financial position'
+    }
+
+    if (financialStatus === 'break_even') {
+      return 'Increase monthly surplus'
+    }
+
+    if (financialStatus === 'profitable') {
+      return 'Maintain profitable operations'
+    }
+
+    return 'Review financial position'
+  }
+
+  const getBusinessRecommendation = () => {
+    if (feasibility === 'feasible') {
+      return 'Business plan looks feasible'
+    }
+
+    if (feasibility === 'not_feasible') {
+      return 'Review the business plan'
+    }
+
+    return 'Review business feasibility'
+  }
+
+  const getRiskDescription = () => {
+    if (riskLevel === 'low') {
+      return 'Repayment pressure appears manageable based on the current financial inputs.'
+    }
+
+    if (riskLevel === 'moderate') {
+      return 'Repayment pressure is moderate. Review cash flow carefully before taking additional debt.'
+    }
+
+    if (riskLevel === 'high') {
+      return 'Repayment pressure is high. Avoid unnecessary borrowing and review the funding requirement carefully.'
+    }
+
+    return 'Review repayment capacity before making additional borrowing decisions.'
+  }
+
+  const getRiskLabel = () => {
+    if (riskLevel === 'low') return 'Low'
+    if (riskLevel === 'moderate') return 'Moderate'
+    if (riskLevel === 'high') return 'High'
+
+    return 'Not available'
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-12">
       <div className="mx-auto max-w-5xl">
@@ -22,98 +100,199 @@ function AdvisoryPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-slate-600">
-            Here is a simple summary of what you can consider doing next based
-            on your business, local context, and financial information.
+            This advisory is generated from your financial analysis, business
+            feasibility, repayment risk, and government scheme matches.
           </p>
         </div>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <AdvisoryCard
-            icon="🚀"
-            title="Business Recommendation"
-            value="Grow Gradually"
-            description="Focus on controlled expansion instead of taking on unnecessary financial risk."
-          />
+        {!result ? (
+          <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-slate-900">
+              Analysis not available
+            </h2>
 
-          <AdvisoryCard
-            icon="💰"
-            title="Financial Recommendation"
-            value="Track Monthly Surplus"
-            description="Monitor revenue and expenses regularly before increasing your funding requirement."
-          />
+            <p className="mt-3 leading-7 text-slate-600">
+              Complete the business and financial analysis first to receive
+              your personalized advisory.
+            </p>
 
-          <AdvisoryCard
-            icon="🏛️"
-            title="Funding Recommendation"
-            value="Explore Eligible Schemes"
-            description="Compare available government support before choosing external borrowing."
-          />
+            <Link to="/finance">
+              <Button className="mt-6">
+                Go to Financial Analysis
+              </Button>
+            </Link>
+          </section>
+        ) : (
+          <>
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              <AdvisoryCard
+                icon="🚀"
+                title="Business Recommendation"
+                value={getBusinessRecommendation()}
+                description={
+                  observations[0] ||
+                  'Review the business feasibility analysis before making major expansion decisions.'
+                }
+              />
 
-          <AdvisoryCard
-            icon="⚠️"
-            title="Risk Level"
-            value="Moderate"
-            description="Review repayment capacity and operating costs carefully before taking additional debt."
-          />
-        </div>
+              <AdvisoryCard
+                icon="💰"
+                title="Financial Recommendation"
+                value={getFinancialRecommendation()}
+                description={
+                  monthlyProfit !== undefined
+                    ? `Current estimated monthly surplus is ₹${Number(
+                        monthlyProfit
+                      ).toLocaleString('en-IN')}${
+                        profitMargin !== undefined
+                          ? ` with a ${profitMargin}% profit margin.`
+                          : '.'
+                      }`
+                    : 'Review your monthly revenue and expenses carefully.'
+                }
+              />
 
-        <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900">
-            Why this recommendation?
-          </h2>
+              <AdvisoryCard
+                icon="🏛️"
+                title="Funding Recommendation"
+                value={
+                  schemes.length > 0
+                    ? 'Compare matched government schemes'
+                    : 'Review available funding options'
+                }
+                description={
+                  schemes.length > 0
+                    ? `${schemes.length} government scheme${
+                        schemes.length === 1 ? '' : 's'
+                      } matched your business profile.`
+                    : 'No matching government scheme was returned for the current business category and state.'
+                }
+              />
 
-          <p className="mt-3 leading-7 text-slate-600">
-            Your business already has experience and a local customer base.
-            However, expansion should be supported by stable cash flow and
-            careful cost management. Government schemes may reduce the amount
-            of funding that needs to come from borrowing.
-          </p>
-        </section>
+              <AdvisoryCard
+                icon="⚠️"
+                title="Risk Level"
+                value={getRiskLabel()}
+                description={getRiskDescription()}
+              />
+            </div>
 
-        <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900">
-            What should you do next?
-          </h2>
+            <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-900">
+                Why this recommendation?
+              </h2>
 
-          <div className="mt-5 space-y-4">
-            <ActionItem
-              number="1"
-              text="Review your estimated investment and monthly expenses."
-            />
+              <div className="mt-4 space-y-3 text-slate-600">
+                {financial && (
+                  <p className="leading-7">
+                    <strong>Financial position:</strong>{' '}
+                    {financialStatus}
+                    {monthlyProfit !== undefined &&
+                      `, with an estimated monthly surplus of ₹${Number(
+                        monthlyProfit
+                      ).toLocaleString('en-IN')}.`}
+                  </p>
+                )}
 
-            <ActionItem
-              number="2"
-              text="Compare the government schemes suggested for your business."
-            />
+                {business && (
+                  <p className="leading-7">
+                    <strong>Business feasibility:</strong>{' '}
+                    {String(feasibility).replaceAll('_', ' ')}.
+                  </p>
+                )}
 
-            <ActionItem
-              number="3"
-              text="Prepare the documents required for the selected scheme."
-            />
+                {risk && (
+                  <p className="leading-7">
+                    <strong>Repayment risk:</strong>{' '}
+                    {getRiskLabel()}
+                    {repaymentPressure !== undefined &&
+                      `, with repayment pressure of ${repaymentPressure}%.`}
+                  </p>
+                )}
 
-            <ActionItem
-              number="4"
-              text="Discuss the funding decision with a trusted financial or local support advisor."
-            />
-          </div>
-        </section>
+                {recommendations.length > 0 && (
+                  <p className="leading-7">
+                    <strong>Advisory:</strong>{' '}
+                    {recommendations[0]}
+                  </p>
+                )}
+              </div>
+            </section>
+
+            <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-900">
+                What should you do next?
+              </h2>
+
+              <div className="mt-5 space-y-4">
+                {recommendations.length > 0 ? (
+                  recommendations.slice(0, 4).map((recommendation, index) => (
+                    <ActionItem
+                      key={index}
+                      number={String(index + 1)}
+                      text={recommendation}
+                    />
+                  ))
+                ) : (
+                  <>
+                    <ActionItem
+                      number="1"
+                      text="Review your estimated investment and monthly expenses."
+                    />
+
+                    <ActionItem
+                      number="2"
+                      text="Review the government schemes suggested for your business."
+                    />
+
+                    <ActionItem
+                      number="3"
+                      text="Prepare the documents required for the selected scheme."
+                    />
+
+                    <ActionItem
+                      number="4"
+                      text="Review your repayment capacity before taking additional debt."
+                    />
+                  </>
+                )}
+              </div>
+            </section>
+
+            {observations.length > 0 && (
+              <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
+                <h2 className="text-xl font-bold text-slate-900">
+                  Business observations
+                </h2>
+
+                <div className="mt-5 space-y-3">
+                  {observations.map((observation, index) => (
+                    <div
+                      key={index}
+                      className="rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600"
+                    >
+                      {observation}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
 
         <div className="mt-8">
-         
-
           <Link to="/report">
-  <Button className="w-full py-4">
-    📄 Generate My Business Report
-  </Button>
-</Link>
+            <Button className="w-full py-4">
+              📄 Generate My Business Report
+            </Button>
+          </Link>
         </div>
-
-   
 
         <p className="mt-4 text-center text-xs leading-5 text-slate-500">
           This advisory is intended for guidance and does not guarantee
           business success, scheme eligibility, loan approval, or financial
-          outcomes.
+          outcomes. Scheme match scores are indicative and are not final
+          eligibility decisions.
         </p>
       </div>
     </main>
@@ -125,9 +304,13 @@ function AdvisoryCard({ icon, title, value, description }) {
     <div className="rounded-2xl bg-white p-6 shadow-sm">
       <div className="text-3xl">{icon}</div>
 
-      <h2 className="mt-4 font-semibold text-slate-900">{title}</h2>
+      <h2 className="mt-4 font-semibold text-slate-900">
+        {title}
+      </h2>
 
-      <p className="mt-1 text-lg font-bold text-green-700">{value}</p>
+      <p className="mt-1 text-lg font-bold text-green-700">
+        {value}
+      </p>
 
       <p className="mt-2 text-sm leading-6 text-slate-600">
         {description}
@@ -143,7 +326,9 @@ function ActionItem({ number, text }) {
         {number}
       </div>
 
-      <p className="pt-1 leading-6 text-slate-600">{text}</p>
+      <p className="pt-1 leading-6 text-slate-600">
+        {text}
+      </p>
     </div>
   )
 }

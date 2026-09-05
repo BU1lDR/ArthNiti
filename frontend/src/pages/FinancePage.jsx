@@ -45,29 +45,34 @@ function FinancePage() {
     setLoading(true)
     setError('')
 
-    const payload = {
-      business_category: business.category,
-      state: location.state || profile.state,
+  const payload = {
+    business_category: business.category,
 
-      available_capital: availableCapital,
-      monthly_expenses: monthlyExpenses,
-      expected_monthly_revenue: monthlyRevenue,
-      monthly_emi: monthlyEmi,
+    state: location.state || profile.state,
+    district: location.district || profile.district || '',
+    village: location.village || '',
+    market_type: location.marketType || '',
+    customers: location.customers || '',
 
-      initial_investment: investment,
-      monthly_operating_expenses:
-        Number(business.monthlyOperatingExpenses) || 0,
+    available_capital: availableCapital,
+    monthly_expenses: monthlyExpenses,
+    expected_monthly_revenue: monthlyRevenue,
+    monthly_emi: monthlyEmi,
 
-      employees: Number(business.employees) || 0,
-      existing_debt: Number(business.existingDebt) || 0,
+    initial_investment: investment,
+    monthly_operating_expenses:
+      Number(business.monthlyOperatingExpenses) || 0,
 
-      user_language: profile.language || 'Hindi',
-      preferred_dialect: profile.dialect || null,
-      literacy_level: profile.literacyLevel || 'low',
-      entrepreneur_type: profile.entrepreneurType || null,
+    employees: Number(business.employees) || 0,
+    existing_debt: Number(business.existingDebt) || 0,
 
-      location_type: location.locationType || 'rural',
-    }
+    user_language: profile.language || 'Hindi',
+    preferred_dialect: profile.dialect || null,
+    literacy_level: profile.literacyLevel || 'low',
+    entrepreneur_type: profile.entrepreneurType || null,
+
+    location_type: location.locationType || 'rural',
+  }
 
     try {
       console.log('Sending analysis payload:', payload)
