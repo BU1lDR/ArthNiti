@@ -5,6 +5,8 @@ import BusinessPage from './pages/BusinessPage'
 import LocationPage from './pages/LocationPage'
 import AnalysisPage from './pages/AnalysisPage'
 import FinancePage from './pages/FinancePage'
+import SchemesPage from './pages/SchemesPage'
+import AdvisoryPage from './pages/AdvisoryPage'
 
 function LandingPage() {
   return (
@@ -77,7 +79,8 @@ function App() {
       <Route path="/location" element={<LocationPage />} />
       <Route path="/analysis" element={<AnalysisPage />} />
       <Route path="/finance" element={<FinancePage />} />
-      
+      <Route path="/schemes" element={<SchemesPage />} />
+      <Route path="/advisory" element={<AdvisoryPage />} />
     </Routes>
   )
 }
