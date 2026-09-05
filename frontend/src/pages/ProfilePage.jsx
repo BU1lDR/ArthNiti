@@ -1,31 +1,29 @@
-import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
+import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
 
 function ProfilePage() {
-  const [profile, setProfile] = useState({
-    name: '',
-    state: '',
-    district: '',
-  })
+  const { applicationData, updateSection } = useApp()
+  const navigate = useNavigate()
+
+  const profile = applicationData.profile
 
   const handleChange = (event) => {
     const { name, value } = event.target
 
-    setProfile((current) => ({
-      ...current,
+    updateSection('profile', {
       [name]: value,
-    }))
+    })
   }
 
-  
   const handleContinue = (event) => {
-  event.preventDefault()
+    event.preventDefault()
 
-  console.log('Profile data:', profile)
+    console.log('Profile data:', applicationData.profile)
 
-  window.location.href = '/business'
-}
+    navigate('/business')
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-12">
