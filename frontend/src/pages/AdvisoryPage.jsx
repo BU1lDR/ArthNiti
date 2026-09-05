@@ -99,10 +99,16 @@ function AdvisoryPage() {
         </section>
 
         <div className="mt-8">
-          <Button className="w-full py-4">
-            📄 Generate My Business Report
-          </Button>
+         
+
+          <Link to="/report">
+  <Button className="w-full py-4">
+    📄 Generate My Business Report
+  </Button>
+</Link>
         </div>
+
+   
 
         <p className="mt-4 text-center text-xs leading-5 text-slate-500">
           This advisory is intended for guidance and does not guarantee
