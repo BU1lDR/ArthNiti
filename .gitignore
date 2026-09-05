@@ -1,0 +1,14 @@
+# Python & Virtual Envs
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Node & Frontend Build
+node_modules/
+dist/
+.env.local
+
+# Local Data & ML Models
+*.sqlite
+*.pkl
