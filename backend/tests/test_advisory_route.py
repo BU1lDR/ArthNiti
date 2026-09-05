@@ -29,8 +29,34 @@ def test_advisory_recommendation_endpoint():
 
     assert data["financial_analysis"]["monthly_profit"] == 10000
     assert data["financial_analysis"]["financial_status"] == "profitable"
-
     assert data["risk_assessment"]["pressure_ratio_percent"] == 50
     assert data["risk_assessment"]["risk_level"] == "moderate"
 
     assert len(data["advisory"]["recommendations"]) > 0
+
+
+def test_advisory_recommendation_with_market_context():
+
+    response = client.post(
+        "/api/advisory/recommend",
+        json={
+            "available_capital": 50000,
+            "monthly_expenses": 20000,
+            "expected_monthly_revenue": 30000,
+            "monthly_emi": 5000,
+            "state": "Uttar Pradesh",
+            "district": "Lucknow",
+            "business_category": "dairy"
+        }
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert "market_context" in data
+    assert len(data["market_context"]) == 1
+    assert data["market_context"][0]["state"] == "Uttar Pradesh"
+    assert data["market_context"][0]["district"] == "Lucknow"
+    assert data["market_context"][0]["business_category"] == "dairy"
+    assert data["market_context"][0]["indicative_price"] == 55.0

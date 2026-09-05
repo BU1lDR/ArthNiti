@@ -1,13 +1,9 @@
 import json
-from pathlib import Path
-
-
-DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "schemes.json"
+from app.core.data_loader import load_json
 
 
 def load_schemes():
-    with open(DATA_FILE, "r", encoding="utf-8") as file:
-        return json.load(file)
+    return load_json("schemes.json")
 
 
 def calculate_match_score(
@@ -30,9 +26,13 @@ def calculate_match_score(
         item.lower().strip()
         for item in scheme["states"]
     ]
-
     # Business category must match
-    if category not in scheme_categories:
+    category_matches = any(
+        scheme_category in category
+        for scheme_category in scheme_categories
+    )
+
+    if not category_matches:
         return 0, []
 
     score += 60
