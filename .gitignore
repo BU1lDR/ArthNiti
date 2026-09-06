@@ -12,3 +12,6 @@ dist/
 # Local Data & ML Models
 *.sqlite
 *.pkl
+
+# AI
+.claude
