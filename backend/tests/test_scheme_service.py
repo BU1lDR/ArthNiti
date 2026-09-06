@@ -33,7 +33,7 @@ def test_matching_business_category_gives_60_points():
 
     assert score == 60
     assert len(reasons) == 1
-    assert "Business category matches" in reasons[0]
+    assert "supported by this scheme" in reasons[0]
 
 
 def test_matching_category_and_state_gives_100_points():
@@ -50,8 +50,8 @@ def test_matching_category_and_state_gives_100_points():
 
     assert score == 100
     assert len(reasons) == 2
-    assert "Business category matches" in reasons[0]
-    assert "entrepreneur's location" in reasons[1]
+    assert "supported by this scheme" in reasons[0]
+    assert "available in your state" in reasons[1]
 
 
 def test_all_states_gives_full_score():
