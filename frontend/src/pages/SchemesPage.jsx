@@ -42,9 +42,18 @@ export default function SchemesPage() {
             <div className="min-w-0">
               <h2 className="text-xl font-bold text-[var(--color-text)]">No matching schemes found</h2>
               <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
-                No scheme matched this assessment strongly enough to show here. You may still qualify for other government programs.
+                The schemes we check do not cover the kind of work you selected. That is not a rejection — it only means we cannot confirm a match from what we know.
               </p>
-              <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+              {/* Naming what is covered turns a dead end into a next step. Crop
+                  farming on its own is not covered by these three schemes; the
+                  allied activities below are. */}
+              <p className="mt-3 leading-7 text-[var(--color-text-muted)]">
+                The schemes we check support: shops and trading, manufacturing, services, food processing, dairy, poultry and beekeeping. If you also do any of these, go back and change the kind of business.
+              </p>
+              <Link to="/business" className="mt-5 inline-block">
+                <Button variant="secondary" className="min-h-12 px-6">Change my business type</Button>
+              </Link>
+              <p className="mt-4 text-sm text-[var(--color-text-muted)]">
                 Always check the latest eligibility rules with the official government authority.
               </p>
             </div>
@@ -86,7 +95,7 @@ export default function SchemesPage() {
       {result && (
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <Link to="/analysis">
-            <Button className="w-full min-h-12 border border-[var(--color-border)] bg-[var(--color-surface)] py-4 text-[var(--color-text)] hover:bg-[var(--color-surface-soft)]">
+            <Button variant="secondary" className="w-full min-h-12 py-4">
               ← Back to analysis
             </Button>
           </Link>
