@@ -362,6 +362,12 @@ function ReportPage() {
                     scheme.description ||
                     'Review the official scheme requirements before applying.'
                   }
+                  matchReasons={scheme.match_reasons || []}
+                  supportType={scheme.support_type}
+                  eligibilityRules={scheme.eligibility_rules || []}
+                  documents={scheme.documents || []}
+                  officialUrl={scheme.official_url}
+                  lastVerified={scheme.last_verified}
                 />
               ))}
             </div>
@@ -501,22 +507,105 @@ function SummaryCard({ title, value }) {
   )
 }
 
-function SchemeItem({ name, match, description }) {
+function SchemeItem({
+  name,
+  match,
+  description,
+  matchReasons,
+  supportType,
+  eligibilityRules,
+  documents,
+  officialUrl,
+  lastVerified,
+}) {
   return (
     <div className="rounded-xl bg-slate-50 p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <h3 className="font-bold text-slate-900">
           {name}
         </h3>
 
-        <span className="w-fit rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
+        <span className="w-fit shrink-0 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
           {match}
         </span>
       </div>
 
-      <p className="mt-2 text-sm leading-6 text-slate-600">
+      <p className="mt-3 text-sm leading-6 text-slate-600">
         {description}
       </p>
+
+      {supportType && (
+        <div className="mt-4">
+          <p className="text-sm font-semibold text-slate-900">
+            Support
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            {supportType}
+          </p>
+        </div>
+      )}
+
+      {matchReasons.length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm font-semibold text-slate-900">
+            Why this scheme matched
+          </p>
+
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-600">
+            {matchReasons.map((reason, index) => (
+              <li key={index}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {eligibilityRules.length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm font-semibold text-slate-900">
+            Eligibility considerations
+          </p>
+
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-600">
+            {eligibilityRules.map((rule, index) => (
+              <li key={index}>{rule}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {documents.length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm font-semibold text-slate-900">
+            Documents to prepare
+          </p>
+
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-600">
+            {documents.map((document, index) => (
+              <li key={index}>{document}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-5 flex flex-col gap-2 border-t border-slate-200 pt-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        {lastVerified && (
+          <span>
+            Information last verified: {lastVerified}
+          </span>
+        )}
+
+        {officialUrl && (
+          <a
+            href={officialUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold text-green-700 hover:text-green-800"
+          >
+            Check official scheme details →
+          </a>
+        )}
+      </div>
     </div>
   )
 }
