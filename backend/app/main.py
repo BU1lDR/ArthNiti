@@ -19,12 +19,11 @@ app = FastAPI(
 )
 
 
+# Any loopback port, so a dev server that falls back from 5173 to 5174 still works.
+# Replace with an explicit allow_origins list before deploying.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-    ],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
