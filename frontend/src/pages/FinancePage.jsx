@@ -7,7 +7,7 @@ import { runAnalysis } from '../services/api'
 const fieldClass = 'mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-base text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary-strong)]'
 
 function FinancePage() {
-  const { applicationData, setResult } = useApp()
+  const { applicationData, updateSection, setResult } = useApp()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -19,7 +19,7 @@ function FinancePage() {
 
   const handleChange = (event) => {
     const { name, value } = event.target
-    applicationData.finance[name] = value
+    updateSection('finance', { [name]: value })
   }
 
   const availableCapital = Number(finance.availableCapital) || 0
