@@ -99,8 +99,8 @@ function AdvisoryPage() {
             <div className="ui-disclosure-body space-y-5">
               {financial && (
                 <DetailBlock title="Financial position">
-                  <p>{formatStatus(financialStatus)}{monthlyProfit !== undefined ? `, with estimated monthly surplus of ${formatCurrency(monthlyProfit)}.` : '.'}</p>
-                  {profitMargin !== undefined && <p className="mt-1">Profit margin: {formatNumber(profitMargin)}%</p>}
+                  <p>{formatStatus(financialStatus)}{hasNumber(monthlyProfit) ? `, with estimated monthly surplus of ${formatCurrency(monthlyProfit)}.` : '.'}</p>
+                  {hasNumber(profitMargin) && <p className="mt-1">Profit margin: {formatNumber(profitMargin)}%</p>}
                 </DetailBlock>
               )}
               {business && (
@@ -110,7 +110,7 @@ function AdvisoryPage() {
               )}
               {risk && (
                 <DetailBlock title="Repayment risk">
-                  <p>{formatRisk(riskLevel)}{repaymentPressure !== undefined ? `, with repayment pressure of ${formatNumber(repaymentPressure)}%.` : '.'}</p>
+                  <p>{formatRisk(riskLevel)}{hasNumber(repaymentPressure) ? `, with repayment pressure of ${formatNumber(repaymentPressure)}%.` : '.'}</p>
                 </DetailBlock>
               )}
               {observations.length > 0 && (
@@ -127,7 +127,7 @@ function AdvisoryPage() {
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <Link to="/schemes">
-          <Button className="w-full min-h-12 border border-[var(--color-border)] bg-[var(--color-surface)] py-4 text-[var(--color-text)] hover:bg-[var(--color-surface-soft)]">
+          <Button variant="secondary" className="w-full min-h-12 py-4">
             🏛️ Review schemes
           </Button>
         </Link>
@@ -191,13 +191,13 @@ function getBusinessDescription(feasibility) {
 }
 
 function getFinancialDescription(profit, margin) {
-  if (profit === undefined) return 'Review your monthly income and expenses.'
-  const marginText = margin !== undefined ? ` Profit margin is ${formatNumber(margin)}%.` : ''
+  if (!hasNumber(profit)) return 'Review your monthly income and expenses.'
+  const marginText = hasNumber(margin) ? ` Profit margin is ${formatNumber(margin)}%.` : ''
   return `Estimated monthly money left is ${formatCurrency(profit)}.${marginText}`
 }
 
 function getRiskDescription(level, pressure) {
-  const pressureText = pressure !== undefined ? ` Repayment pressure is ${formatNumber(pressure)}%.` : ''
+  const pressureText = hasNumber(pressure) ? ` Repayment pressure is ${formatNumber(pressure)}%.` : ''
   if (level === 'low') return `Current repayment pressure appears manageable.${pressureText}`
   if (level === 'moderate') return `Be careful with new borrowing and watch your cash flow.${pressureText}`
   if (level === 'high') return `Avoid unnecessary borrowing until repayment capacity improves.${pressureText}`
@@ -224,6 +224,12 @@ function formatCurrency(value) {
 function formatNumber(value) {
   const number = Number(value)
   return Number.isFinite(number) ? number.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0'
+}
+
+// The backend sends null for percentages it could not compute. Number(null) is 0
+// and passes Number.isFinite, so guard on the raw value before printing it.
+function hasNumber(value) {
+  return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
 }
 
 export default AdvisoryPage
