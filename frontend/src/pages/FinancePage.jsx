@@ -116,7 +116,7 @@ function FinancePage() {
           <details className="ui-disclosure mt-6">
             <summary>💳 Do you have a loan or EMI?</summary>
             <div className="ui-disclosure-body">
-              <InputField label="Monthly EMI / loan payment (₹)" name="monthlyEmi" value={finance.monthlyEmi} onChange={handleChange} placeholder="0 if none" required />
+              <InputField label="Monthly EMI / loan payment (₹)" name="monthlyEmi" value={finance.monthlyEmi} onChange={handleChange} placeholder="0 if none" />
             </div>
           </details>
         </div>
