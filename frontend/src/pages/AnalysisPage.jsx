@@ -8,7 +8,7 @@ function AnalysisPage() {
 
   if (!result) {
     return (
-      <main className="min-h-screen bg-slate-50 px-6 py-12">
+      <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 sm:py-12">
         <div className="mx-auto max-w-4xl">
           <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
             <h1 className="text-2xl font-bold text-slate-900">
@@ -50,7 +50,7 @@ function AnalysisPage() {
     : []
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-12">
+    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 sm:py-12">
       <div className="mx-auto max-w-6xl">
 
         <Link
@@ -276,7 +276,7 @@ function AnalysisPage() {
 
         {/* Schemes */}
         <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-bold text-slate-900">
                 Government Scheme Matches
