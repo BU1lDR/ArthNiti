@@ -523,14 +523,20 @@ function SchemeItem({ name, match, description }) {
 
 function ActionItem({ number, text }) {
   return (
-    <div className="flex items-start gap-4">
+    <div className="flex items-start gap-4 rounded-xl bg-slate-50 p-4">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700">
         {number}
       </div>
 
-      <p className="pt-1 leading-6 text-slate-600">
-        {text}
-      </p>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
+          Priority {number}
+        </p>
+
+        <p className="mt-1 leading-6 text-slate-700">
+          {text}
+        </p>
+      </div>
     </div>
   )
 }
