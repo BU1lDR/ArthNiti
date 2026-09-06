@@ -38,7 +38,7 @@ function ProfilePage() {
         </p>
       </div>
 
-      <form onSubmit={handleContinue} className="ui-card overflow-hidden">
+      <form onSubmit={handleContinue} className="ui-card overflow-hidden p-0">
         <div className="space-y-6 p-5 sm:p-8">
           <div>
             <label className="text-base font-extrabold" htmlFor="profile-name">What is your name?</label>

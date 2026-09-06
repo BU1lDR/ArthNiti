@@ -8,118 +8,116 @@ export default function SchemesPage() {
   const schemes = Array.isArray(result?.scheme_matches) ? result.scheme_matches : []
 
   return (
-    <main className="ui-main">
-      <div className="mx-auto max-w-5xl">
-        <Link to="/analysis" className="text-sm font-semibold text-[var(--color-primary-strong)] hover:underline">
-          ← Back to your analysis
-        </Link>
+    <>
+      <Link to="/analysis" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--color-primary-strong)] hover:underline">
+        ← Back to your analysis
+      </Link>
 
-        <header className="ui-page-intro">
-          <p className="ui-eyebrow">💰 Funding & Government Support</p>
-          <h1 className="ui-page-title">Government schemes that may help you</h1>
-          <p className="ui-page-subtitle">
-            We found these schemes based on the business and financial details you provided.
-            Open a scheme to see why it matched and what to check before applying.
+      <header className="ui-page-intro">
+        <p className="ui-eyebrow">💰 Funding & Government Support</p>
+        <h1 className="ui-page-title">Government schemes that may help you</h1>
+        <p className="ui-page-subtitle">
+          We found these schemes based on the business and financial details you provided.
+          Open a scheme to see why it matched and what to check before applying.
+        </p>
+      </header>
+
+      {!result && (
+        <section className="ui-card mt-8 text-center sm:p-8">
+          <div className="ui-feature-icon mx-auto">📋</div>
+          <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">Complete your assessment first</h2>
+          <p className="mx-auto mt-3 max-w-xl text-[var(--color-text-muted)]">
+            Finish your business and financial details so we can show support options relevant to you.
           </p>
-        </header>
+          <Link to="/finance" className="mt-6 inline-block">
+            <Button className="min-h-12 px-6">Continue assessment</Button>
+          </Link>
+        </section>
+      )}
 
-        {!result && (
-          <section className="ui-card mt-8 text-center">
-            <div className="ui-feature-icon mx-auto">📋</div>
-            <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">Complete your assessment first</h2>
-            <p className="mx-auto mt-3 max-w-xl text-[var(--color-text-muted)]">
-              Finish your business and financial details so we can show support options relevant to you.
-            </p>
-            <Link to="/finance" className="mt-6 inline-block">
-              <Button className="min-h-12 px-6">Continue assessment</Button>
-            </Link>
-          </section>
-        )}
-
-        {result && schemes.length === 0 && (
-          <section className="ui-card mt-8">
-            <div className="flex gap-4">
-              <div className="ui-feature-icon">🔎</div>
-              <div>
-                <h2 className="text-xl font-bold text-[var(--color-text)]">No matching schemes found</h2>
-                <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
-                  No scheme matched this assessment strongly enough to show here. You may still qualify for other government programs.
-                </p>
-                <p className="mt-3 text-sm text-[var(--color-text-muted)]">
-                  Always check the latest eligibility rules with the official government authority.
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {schemes.length > 0 && (
-          <div className="mt-8 space-y-5">
-            <div className="ui-card-soft flex items-center justify-between gap-4">
-              <div>
-                <p className="font-bold text-[var(--color-text)]">{schemes.length} support option{schemes.length === 1 ? '' : 's'} found</p>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Start with the highest-match options.</p>
-              </div>
-              <span aria-hidden="true" className="text-2xl">👉</span>
-            </div>
-
-            {schemes.map((scheme, index) => (
-              <SchemeCard key={scheme.name || `scheme-${index}`} scheme={scheme} index={index} />
-            ))}
-          </div>
-        )}
-
-        <section className="ui-card-soft mt-8 border border-[var(--color-accent)]">
-          <div className="flex gap-4">
-            <div className="text-2xl" aria-hidden="true">⚠️</div>
-            <div>
-              <h2 className="text-lg font-bold text-[var(--color-text)]">Before you apply</h2>
+      {result && schemes.length === 0 && (
+        <section className="ui-card mt-8 sm:p-8">
+          <div className="flex min-w-0 gap-4">
+            <div className="ui-feature-icon shrink-0">🔎</div>
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold text-[var(--color-text)]">No matching schemes found</h2>
               <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
-                A match score is only an indication. It does not mean final government eligibility or approval.
+                No scheme matched this assessment strongly enough to show here. You may still qualify for other government programs.
               </p>
-              <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
-                Check the latest eligibility, benefits, documents and application process on the official scheme website.
+              <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+                Always check the latest eligibility rules with the official government authority.
               </p>
             </div>
           </div>
         </section>
+      )}
 
-        {result && (
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <Link to="/analysis">
-              <Button className="w-full min-h-12 border border-[var(--color-border)] bg-[var(--color-surface)] py-4 text-[var(--color-text)] hover:bg-[var(--color-surface-soft)]">
-                ← Back to analysis
-              </Button>
-            </Link>
-            <Link to="/advisory">
-              <Button className="w-full min-h-12 py-4">Get my next steps →</Button>
-            </Link>
+      {schemes.length > 0 && (
+        <div className="mt-8 space-y-5">
+          <div className="ui-card-soft flex min-w-0 items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-bold text-[var(--color-text)]">{schemes.length} support option{schemes.length === 1 ? '' : 's'} found</p>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">Start with the highest-match options.</p>
+            </div>
+            <span aria-hidden="true" className="shrink-0 text-2xl">👉</span>
           </div>
-        )}
-      </div>
-    </main>
+
+          {schemes.map((scheme, index) => (
+            <SchemeCard key={scheme.name || `scheme-${index}`} scheme={scheme} index={index} />
+          ))}
+        </div>
+      )}
+
+      <section className="ui-card-soft mt-8 border border-[var(--color-accent)] sm:p-8">
+        <div className="flex min-w-0 gap-4">
+          <div className="shrink-0 text-2xl" aria-hidden="true">⚠️</div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-[var(--color-text)]">Before you apply</h2>
+            <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
+              A match score is only an indication. It does not mean final government eligibility or approval.
+            </p>
+            <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
+              Check the latest eligibility, benefits, documents and application process on the official scheme website.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {result && (
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <Link to="/analysis">
+            <Button className="w-full min-h-12 border border-[var(--color-border)] bg-[var(--color-surface)] py-4 text-[var(--color-text)] hover:bg-[var(--color-surface-soft)]">
+              ← Back to analysis
+            </Button>
+          </Link>
+          <Link to="/advisory">
+            <Button className="w-full min-h-12 py-4">Get my next steps →</Button>
+          </Link>
+        </div>
+      )}
+    </>
   )
 }
 
 function SchemeCard({ scheme, index }) {
   if (typeof scheme === 'string') {
     return (
-      <section className="ui-card">
-        <div className="flex gap-4">
-          <div className="ui-feature-icon">{index + 1}</div>
-          <p className="font-bold text-[var(--color-text)]">{scheme}</p>
+      <section className="ui-card sm:p-8">
+        <div className="flex min-w-0 gap-4">
+          <div className="ui-feature-icon shrink-0">{index + 1}</div>
+          <p className="min-w-0 font-bold text-[var(--color-text)]">{scheme}</p>
         </div>
       </section>
     )
   }
 
   return (
-    <section className="ui-card">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+    <section className="ui-card sm:p-8">
+      <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <div className="flex items-start gap-3">
-            <div className="ui-feature-icon" aria-hidden="true">🏛️</div>
-            <div>
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="ui-feature-icon shrink-0" aria-hidden="true">🏛️</div>
+            <div className="min-w-0">
               <p className="ui-eyebrow">Government support</p>
               <h2 className="mt-1 text-xl font-bold text-[var(--color-text)]">{scheme.name || 'Government Scheme'}</h2>
             </div>
@@ -149,7 +147,7 @@ function SchemeCard({ scheme, index }) {
 
       <details className="ui-disclosure mt-6">
         <summary>Show eligibility & application details</summary>
-        <div className="mt-5 space-y-5">
+        <div className="ui-disclosure-body space-y-5">
           {Array.isArray(scheme.eligibility_rules) && scheme.eligibility_rules.length > 0 && (
             <div>
               <h3 className="font-bold text-[var(--color-text)]">Eligibility to check</h3>
@@ -186,7 +184,7 @@ function SchemeCard({ scheme, index }) {
 
 function SchemeSection({ title, children }) {
   return (
-    <div className="mt-6 border-t border-[var(--color-border)] pt-5">
+    <div className="mt-6 min-w-0 border-t border-[var(--color-border)] pt-5">
       <h3 className="font-bold text-[var(--color-text)]">{title}</h3>
       <div className="mt-3">{children}</div>
     </div>
@@ -197,9 +195,9 @@ function BulletList({ items }) {
   return (
     <ul className="space-y-3">
       {items.map((item, index) => (
-        <li key={index} className="flex gap-3 leading-7 text-[var(--color-text-muted)]">
+        <li key={index} className="flex min-w-0 gap-3 leading-7 text-[var(--color-text-muted)]">
           <span className="mt-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-soft)] text-xs font-bold text-[var(--color-primary-strong)]" aria-hidden="true">✓</span>
-          <span>{item}</span>
+          <span className="min-w-0">{item}</span>
         </li>
       ))}
     </ul>

@@ -50,7 +50,7 @@ function BusinessPage() {
         <p className="ui-page-subtitle">Choose what you do, then tell us a few numbers. We’ll use them to check how your business is doing.</p>
       </div>
 
-      <form onSubmit={handleContinue} className="ui-card overflow-hidden">
+      <form onSubmit={handleContinue} className="ui-card overflow-hidden p-0">
         <div className="space-y-7 p-5 sm:p-8">
           <div>
             <label className="text-base font-extrabold" htmlFor="business-name">What is your business called?</label>

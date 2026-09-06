@@ -68,7 +68,7 @@ function LocationPage() {
         <p className="ui-page-subtitle">Your location helps us understand the nearby market and find more relevant schemes and advice.</p>
       </div>
 
-      <form onSubmit={handleContinue} className="ui-card overflow-hidden">
+      <form onSubmit={handleContinue} className="ui-card overflow-hidden p-0">
         <div className="space-y-8 p-5 sm:p-8">
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="block">

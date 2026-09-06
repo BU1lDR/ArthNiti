@@ -202,6 +202,16 @@ textarea:focus-visible {
   background: var(--color-surface-soft);
 }
 
+/* Default card padding sits in Tailwind's components layer, which the utilities
+   layer overrides. So any p-* at the call site still wins — including p-0 for
+   the journey forms, whose submit strip is deliberately full-bleed. */
+@layer components {
+  .ui-card,
+  .ui-card-soft {
+    padding: 20px;
+  }
+}
+
 .ui-simple-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

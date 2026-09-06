@@ -21,135 +21,133 @@ function AdvisoryPage() {
   const feasibility = business?.feasibility || business?.feasibility_status || 'unknown'
 
   return (
-    <main className="ui-main">
-      <div className="mx-auto max-w-5xl">
-        <Link to="/schemes" className="text-sm font-semibold text-[var(--color-primary-strong)] hover:underline">
-          ← Back to schemes
-        </Link>
+    <>
+      <Link to="/schemes" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--color-primary-strong)] hover:underline">
+        ← Back to schemes
+      </Link>
 
-        <header className="ui-page-intro">
-          <p className="ui-eyebrow">🧭 Your Personalized Advisory</p>
-          <h1 className="ui-page-title">Here is what you can do next</h1>
-          <p className="ui-page-subtitle">
-            Simple, practical guidance based on your business, money situation, risk and matched government support.
-          </p>
-        </header>
-
-        {!result ? (
-          <section className="ui-card mt-8 text-center">
-            <div className="ui-feature-icon mx-auto">📋</div>
-            <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">Your advice is not ready yet</h2>
-            <p className="mx-auto mt-3 max-w-xl leading-7 text-[var(--color-text-muted)]">
-              Complete the business and financial assessment first.
-            </p>
-            <Link to="/finance" className="mt-6 inline-block">
-              <Button className="min-h-12 px-6">Continue assessment</Button>
-            </Link>
-          </section>
-        ) : (
-          <>
-            <section className="ui-card mt-8">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-surface-soft)] text-3xl" aria-hidden="true">
-                  💡
-                </div>
-                <div>
-                  <p className="ui-eyebrow">Your main takeaway</p>
-                  <h2 className="mt-1 text-2xl font-extrabold text-[var(--color-text)]">
-                    {getBusinessRecommendation(feasibility)}
-                  </h2>
-                  <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
-                    {observations[0] || recommendations[0] || 'Review the steps below before making your next business decision.'}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section className="mt-6 grid gap-4 sm:grid-cols-2">
-              <AdvisoryCard icon="💼" title="Business" value={formatStatus(feasibility)} description={getBusinessDescription(feasibility)} />
-              <AdvisoryCard icon="💰" title="Money" value={formatStatus(financialStatus)} description={getFinancialDescription(monthlyProfit, profitMargin)} />
-              <AdvisoryCard icon="🛡️" title="Risk" value={formatRisk(riskLevel)} description={getRiskDescription(riskLevel, repaymentPressure)} />
-              <AdvisoryCard icon="🏛️" title="Government support" value={`${schemes.length} match${schemes.length === 1 ? '' : 'es'}`} description={schemes.length > 0 ? 'Government schemes may be worth checking.' : 'No scheme matched this assessment.'} />
-            </section>
-
-            <section className="ui-card mt-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="ui-eyebrow">Action plan</p>
-                  <h2 className="mt-1 text-2xl font-bold text-[var(--color-text)]">Do these things next</h2>
-                </div>
-                <span className="text-2xl" aria-hidden="true">👉</span>
-              </div>
-
-              <div className="mt-6 space-y-4">
-                {recommendations.length > 0 ? recommendations.slice(0, 5).map((recommendation, index) => (
-                  <ActionItem key={index} number={index + 1} text={recommendation} />
-                )) : (
-                  <>
-                    <ActionItem number={1} text="Review your monthly income and expenses." />
-                    <ActionItem number={2} text="Check the government schemes suggested for your business." />
-                    <ActionItem number={3} text="Prepare the documents needed for the support you choose." />
-                    <ActionItem number={4} text="Check your repayment capacity before taking new debt." />
-                  </>
-                )}
-              </div>
-            </section>
-
-            <details className="ui-disclosure mt-6">
-              <summary>Show the details behind this advice</summary>
-              <div className="mt-5 space-y-5">
-                {financial && (
-                  <DetailBlock title="Financial position">
-                    <p>{formatStatus(financialStatus)}{monthlyProfit !== undefined ? `, with estimated monthly surplus of ${formatCurrency(monthlyProfit)}.` : '.'}</p>
-                    {profitMargin !== undefined && <p className="mt-1">Profit margin: {formatNumber(profitMargin)}%</p>}
-                  </DetailBlock>
-                )}
-                {business && (
-                  <DetailBlock title="Business feasibility">
-                    <p>{formatStatus(feasibility)}.</p>
-                  </DetailBlock>
-                )}
-                {risk && (
-                  <DetailBlock title="Repayment risk">
-                    <p>{formatRisk(riskLevel)}{repaymentPressure !== undefined ? `, with repayment pressure of ${formatNumber(repaymentPressure)}%.` : '.'}</p>
-                  </DetailBlock>
-                )}
-                {observations.length > 0 && (
-                  <DetailBlock title="Business observations">
-                    <ul className="space-y-2">
-                      {observations.map((observation, index) => <li key={index}>• {observation}</li>)}
-                    </ul>
-                  </DetailBlock>
-                )}
-              </div>
-            </details>
-          </>
-        )}
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <Link to="/schemes">
-            <Button className="w-full min-h-12 border border-[var(--color-border)] bg-[var(--color-surface)] py-4 text-[var(--color-text)] hover:bg-[var(--color-surface-soft)]">
-              🏛️ Review schemes
-            </Button>
-          </Link>
-          <Link to="/report">
-            <Button className="w-full min-h-12 py-4">📄 Generate my report</Button>
-          </Link>
-        </div>
-
-        <p className="mt-5 text-center text-xs leading-5 text-[var(--color-text-muted)]">
-          This advisory is for guidance. It does not guarantee business success, scheme eligibility, loan approval or financial outcomes.
+      <header className="ui-page-intro">
+        <p className="ui-eyebrow">🧭 Your Personalized Advisory</p>
+        <h1 className="ui-page-title">Here is what you can do next</h1>
+        <p className="ui-page-subtitle">
+          Simple, practical guidance based on your business, money situation, risk and matched government support.
         </p>
+      </header>
+
+      {!result ? (
+        <section className="ui-card mt-8 text-center sm:p-8">
+          <div className="ui-feature-icon mx-auto">📋</div>
+          <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">Your advice is not ready yet</h2>
+          <p className="mx-auto mt-3 max-w-xl leading-7 text-[var(--color-text-muted)]">
+            Complete the business and financial assessment first.
+          </p>
+          <Link to="/finance" className="mt-6 inline-block">
+            <Button className="min-h-12 px-6">Continue assessment</Button>
+          </Link>
+        </section>
+      ) : (
+        <>
+          <section className="ui-card mt-8 sm:p-8">
+            <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-surface-soft)] text-3xl" aria-hidden="true">
+                💡
+              </div>
+              <div className="min-w-0">
+                <p className="ui-eyebrow">Your main takeaway</p>
+                <h2 className="mt-1 text-2xl font-extrabold text-[var(--color-text)]">
+                  {getBusinessRecommendation(feasibility)}
+                </h2>
+                <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
+                  {observations[0] || recommendations[0] || 'Review the steps below before making your next business decision.'}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-6 grid gap-4 sm:grid-cols-2">
+            <AdvisoryCard icon="💼" title="Business" value={formatStatus(feasibility)} description={getBusinessDescription(feasibility)} />
+            <AdvisoryCard icon="💰" title="Money" value={formatStatus(financialStatus)} description={getFinancialDescription(monthlyProfit, profitMargin)} />
+            <AdvisoryCard icon="🛡️" title="Risk" value={formatRisk(riskLevel)} description={getRiskDescription(riskLevel, repaymentPressure)} />
+            <AdvisoryCard icon="🏛️" title="Government support" value={`${schemes.length} match${schemes.length === 1 ? '' : 'es'}`} description={schemes.length > 0 ? 'Government schemes may be worth checking.' : 'No scheme matched this assessment.'} />
+          </section>
+
+          <section className="ui-card mt-6 sm:p-8">
+            <div className="flex min-w-0 items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="ui-eyebrow">Action plan</p>
+                <h2 className="mt-1 text-2xl font-bold text-[var(--color-text)]">Do these things next</h2>
+              </div>
+              <span className="shrink-0 text-2xl" aria-hidden="true">👉</span>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {recommendations.length > 0 ? recommendations.slice(0, 5).map((recommendation, index) => (
+                <ActionItem key={index} number={index + 1} text={recommendation} />
+              )) : (
+                <>
+                  <ActionItem number={1} text="Review your monthly income and expenses." />
+                  <ActionItem number={2} text="Check the government schemes suggested for your business." />
+                  <ActionItem number={3} text="Prepare the documents needed for the support you choose." />
+                  <ActionItem number={4} text="Check your repayment capacity before taking new debt." />
+                </>
+              )}
+            </div>
+          </section>
+
+          <details className="ui-disclosure mt-6">
+            <summary>Show the details behind this advice</summary>
+            <div className="ui-disclosure-body space-y-5">
+              {financial && (
+                <DetailBlock title="Financial position">
+                  <p>{formatStatus(financialStatus)}{monthlyProfit !== undefined ? `, with estimated monthly surplus of ${formatCurrency(monthlyProfit)}.` : '.'}</p>
+                  {profitMargin !== undefined && <p className="mt-1">Profit margin: {formatNumber(profitMargin)}%</p>}
+                </DetailBlock>
+              )}
+              {business && (
+                <DetailBlock title="Business feasibility">
+                  <p>{formatStatus(feasibility)}.</p>
+                </DetailBlock>
+              )}
+              {risk && (
+                <DetailBlock title="Repayment risk">
+                  <p>{formatRisk(riskLevel)}{repaymentPressure !== undefined ? `, with repayment pressure of ${formatNumber(repaymentPressure)}%.` : '.'}</p>
+                </DetailBlock>
+              )}
+              {observations.length > 0 && (
+                <DetailBlock title="Business observations">
+                  <ul className="space-y-2">
+                    {observations.map((observation, index) => <li key={index}>• {observation}</li>)}
+                  </ul>
+                </DetailBlock>
+              )}
+            </div>
+          </details>
+        </>
+      )}
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <Link to="/schemes">
+          <Button className="w-full min-h-12 border border-[var(--color-border)] bg-[var(--color-surface)] py-4 text-[var(--color-text)] hover:bg-[var(--color-surface-soft)]">
+            🏛️ Review schemes
+          </Button>
+        </Link>
+        <Link to="/report">
+          <Button className="w-full min-h-12 py-4">📄 Generate my report</Button>
+        </Link>
       </div>
-    </main>
+
+      <p className="mt-5 text-center text-xs leading-5 text-[var(--color-text-muted)]">
+        This advisory is for guidance. It does not guarantee business success, scheme eligibility, loan approval or financial outcomes.
+      </p>
+    </>
   )
 }
 
 function AdvisoryCard({ icon, title, value, description }) {
   return (
     <article className="ui-card">
-      <div className="flex items-start gap-4">
-        <div className="ui-feature-icon" aria-hidden="true">{icon}</div>
+      <div className="flex min-w-0 items-start gap-4">
+        <div className="ui-feature-icon shrink-0" aria-hidden="true">{icon}</div>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-[var(--color-text-muted)]">{title}</p>
           <p className="mt-1 text-xl font-extrabold text-[var(--color-text)]">{value}</p>
@@ -162,18 +160,18 @@ function AdvisoryCard({ icon, title, value, description }) {
 
 function ActionItem({ number, text }) {
   return (
-    <div className="flex items-start gap-4 rounded-xl border border-[var(--color-border)] p-4">
+    <div className="flex min-w-0 items-start gap-4 rounded-xl border border-[var(--color-border)] p-4">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-soft)] font-extrabold text-[var(--color-primary-strong)]">
         {number}
       </div>
-      <p className="pt-1 leading-7 text-[var(--color-text)]">{typeof text === 'string' ? text : JSON.stringify(text)}</p>
+      <p className="min-w-0 flex-1 break-words pt-1 leading-7 text-[var(--color-text)]">{typeof text === 'string' ? text : JSON.stringify(text)}</p>
     </div>
   )
 }
 
 function DetailBlock({ title, children }) {
   return (
-    <div className="rounded-xl bg-[var(--color-surface-soft)] p-4 text-sm leading-7 text-[var(--color-text-muted)]">
+    <div className="min-w-0 rounded-xl bg-[var(--color-surface-soft)] p-4 text-sm leading-7 text-[var(--color-text-muted)]">
       <h3 className="font-bold text-[var(--color-text)]">{title}</h3>
       <div className="mt-2">{children}</div>
     </div>
