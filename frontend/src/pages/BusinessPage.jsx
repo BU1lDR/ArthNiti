@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
@@ -20,6 +21,8 @@ function BusinessPage() {
   const { applicationData, updateSection } = useApp()
   const navigate = useNavigate()
   const business = applicationData.business
+  const [categoryError, setCategoryError] = useState(false)
+  const categoryRef = useRef(null)
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -27,11 +30,20 @@ function BusinessPage() {
   }
 
   const handleCategory = (category) => {
+    setCategoryError(false)
     updateSection('business', { category })
   }
 
   const handleContinue = (event) => {
     event.preventDefault()
+
+    // The category is chosen with buttons, so nothing native validates it.
+    if (!business.category) {
+      setCategoryError(true)
+      categoryRef.current?.scrollIntoView({ block: 'center' })
+      return
+    }
+
     navigate('/location')
   }
 
@@ -57,7 +69,7 @@ function BusinessPage() {
             <input id="business-name" name="businessName" value={business.businessName} onChange={handleChange} type="text" placeholder="e.g. Rahul General Store" className={fieldClass} required />
           </div>
 
-          <fieldset>
+          <fieldset ref={categoryRef} aria-describedby={categoryError ? 'category-error' : undefined}>
             <legend className="text-base font-extrabold">What kind of business do you run?</legend>
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">Tap one option.</p>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -71,7 +83,11 @@ function BusinessPage() {
                 )
               })}
             </div>
-            <input type="text" name="category" value={business.category} onChange={handleChange} tabIndex="-1" aria-hidden="true" className="sr-only" required />
+            {categoryError && (
+              <p id="category-error" role="alert" className="mt-3 text-sm font-bold text-[var(--color-danger)]">
+                Please tap the kind of business you run.
+              </p>
+            )}
           </fieldset>
 
           <div className="ui-card-soft p-5 sm:p-6">
@@ -94,6 +110,7 @@ function BusinessPage() {
               </label>
               <label className="block">
                 <span className="font-bold">Monthly business expenses <span className="font-normal text-[var(--color-text-muted)]">₹</span></span>
+                <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">Only business costs — stock, rent, transport, electricity.</span>
                 <input name="monthlyOperatingExpenses" value={business.monthlyOperatingExpenses} onChange={handleChange} type="number" min="0" placeholder="e.g. 18000" className={fieldClass} required />
               </label>
             </div>

@@ -37,8 +37,8 @@ function FinancePage() {
 
     const payload = {
       business_category: business.category,
-      state: location.state || profile.state,
-      district: location.district || profile.district || '',
+      state: location.state,
+      district: location.district || '',
       village: location.village || '',
       market_type: location.marketType || '',
       customers: location.customers || '',
@@ -53,7 +53,6 @@ function FinancePage() {
       user_language: profile.language || 'Hindi',
       preferred_dialect: profile.dialect || null,
       literacy_level: profile.literacyLevel || 'low',
-      entrepreneur_type: profile.entrepreneurType || null,
       location_type: location.locationType || 'rural',
     }
 
@@ -110,7 +109,7 @@ function FinancePage() {
               <p className="mt-2 text-2xl font-black text-[var(--color-text)]">₹{monthlyRevenue.toLocaleString('en-IN')}</p>
               <p className="mt-1 text-xs text-[var(--color-text-muted)]">Taken from your business details.</p>
             </div>
-            <InputField label="How much do you spend each month?" name="monthlyExpenses" value={finance.monthlyExpenses} onChange={handleChange} placeholder="e.g. 15000" required />
+            <InputField label="How much do you spend each month?" name="monthlyExpenses" value={finance.monthlyExpenses} onChange={handleChange} placeholder="e.g. 15000" hint="Everything you spend in a month, including your home and family costs." required />
           </div>
 
           <details className="ui-disclosure mt-6">
@@ -136,10 +135,11 @@ function FinancePage() {
   )
 }
 
-function InputField({ label, name, value, onChange, placeholder, required = false }) {
+function InputField({ label, name, value, onChange, placeholder, hint, required = false }) {
   return (
     <label className="block">
       <span className="font-extrabold">{label}</span>
+      {hint && <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{hint}</span>}
       <input name={name} value={value} onChange={onChange} type="number" min="0" placeholder={placeholder} required={required} className={fieldClass} />
     </label>
   )

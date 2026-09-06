@@ -5,14 +5,13 @@ const AppContext = createContext(null)
 
 export function AppProvider({ children }) {
   const [applicationData, setApplicationData] = useState({
+    // State and district belong to the location step, which is the single place
+    // they are collected. Keeping copies here meant asking for them twice.
     profile: {
       name: '',
-      state: '',
-      district: '',
       language: 'Hindi',
       dialect: '',
       literacyLevel: 'low',
-      entrepreneurType: '',
     },
 
     business: {

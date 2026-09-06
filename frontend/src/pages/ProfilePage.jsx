@@ -45,17 +45,6 @@ function ProfilePage() {
             <input id="profile-name" name="name" value={profile.name} onChange={handleChange} type="text" placeholder="Your name" className={fieldClass} autoComplete="name" required />
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div>
-              <label className="text-base font-extrabold" htmlFor="profile-state">Which state are you in?</label>
-              <input id="profile-state" name="state" value={profile.state} onChange={handleChange} type="text" placeholder="e.g. Uttar Pradesh" className={fieldClass} autoComplete="address-level1" required />
-            </div>
-            <div>
-              <label className="text-base font-extrabold" htmlFor="profile-district">Which district?</label>
-              <input id="profile-district" name="district" value={profile.district} onChange={handleChange} type="text" placeholder="e.g. Meerut" className={fieldClass} autoComplete="address-level2" required />
-            </div>
-          </div>
-
           <div className="ui-card-soft p-5">
             <h2 className="text-base font-extrabold">How should we talk to you?</h2>
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">You can change this later.</p>

@@ -77,7 +77,7 @@ function LocationPage() {
             </label>
             <label className="block">
               <span className="font-extrabold">District</span>
-              <input name="district" value={location.district} onChange={handleChange} type="text" placeholder="e.g. Meerut" className={fieldClass} />
+              <input name="district" value={location.district} onChange={handleChange} type="text" placeholder="e.g. Meerut" className={fieldClass} required />
             </label>
           </div>
 
