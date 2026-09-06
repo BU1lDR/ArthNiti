@@ -80,7 +80,7 @@ function AppShell({ children }) {
       </header>
 
       <main className="ui-main">
-        {(isJourneyPage || isResultPage) && <JourneyBar isResultPage={isResultPage} />}
+        {(isJourneyPage || isResultPage) && <JourneyBar isResultPage={isResultPage} currentPath={location.pathname} />}
         {children}
       </main>
 
@@ -94,16 +94,21 @@ function AppShell({ children }) {
   )
 }
 
-function JourneyBar({ isResultPage }) {
+function JourneyBar({ isResultPage, currentPath }) {
   const steps = isResultPage ? resultLinks : journey
+  const currentIndex = steps.findIndex((step) => step.path === currentPath)
 
   return (
     <div className="ui-progress" aria-label="Application progress">
       {steps.map((step, index) => (
-        <div key={step.path} className={`ui-progress-step ${index === 0 ? 'is-active' : ''}`} />
+        <div
+          key={step.path}
+          className={`ui-progress-step ${index < currentIndex ? 'is-complete' : ''} ${index === currentIndex ? 'is-active' : ''}`}
+          aria-label={`${step.label}: ${index < currentIndex ? 'complete' : index === currentIndex ? 'current' : 'upcoming'}`}
+        />
       ))}
       <span className="ui-progress-label">
-        {isResultPage ? 'Your results' : 'Your business journey'}
+        {isResultPage ? `${currentIndex + 1} of ${steps.length} · Your results` : `${currentIndex + 1} of ${steps.length} · Your business journey`}
       </span>
     </div>
   )
