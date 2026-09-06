@@ -31,6 +31,46 @@
   },
   {
     "state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "business_category": "handicrafts",
+    "indicative_price": 480.0,
+    "demand_indicator": "medium",
+    "seasonality": "Demand rises around festivals and the wedding season.",
+    "source": "Prototype estimate / illustrative data",
+    "last_verified": "2026-09-02"
+  },
+  {
+    "state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "business_category": "tailoring",
+    "indicative_price": 320.0,
+    "demand_indicator": "high",
+    "seasonality": "Demand can increase around festivals and wedding periods.",
+    "source": "Prototype estimate / illustrative data",
+    "last_verified": "2026-09-02"
+  },
+  {
+    "state": "Uttar Pradesh",
+    "district": "Varanasi",
+    "business_category": "handicrafts",
+    "indicative_price": 650.0,
+    "demand_indicator": "high",
+    "seasonality": "Demand rises around festivals and the wedding season.",
+    "source": "Prototype estimate / illustrative data",
+    "last_verified": "2026-09-02"
+  },
+  {
+    "state": "Uttar Pradesh",
+    "district": "Varanasi",
+    "business_category": "food processing",
+    "indicative_price": 115.0,
+    "demand_indicator": "medium",
+    "seasonality": "Demand varies by product and local seasonal consumption.",
+    "source": "Prototype estimate / illustrative data",
+    "last_verified": "2026-09-02"
+  },
+  {
+    "state": "Uttar Pradesh",
     "district": "Varanasi",
     "business_category": "dairy",
     "indicative_price": 56.0,

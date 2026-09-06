@@ -25,18 +25,35 @@ def get_market_context(
         "customers": customers.strip(),
     }
 
-    matches = []
+    def rows(same_district: bool) -> list[dict]:
+        found = []
 
-    for item in data:
-        if (
-            item["state"].strip().lower() == state
-            and item["district"].strip().lower() == district
-            and item["business_category"].strip().lower() == business_category
-        ):
-            match = {
-                **item,
-                "local_context": local_context,
-            }
-            matches.append(match)
+        for item in data:
+            if item["state"].strip().lower() != state:
+                continue
 
-    return matches
+            if item["business_category"].strip().lower() != business_category:
+                continue
+
+            if same_district != (item["district"].strip().lower() == district):
+                continue
+
+            found.append(
+                {
+                    **item,
+                    "match_level": "district" if same_district else "state",
+                    "local_context": local_context,
+                }
+            )
+
+        return found
+
+    # The entrepreneur's own district is the most useful answer. Requiring it
+    # meant that every district we have no row for got an empty section, so fall
+    # back to the same state and let each row say which it is.
+    exact = rows(same_district=True)
+
+    if exact:
+        return exact
+
+    return rows(same_district=False)
