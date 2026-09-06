@@ -4,182 +4,95 @@ import { useApp } from '../context/AppContext'
 
 export default function SchemesPage() {
   const { applicationData } = useApp()
-
   const result = applicationData?.result
-  const schemes = result?.scheme_matches || []
+  const schemes = Array.isArray(result?.scheme_matches) ? result.scheme_matches : []
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 sm:py-12">
+    <main className="ui-main">
       <div className="mx-auto max-w-5xl">
-        <Link
-          to="/analysis"
-          className="text-sm font-medium text-green-700 hover:text-green-800"
-        >
-          ← Back to Analysis
+        <Link to="/analysis" className="text-sm font-semibold text-[var(--color-primary-strong)] hover:underline">
+          ← Back to your analysis
         </Link>
 
-        <header className="mt-6">
-          <p className="text-sm font-semibold text-green-600">
-            Funding & Government Support
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Government Schemes & Support
-          </h1>
-
-          <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-            Based on your business profile and financial analysis, the
-            following government schemes may be relevant to your business.
+        <header className="ui-page-intro">
+          <p className="ui-eyebrow">💰 Funding & Government Support</p>
+          <h1 className="ui-page-title">Government schemes that may help you</h1>
+          <p className="ui-page-subtitle">
+            We found these schemes based on the business and financial details you provided.
+            Open a scheme to see why it matched and what to check before applying.
           </p>
         </header>
 
         {!result && (
-          <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-900">
-              No Analysis Available
-            </h2>
-
-            <p className="mt-3 leading-7 text-slate-600">
-              Please complete the business and financial assessment first
-              to see schemes relevant to your business.
+          <section className="ui-card mt-8 text-center">
+            <div className="ui-feature-icon mx-auto">📋</div>
+            <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">Complete your assessment first</h2>
+            <p className="mx-auto mt-3 max-w-xl text-[var(--color-text-muted)]">
+              Finish your business and financial details so we can show support options relevant to you.
             </p>
-
-            <Link to="/finance">
-              <Button className="mt-6">
-                Go to Financial Analysis
-              </Button>
+            <Link to="/finance" className="mt-6 inline-block">
+              <Button className="min-h-12 px-6">Continue assessment</Button>
             </Link>
           </section>
         )}
 
         {result && schemes.length === 0 && (
-          <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-900">
-              No Matching Schemes Found
-            </h2>
-
-            <p className="mt-3 leading-7 text-slate-600">
-              We could not find any matching schemes for the information
-              provided.
-            </p>
-
-            <p className="mt-3 leading-7 text-slate-600">
-              You may still be eligible for other government programs.
-              Please verify eligibility through official government sources.
-            </p>
+          <section className="ui-card mt-8">
+            <div className="flex gap-4">
+              <div className="ui-feature-icon">🔎</div>
+              <div>
+                <h2 className="text-xl font-bold text-[var(--color-text)]">No matching schemes found</h2>
+                <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
+                  No scheme matched this assessment strongly enough to show here. You may still qualify for other government programs.
+                </p>
+                <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+                  Always check the latest eligibility rules with the official government authority.
+                </p>
+              </div>
+            </div>
           </section>
         )}
 
         {schemes.length > 0 && (
-          <div className="mt-8 space-y-6">
+          <div className="mt-8 space-y-5">
+            <div className="ui-card-soft flex items-center justify-between gap-4">
+              <div>
+                <p className="font-bold text-[var(--color-text)]">{schemes.length} support option{schemes.length === 1 ? '' : 's'} found</p>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Start with the highest-match options.</p>
+              </div>
+              <span aria-hidden="true" className="text-2xl">👉</span>
+            </div>
+
             {schemes.map((scheme, index) => (
-              <section
-                key={scheme.name || `scheme-${index}`}
-                className="rounded-2xl bg-white p-6 shadow-sm"
-              >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-900">
-                      {scheme.name}
-                    </h2>
-
-                    {scheme.description && (
-                      <p className="mt-3 leading-7 text-slate-600">
-                        {scheme.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {scheme.match_score !== undefined && (
-                    <div className="shrink-0 rounded-xl bg-green-100 px-4 py-3 text-center">
-                      <p className="text-2xl font-bold text-green-700">
-                        {scheme.match_score}%
-                      </p>
-
-                      <p className="text-sm font-medium text-green-700">
-                        Match
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {scheme.support_type && (
-                  <SchemeSection title="Type of Support">
-                    <p className="leading-7 text-slate-600">
-                      {scheme.support_type}
-                    </p>
-                  </SchemeSection>
-                )}
-
-                {Array.isArray(scheme.match_reasons) &&
-                  scheme.match_reasons.length > 0 && (
-                    <SchemeSection title="Why This Scheme Matches">
-                      <BulletList items={scheme.match_reasons} />
-                    </SchemeSection>
-                  )}
-
-                {Array.isArray(scheme.eligibility_rules) &&
-                  scheme.eligibility_rules.length > 0 && (
-                    <SchemeSection title="Eligibility Information">
-                      <BulletList items={scheme.eligibility_rules} />
-                    </SchemeSection>
-                  )}
-
-                {Array.isArray(scheme.documents) &&
-                  scheme.documents.length > 0 && (
-                    <SchemeSection title="Required Documents">
-                      <BulletList items={scheme.documents} />
-                    </SchemeSection>
-                  )}
-
-                <div className="mt-6 flex flex-col gap-4 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                  {scheme.official_url && (
-                    <a
-                      href={scheme.official_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-semibold text-green-700 hover:text-green-800"
-                    >
-                      View Official Scheme →
-                    </a>
-                  )}
-
-                  {scheme.last_verified && (
-                    <p className="text-sm text-slate-500">
-                      Last verified: {scheme.last_verified}
-                    </p>
-                  )}
-                </div>
-              </section>
+              <SchemeCard key={scheme.name || `scheme-${index}`} scheme={scheme} index={index} />
             ))}
           </div>
         )}
 
-        <section className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-6">
-          <h2 className="text-lg font-bold text-amber-900">
-            Important
-          </h2>
-
-          <p className="mt-3 leading-7 text-amber-900">
-            Scheme matching is indicative and is based on the information
-            provided during this assessment. A match score does not represent
-            final government eligibility or approval.
-          </p>
-
-          <p className="mt-3 leading-7 text-amber-900">
-            Final eligibility, benefits, documentation requirements, and
-            approval are determined by the respective government scheme
-            guidelines and approving authority. Please verify the latest
-            information through the official scheme website before applying.
-          </p>
+        <section className="ui-card-soft mt-8 border border-[var(--color-accent)]">
+          <div className="flex gap-4">
+            <div className="text-2xl" aria-hidden="true">⚠️</div>
+            <div>
+              <h2 className="text-lg font-bold text-[var(--color-text)]">Before you apply</h2>
+              <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
+                A match score is only an indication. It does not mean final government eligibility or approval.
+              </p>
+              <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
+                Check the latest eligibility, benefits, documents and application process on the official scheme website.
+              </p>
+            </div>
+          </div>
         </section>
 
         {result && (
-          <div className="mt-8">
-            <Link to="/advisory">
-              <Button className="w-full py-4">
-                Continue to Personalized Advisory →
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <Link to="/analysis">
+              <Button className="w-full min-h-12 border border-[var(--color-border)] bg-[var(--color-surface)] py-4 text-[var(--color-text)] hover:bg-[var(--color-surface-soft)]">
+                ← Back to analysis
               </Button>
+            </Link>
+            <Link to="/advisory">
+              <Button className="w-full min-h-12 py-4">Get my next steps →</Button>
             </Link>
           </div>
         )}
@@ -188,29 +101,104 @@ export default function SchemesPage() {
   )
 }
 
+function SchemeCard({ scheme, index }) {
+  if (typeof scheme === 'string') {
+    return (
+      <section className="ui-card">
+        <div className="flex gap-4">
+          <div className="ui-feature-icon">{index + 1}</div>
+          <p className="font-bold text-[var(--color-text)]">{scheme}</p>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="ui-card">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-start gap-3">
+            <div className="ui-feature-icon" aria-hidden="true">🏛️</div>
+            <div>
+              <p className="ui-eyebrow">Government support</p>
+              <h2 className="mt-1 text-xl font-bold text-[var(--color-text)]">{scheme.name || 'Government Scheme'}</h2>
+            </div>
+          </div>
+          {scheme.description && <p className="mt-4 leading-7 text-[var(--color-text-muted)]">{scheme.description}</p>}
+        </div>
+
+        {scheme.match_score !== undefined && (
+          <div className="shrink-0 rounded-2xl bg-[var(--color-surface-soft)] px-5 py-4 text-center" aria-label={`Match score ${scheme.match_score} percent`}>
+            <p className="text-3xl font-extrabold text-[var(--color-primary-strong)]">{scheme.match_score}%</p>
+            <p className="mt-1 text-sm font-bold text-[var(--color-text)]">Match</p>
+          </div>
+        )}
+      </div>
+
+      {scheme.support_type && (
+        <SchemeSection title="What support is offered?">
+          <p className="leading-7 text-[var(--color-text-muted)]">{scheme.support_type}</p>
+        </SchemeSection>
+      )}
+
+      {Array.isArray(scheme.match_reasons) && scheme.match_reasons.length > 0 && (
+        <SchemeSection title="Why this matched you">
+          <BulletList items={scheme.match_reasons} />
+        </SchemeSection>
+      )}
+
+      <details className="ui-disclosure mt-6">
+        <summary>Show eligibility & application details</summary>
+        <div className="mt-5 space-y-5">
+          {Array.isArray(scheme.eligibility_rules) && scheme.eligibility_rules.length > 0 && (
+            <div>
+              <h3 className="font-bold text-[var(--color-text)]">Eligibility to check</h3>
+              <div className="mt-3"><BulletList items={scheme.eligibility_rules} /></div>
+            </div>
+          )}
+          {Array.isArray(scheme.documents) && scheme.documents.length > 0 && (
+            <div>
+              <h3 className="font-bold text-[var(--color-text)]">Documents you may need</h3>
+              <div className="mt-3"><BulletList items={scheme.documents} /></div>
+            </div>
+          )}
+          {scheme.last_verified && (
+            <p className="text-sm text-[var(--color-text-muted)]">Last verified: {scheme.last_verified}</p>
+          )}
+        </div>
+      </details>
+
+      {scheme.official_url && (
+        <div className="mt-6 border-t border-[var(--color-border)] pt-5">
+          <a
+            href={scheme.official_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-12 items-center rounded-xl bg-[var(--color-primary-strong)] px-5 py-3 font-bold text-white transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] focus:ring-offset-2"
+          >
+            Open official scheme website ↗
+          </a>
+        </div>
+      )}
+    </section>
+  )
+}
+
 function SchemeSection({ title, children }) {
   return (
-    <div className="mt-6">
-      <h3 className="font-bold text-slate-900">
-        {title}
-      </h3>
-
-      <div className="mt-3">
-        {children}
-      </div>
+    <div className="mt-6 border-t border-[var(--color-border)] pt-5">
+      <h3 className="font-bold text-[var(--color-text)]">{title}</h3>
+      <div className="mt-3">{children}</div>
     </div>
   )
 }
 
 function BulletList({ items }) {
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-3">
       {items.map((item, index) => (
-        <li
-          key={index}
-          className="flex gap-3 leading-7 text-slate-600"
-        >
-          <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-green-600" />
+        <li key={index} className="flex gap-3 leading-7 text-[var(--color-text-muted)]">
+          <span className="mt-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-soft)] text-xs font-bold text-[var(--color-primary-strong)]" aria-hidden="true">✓</span>
           <span>{item}</span>
         </li>
       ))}
