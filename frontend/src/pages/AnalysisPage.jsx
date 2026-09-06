@@ -35,6 +35,12 @@ function AnalysisPage() {
   const recommendations = Array.isArray(advisory.recommendations) ? advisory.recommendations : []
   const observations = Array.isArray(business.observations) ? business.observations : []
   const schemes = Array.isArray(result.scheme_matches) ? result.scheme_matches : []
+  const market = Array.isArray(result.market_context) ? result.market_context : []
+
+  // The backend returns null for ROI when there is no investment amount to divide by.
+  const roiDescription = hasNumber(business.estimated_roi_percent)
+    ? `${formatPercent(business.estimated_roi_percent)} estimated return`
+    : 'Add your investment amount to see this'
 
   const status = String(summary.status || business.feasibility_status || 'completed').toLowerCase()
   const isPositive = ['feasible', 'low_risk', 'low risk', 'healthy', 'good', 'completed', 'eligible'].includes(status)
@@ -82,9 +88,9 @@ function AnalysisPage() {
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard icon="💰" title="Money needed" value={formatCurrency(financial.funding_gap)} description="Extra capital you may need" />
-        <MetricCard icon="📈" title="Profit margin" value={`${formatNumber(financial.profit_margin_percent)}%`} description="Profit compared with revenue" />
+        <MetricCard icon="📈" title="Profit margin" value={formatPercent(financial.profit_margin_percent)} description="Profit compared with revenue" />
         <MetricCard icon="🛡️" title="Risk" value={formatText(risk.risk_level)} description={risk.reason || 'Based on your current financial position'} />
-        <MetricCard icon="🏪" title="Business health" value={formatText(business.feasibility_status)} description={`${formatNumber(business.estimated_roi_percent)}% estimated ROI`} />
+        <MetricCard icon="🏪" title="Business health" value={formatText(business.feasibility_status)} description={roiDescription} />
       </section>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -95,7 +101,7 @@ function AnalysisPage() {
             <DetailRow label="Monthly income" value={formatCurrency(financial.expected_monthly_revenue)} />
             <DetailRow label="Monthly expenses" value={formatCurrency(financial.monthly_expenses ?? financial.monthly_operating_expenses)} />
             <DetailRow label="Monthly profit" value={formatCurrency(financial.monthly_profit)} />
-            <DetailRow label="EMI pressure" value={`${formatNumber(risk.pressure_ratio_percent)}%`} />
+            <DetailRow label="EMI pressure" value={formatPercent(risk.pressure_ratio_percent)} />
           </div>
         </div>
 
@@ -106,10 +112,19 @@ function AnalysisPage() {
             <DetailRow label="Investment" value={formatCurrency(business.initial_investment)} />
             <DetailRow label="Monthly sales" value={formatCurrency(business.expected_monthly_revenue)} />
             <DetailRow label="Operating surplus" value={formatCurrency(business.monthly_operating_surplus)} />
-            <DetailRow label="Estimated return" value={`${formatNumber(business.estimated_roi_percent)}% ROI`} />
+            <DetailRow label="Estimated return" value={formatPercent(business.estimated_roi_percent)} />
           </div>
         </div>
       </section>
+
+      {market.length > 0 && (
+        <section className="ui-card mt-6 p-5 sm:p-8">
+          <SectionHeading icon="📍" title="Your local market" subtitle="What prices and demand look like for work like yours nearby." />
+          <div className="mt-5 grid gap-4">
+            {market.map((row, index) => <MarketCard key={index} row={row} />)}
+          </div>
+        </section>
+      )}
 
       <details className="ui-disclosure mt-6">
         <summary>⚙️ Show detailed calculations and checks</summary>
@@ -119,8 +134,8 @@ function AnalysisPage() {
             <div className="mt-4 space-y-3">
               <DetailRow label="Available capital" value={formatCurrency(financial.available_capital)} />
               <DetailRow label="Monthly profit" value={formatCurrency(financial.monthly_profit)} />
-              <DetailRow label="Profit margin" value={`${formatNumber(financial.profit_margin_percent)}%`} />
-              <DetailRow label="Repayment pressure" value={`${formatNumber(risk.pressure_ratio_percent)}%`} />
+              <DetailRow label="Profit margin" value={formatPercent(financial.profit_margin_percent)} />
+              <DetailRow label="Repayment pressure" value={formatPercent(risk.pressure_ratio_percent)} />
             </div>
           </div>
 
@@ -130,7 +145,7 @@ function AnalysisPage() {
               <DetailRow label="Initial investment" value={formatCurrency(business.initial_investment)} />
               <DetailRow label="Operating expenses" value={formatCurrency(business.monthly_operating_expenses)} />
               <DetailRow label="Operating surplus" value={formatCurrency(business.monthly_operating_surplus)} />
-              <DetailRow label="Estimated ROI" value={`${formatNumber(business.estimated_roi_percent)}%`} />
+              <DetailRow label="Estimated ROI" value={formatPercent(business.estimated_roi_percent)} />
             </div>
           </div>
         </div>
@@ -194,7 +209,7 @@ function AnalysisPage() {
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">
         <Link to="/finance">
-          <Button className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] py-4 text-[var(--color-text)]">
+          <Button variant="secondary" className="w-full py-4">
             ← Review details
           </Button>
         </Link>
@@ -202,7 +217,7 @@ function AnalysisPage() {
           <Button className="w-full py-4">Explore schemes</Button>
         </Link>
         <Link to="/advisory">
-          <Button className="w-full border border-[var(--color-border)] bg-[var(--color-surface-soft)] py-4 text-[var(--color-text)]">
+          <Button variant="secondary" className="w-full py-4">
             View advice →
           </Button>
         </Link>
@@ -252,6 +267,51 @@ function DetailRow({ label, value }) {
   )
 }
 
+function MarketCard({ row }) {
+  const context = row.local_context || {}
+  // Say plainly whose district the numbers come from. A state-level fallback
+  // presented as local data would be the wrong kind of confident.
+  const provenance = row.match_level === 'district'
+    ? `Based on data for ${formatText(row.district)}.`
+    : `We do not have data for your district yet, so this is from ${formatText(row.district)} in the same state.`
+
+  return (
+    <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-5">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <h3 className="break-words font-bold text-[var(--color-text)]">
+          {formatText(row.business_category)} in {formatText(row.district)}
+        </h3>
+        {row.demand_indicator && (
+          <span className="shrink-0 rounded-full bg-[var(--color-accent)] px-3 py-1 text-xs font-bold text-[var(--color-text)]">
+            {formatText(row.demand_indicator)} demand
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-semibold text-[var(--color-text-muted)]">Typical price nearby</p>
+          <p className="mt-1 text-xl font-bold text-[var(--color-text)]">{formatCurrency(row.indicative_price)}</p>
+        </div>
+        {context.market_type && (
+          <div>
+            <p className="text-xs font-semibold text-[var(--color-text-muted)]">Where you sell</p>
+            <p className="mt-1 text-sm font-bold text-[var(--color-text)]">{formatText(context.market_type)}</p>
+          </div>
+        )}
+      </div>
+
+      {row.seasonality && (
+        <p className="mt-4 break-words text-sm leading-6 text-[var(--color-text)]">{row.seasonality}</p>
+      )}
+
+      <p className="mt-3 break-words text-xs leading-5 text-[var(--color-text-muted)]">
+        {provenance} {row.source ? `Source: ${row.source}.` : ''} {row.last_verified ? `Checked ${row.last_verified}.` : ''}
+      </p>
+    </div>
+  )
+}
+
 function SchemeCard({ scheme }) {
   if (typeof scheme === 'string') {
     return (
@@ -267,21 +327,31 @@ function SchemeCard({ scheme }) {
         {scheme.name || scheme.scheme_name || scheme.title || 'Government Scheme'}
       </h3>
 
-      {scheme.reason && (
-        <p className="mt-2 break-words text-sm leading-6 text-[var(--color-text-muted)]">
-          {scheme.reason}
-        </p>
-      )}
-
       {scheme.description && (
         <p className="mt-2 break-words text-sm leading-6 text-[var(--color-text-muted)]">
           {scheme.description}
         </p>
       )}
 
-      {scheme.eligibility && (
+      {/* The backend calls these match_reasons and eligibility_rules, and both
+          are lists. Reading scheme.reason / scheme.eligibility rendered nothing. */}
+      {Array.isArray(scheme.match_reasons) && scheme.match_reasons.length > 0 && (
+        <div className="mt-3">
+          <p className="text-xs font-bold text-[var(--color-text)]">Why this matched you</p>
+          <ul className="mt-2 space-y-1">
+            {scheme.match_reasons.map((reason, index) => (
+              <li key={index} className="flex min-w-0 gap-2 break-words text-xs leading-5 text-[var(--color-text-muted)]">
+                <span className="shrink-0 text-[var(--color-primary-strong)]" aria-hidden="true">✓</span>
+                {reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {Array.isArray(scheme.eligibility_rules) && scheme.eligibility_rules.length > 0 && (
         <p className="mt-3 break-words text-xs leading-5 text-[var(--color-text-muted)]">
-          Eligibility: {scheme.eligibility}
+          Eligibility: {scheme.eligibility_rules.join(' · ')}
         </p>
       )}
     </div>
@@ -289,15 +359,21 @@ function SchemeCard({ scheme }) {
 }
 
 function formatCurrency(value) {
-  const number = Number(value)
-  if (!Number.isFinite(number)) return '₹0'
-  return `₹${number.toLocaleString('en-IN')}`
+  // A missing amount must not print as ₹0 — that reads as a real, reassuring
+  // figure. Only say ₹0 when the backend actually sent zero.
+  if (!hasNumber(value)) return 'Not available'
+  return `₹${Number(value).toLocaleString('en-IN')}`
 }
 
-function formatNumber(value) {
-  const number = Number(value)
-  if (!Number.isFinite(number)) return '0'
-  return number.toLocaleString('en-IN', { maximumFractionDigits: 2 })
+// The backend sends null for percentages it could not compute (no surplus to
+// divide by, no investment amount). Treat those as missing, not as zero.
+function hasNumber(value) {
+  return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
+}
+
+function formatPercent(value) {
+  if (!hasNumber(value)) return 'Not available'
+  return `${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}%`
 }
 
 function formatText(value) {
