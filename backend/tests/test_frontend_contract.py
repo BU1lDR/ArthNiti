@@ -35,6 +35,33 @@ def test_frontend_contract_financial_section():
     assert isinstance(financial["financial_status"], str)
     assert isinstance(financial["available_capital"], (int, float))
 
+    # The analysis page shows these four directly. They were missing until
+    # 7 Sept 2026, which made it render a confident "Money needed 0".
+    assert isinstance(financial["monthly_expenses"], (int, float))
+    assert isinstance(financial["expected_monthly_revenue"], (int, float))
+    assert isinstance(financial["initial_investment"], (int, float))
+    assert isinstance(financial["funding_gap"], (int, float))
+
+    # This payload has more capital than the plan needs, so there is no gap.
+    assert financial["funding_gap"] == 0
+
+
+def test_frontend_contract_funding_gap_when_capital_falls_short():
+    response = client.post(
+        "/api/analysis/run",
+        json={**VALID_PAYLOAD, "available_capital": 40000, "initial_investment": 60000},
+    )
+
+    assert response.status_code == 200
+
+    financial = response.json()["financial_analysis"]
+
+    assert financial["funding_gap"] == 20000
+    # The report page computes the same figure client-side; they must agree.
+    assert financial["funding_gap"] == (
+        financial["initial_investment"] - financial["available_capital"]
+    )
+
 
 def test_frontend_contract_risk_section():
     response = client.post(

@@ -47,6 +47,7 @@ def run_unified_analysis(
         available_capital=available_capital,
         monthly_expenses=monthly_expenses,
         expected_monthly_revenue=expected_monthly_revenue,
+        initial_investment=initial_investment,
     )
 
     # 2. Risk analysis
