@@ -186,6 +186,8 @@ textarea:focus-visible {
 }
 
 .ui-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface);
@@ -193,6 +195,8 @@ textarea:focus-visible {
 }
 
 .ui-card-soft {
+  min-width: 0;
+  overflow-wrap: anywhere;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface-soft);
@@ -312,3 +316,4 @@ textarea:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
