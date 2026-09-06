@@ -92,6 +92,61 @@ function ProfilePage() {
               />
             </div>
 
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Preferred language
+              </label>
+
+              <select
+                name="language"
+                value={profile.language || 'Hindi'}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
+              >
+                <option value="Hindi">Hindi</option>
+                <option value="English">English</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Preferred dialect
+                <span className="ml-1 font-normal text-slate-500">
+                  (optional)
+                </span>
+              </label>
+
+              <input
+                name="dialect"
+                value={profile.dialect || ''}
+                onChange={handleChange}
+                type="text"
+                placeholder="e.g. Awadhi, Bhojpuri, Braj"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                How comfortable are you with reading?
+              </label>
+
+              <select
+                name="literacyLevel"
+                value={profile.literacyLevel || 'low'}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
+              >
+                <option value="low">Basic — keep advice very simple</option>
+                <option value="medium">
+                  Comfortable — simple explanations are fine
+                </option>
+                <option value="high">
+                  Advanced — detailed explanations are fine
+                </option>
+              </select>
+            </div>
+
             <Button type="submit" className="w-full py-4">
               Continue →
             </Button>
