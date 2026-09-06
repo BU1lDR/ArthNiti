@@ -54,9 +54,9 @@ function AppShell({ children }) {
     <div className="ui-shell">
       <header className="ui-topbar">
         <div className="ui-topbar-inner">
-          <Link to="/" className="ui-brand" aria-label="Sahyog home">
-            <span className="ui-brand-mark" aria-hidden="true">स</span>
-            <span className="ui-brand-name">Sahyog</span>
+          <Link to="/" className="ui-brand" aria-label="ArthNiti home">
+            <span className="ui-brand-mark" aria-hidden="true">अ</span>
+            <span className="ui-brand-name">ArthNiti</span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
@@ -86,7 +86,7 @@ function AppShell({ children }) {
 
       <footer className="ui-footer">
         <div className="flex flex-col justify-between gap-2 border-t border-[var(--color-border)] pt-5 sm:flex-row">
-          <span>Sahyog · Your business, your next step.</span>
+          <span>ArthNiti · Your business, your next step.</span>
           <span>Simple by default · Detailed when you need it.</span>
         </div>
       </footer>
@@ -131,9 +131,11 @@ function LandingPage() {
             <Link to="/profile">
               <Button className="w-full px-7 py-4 sm:w-auto">🚀 Start my journey</Button>
             </Link>
-            <Link to="/analysis" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 font-bold text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-surface-soft)]">
+            {/* Anchors to the section below. This used to link to /analysis,
+                which on a fresh load only ever shows the empty state. */}
+            <a href="#how-it-works" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 font-bold text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-surface-soft)]">
               See how it works
-            </Link>
+            </a>
           </div>
 
           <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-[var(--color-text-muted)]">
@@ -168,7 +170,7 @@ function LandingPage() {
         </div>
       </section>
 
-      <section className="pb-8 sm:pb-12">
+      <section id="how-it-works" className="scroll-mt-24 pb-8 sm:pb-12">
         <div className="ui-page-intro">
           <p className="ui-eyebrow">Three things in one place</p>
           <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">From idea to action.</h2>
@@ -205,6 +207,33 @@ function Feature({ icon, title, children }) {
   )
 }
 
+function NotFoundPage() {
+  return (
+    <div className="mx-auto max-w-2xl">
+      <section className="ui-card p-5 text-center sm:p-8">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-surface-soft)] text-3xl" aria-hidden="true">
+          🧭
+        </div>
+        <h1 className="mt-5 text-2xl font-extrabold sm:text-3xl">We could not find that page</h1>
+        <p className="mx-auto mt-3 max-w-xl text-[var(--color-text-muted)]">
+          The link may be old or mistyped. You can go back to the start and begin your business journey.
+        </p>
+        <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+          <Link to="/">
+            <Button className="w-full px-6 py-3 sm:w-auto">Go to home</Button>
+          </Link>
+          <Link
+            to="/profile"
+            className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 font-bold text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-surface-soft)]"
+          >
+            Start my journey
+          </Link>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function App() {
   return (
     <AppShell>
@@ -218,6 +247,7 @@ function App() {
         <Route path="/schemes" element={<SchemesPage />} />
         <Route path="/advisory" element={<AdvisoryPage />} />
         <Route path="/report" element={<ReportPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AppShell>
   )
