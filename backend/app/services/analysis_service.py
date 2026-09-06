@@ -70,6 +70,9 @@ def run_unified_analysis(
         state=state,
         district=district,
         business_category=business_category,
+        village=village,
+        market_type=market_type,
+        customers=customers,
     )
 
     # 5. Government scheme matching

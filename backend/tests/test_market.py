@@ -9,10 +9,12 @@ def test_market_context_returns_matching_data():
     )
 
     assert len(result) == 1
-    assert result[0]["state"] == "Uttar Pradesh"
-    assert result[0]["district"] == "Lucknow"
-    assert result[0]["business_category"] == "dairy"
     assert result[0]["indicative_price"] == 55.0
+    assert result[0]["local_context"] == {
+        "village": "",
+        "market_type": "",
+        "customers": "",
+    }
 
 
 def test_market_context_is_case_insensitive():
@@ -23,7 +25,7 @@ def test_market_context_is_case_insensitive():
     )
 
     assert len(result) == 1
-    assert result[0]["indicative_price"] == 55.0
+    assert result[0]["business_category"] == "dairy"
 
 
 def test_market_context_returns_empty_for_unknown_data():
@@ -34,3 +36,21 @@ def test_market_context_returns_empty_for_unknown_data():
     )
 
     assert result == []
+
+
+def test_market_context_includes_local_context():
+    result = get_market_context(
+        "Uttar Pradesh",
+        "Lucknow",
+        "dairy",
+        village="Khera",
+        market_type="weekly",
+        customers="Local families",
+    )
+
+    assert len(result) == 1
+    assert result[0]["local_context"] == {
+        "village": "Khera",
+        "market_type": "weekly",
+        "customers": "Local families",
+    }
