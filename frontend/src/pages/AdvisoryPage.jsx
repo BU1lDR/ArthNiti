@@ -1,49 +1,62 @@
 import { Link } from 'react-router-dom'
 import Button from '../components/Button'
 import { useApp } from '../context/AppContext'
+import { BarRow, UnitChart } from '../components/Charts'
+import { useI18n } from '../i18n/LanguageContext'
+import { useBackendText } from '../i18n/backendText'
 
 function AdvisoryPage() {
   const { applicationData } = useApp()
+  const { t } = useI18n()
+  const bt = useBackendText()
   const result = applicationData?.result
   const financial = result?.financial_analysis
   const risk = result?.risk_analysis
   const business = result?.business_analysis
   const advisory = result?.advisory
   const schemes = Array.isArray(result?.scheme_matches) ? result.scheme_matches : []
-  const recommendations = Array.isArray(advisory?.recommendations) ? advisory.recommendations : []
-  const observations = Array.isArray(business?.observations) ? business.observations : []
+  // Backend prose, in the chosen language: each service sends a code beside the
+  // sentence it built, and `bt` falls back to that sentence if a code is unknown.
+  const recommendations = bt.advice(advisory)
+  const observations = bt.observations(business)
+  const riskReason = bt.riskReason(risk)
 
-  const financialStatus = financial?.financial_status || 'unknown'
+  // Only the field names in the response contract are read here. This file used
+  // to try `business.feasibility` and `risk.risk_status` first and fall back to
+  // the real names, so the real value was only ever reached by accident.
+  const financialStatus = financial?.financial_status
   const monthlyProfit = financial?.monthly_profit
   const profitMargin = financial?.profit_margin_percent
-  const riskLevel = risk?.risk_level || risk?.risk_status || 'unknown'
+  const riskLevel = risk?.risk_level
   const repaymentPressure = risk?.pressure_ratio_percent
-  const feasibility = business?.feasibility || business?.feasibility_status || 'unknown'
+  const feasibility = business?.feasibility_status
+
+  // Ten coins, one for each rupee in ten. A real 0% margin must still draw zero
+  // filled coins rather than disappearing, so the guard is on the raw value.
+  const marginCoins = hasNumber(profitMargin)
+    ? Math.min(10, Math.max(0, Math.round(Number(profitMargin) / 10)))
+    : null
 
   return (
     <>
-      <Link to="/schemes" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--color-primary-strong)] hover:underline">
-        ← Back to schemes
+      <Link to="/schemes" className="inline-flex min-h-11 min-w-11 items-center text-sm font-semibold text-[var(--color-primary-strong)] hover:underline">
+        <span aria-hidden="true">←</span> {t('res.backSchemes')}
       </Link>
 
       <header className="ui-page-intro">
-        <p className="ui-eyebrow">🧭 Your Personalized Advisory</p>
-        <h1 className="ui-page-title">Here is what you can do next</h1>
-        <p className="ui-page-subtitle">
-          Simple, practical guidance based on your business, money situation, risk and matched government support.
-        </p>
+        <p className="ui-eyebrow"><span aria-hidden="true">🧭</span> {t('ad.eyebrow')}</p>
+        <h1 className="ui-page-title">{t('ad.title')}</h1>
+        <p className="ui-page-subtitle">{t('ad.subtitle')}</p>
       </header>
 
       {!result ? (
         <section className="ui-card mt-8 text-center sm:p-8">
-          <div className="ui-feature-icon mx-auto">📋</div>
-          <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">Your advice is not ready yet</h2>
+          <div className="ui-feature-icon mx-auto" aria-hidden="true">📋</div>
+          <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">{t('ad.notReady')}</h2>
           <p className="mx-auto mt-3 max-w-xl leading-7 text-[var(--color-text-muted)]">
-            Complete the business and financial assessment first.
+            {t('res.notReadyText')}
           </p>
-          <Link to="/finance" className="mt-6 inline-block">
-            <Button className="min-h-12 px-6">Continue assessment</Button>
-          </Link>
+          <Button to="/finance" className="mt-6">{t('res.finish')}</Button>
         </section>
       ) : (
         <>
@@ -53,29 +66,68 @@ function AdvisoryPage() {
                 💡
               </div>
               <div className="min-w-0">
-                <p className="ui-eyebrow">Your main takeaway</p>
+                <p className="ui-eyebrow">{t('ad.takeaway')}</p>
                 <h2 className="mt-1 text-2xl font-extrabold text-[var(--color-text)]">
-                  {getBusinessRecommendation(feasibility)}
+                  {businessRecommendation(feasibility, t)}
                 </h2>
+                {/* Backend prose, and it IS translated now — the services send a
+                    code beside every sentence and bt.observations/bt.advice
+                    resolve it. What is not translated is a sentence with no code,
+                    which falls back to the English the backend sent rather than
+                    to a dotted key name. */}
                 <p className="mt-2 leading-7 text-[var(--color-text-muted)]">
-                  {observations[0] || recommendations[0] || 'Review the steps below before making your next business decision.'}
+                  {observations[0] || recommendations[0] || t('ad.reviewSteps')}
                 </p>
               </div>
             </div>
           </section>
 
           <section className="mt-6 grid gap-4 sm:grid-cols-2">
-            <AdvisoryCard icon="💼" title="Business" value={formatStatus(feasibility)} description={getBusinessDescription(feasibility)} />
-            <AdvisoryCard icon="💰" title="Money" value={formatStatus(financialStatus)} description={getFinancialDescription(monthlyProfit, profitMargin)} />
-            <AdvisoryCard icon="🛡️" title="Risk" value={formatRisk(riskLevel)} description={getRiskDescription(riskLevel, repaymentPressure)} />
-            <AdvisoryCard icon="🏛️" title="Government support" value={`${schemes.length} match${schemes.length === 1 ? '' : 'es'}`} description={schemes.length > 0 ? 'Government schemes may be worth checking.' : 'No scheme matched this assessment.'} />
+            <AdvisoryCard
+              icon="💼"
+              title={t('ad.business')}
+              value={statusText(feasibility, t)}
+              description={businessDescription(feasibility, t)}
+            />
+            <AdvisoryCard
+              icon="💰"
+              title={t('ad.money')}
+              value={statusText(financialStatus, t)}
+              description={financialDescription(monthlyProfit, profitMargin, t)}
+              chart={marginCoins === null ? null : (
+                <>
+                  <p className="text-sm font-bold text-[var(--color-text)]">{t('ch.coinTitle')}</p>
+                  <div className="mt-2">
+                    <UnitChart
+                      filled={marginCoins}
+                      total={10}
+                      icon="🪙"
+                      label={t('ch.coinLabel', { n: marginCoins })}
+                      ariaLabel={t('ch.coinLabel', { n: marginCoins })}
+                    />
+                  </div>
+                </>
+              )}
+            />
+            <AdvisoryCard
+              icon="🛡️"
+              title={t('money.risk')}
+              value={riskText(riskLevel, t)}
+              description={riskDescription(riskLevel, repaymentPressure, t)}
+            />
+            <AdvisoryCard
+              icon="🏛️"
+              title={t('an.govHeading')}
+              value={t('an.matches', { n: schemes.length })}
+              description={schemes.length > 0 ? t('ad.schemesWorth') : t('ad.noScheme')}
+            />
           </section>
 
           <section className="ui-card mt-6 sm:p-8">
             <div className="flex min-w-0 items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="ui-eyebrow">Action plan</p>
-                <h2 className="mt-1 text-2xl font-bold text-[var(--color-text)]">Do these things next</h2>
+                <p className="ui-eyebrow">{t('ad.planEyebrow')}</p>
+                <h2 className="mt-1 text-2xl font-bold text-[var(--color-text)]">{t('ad.planTitle')}</h2>
               </div>
               <span className="shrink-0 text-2xl" aria-hidden="true">👉</span>
             </div>
@@ -85,36 +137,66 @@ function AdvisoryPage() {
                 <ActionItem key={index} number={index + 1} text={recommendation} />
               )) : (
                 <>
-                  <ActionItem number={1} text="Review your monthly income and expenses." />
-                  <ActionItem number={2} text="Check the government schemes suggested for your business." />
-                  <ActionItem number={3} text="Prepare the documents needed for the support you choose." />
-                  <ActionItem number={4} text="Check your repayment capacity before taking new debt." />
+                  <ActionItem number={1} text={t('ad.step1')} />
+                  <ActionItem number={2} text={t('ad.step2')} />
+                  <ActionItem number={3} text={t('ad.step3')} />
+                  <ActionItem number={4} text={t('ad.step4')} />
                 </>
               )}
             </div>
           </section>
 
           <details className="ui-disclosure mt-6">
-            <summary>Show the details behind this advice</summary>
+            <summary>{t('ad.details')}</summary>
             <div className="ui-disclosure-body space-y-5">
               {financial && (
-                <DetailBlock title="Financial position">
-                  <p>{formatStatus(financialStatus)}{hasNumber(monthlyProfit) ? `, with estimated monthly surplus of ${formatCurrency(monthlyProfit)}.` : '.'}</p>
-                  {hasNumber(profitMargin) && <p className="mt-1">Profit margin: {formatNumber(profitMargin)}%</p>}
+                <DetailBlock title={t('ad.finPosition')}>
+                  {/* Each translated string is its own line. Appending a Latin
+                      full stop to a translated label composes punctuation in
+                      code, and Devanagari ends a sentence with । not . */}
+                  <p>{statusText(financialStatus, t)}</p>
+                  {hasNumber(monthlyProfit) && (
+                    <p className="mt-1">{t('ad.finLeft', { amount: formatCurrency(monthlyProfit, t) })}</p>
+                  )}
+                  {hasNumber(profitMargin) && (
+                    <p className="mt-1">{t('ad.marginIs', { value: formatPercent(profitMargin, t) })}</p>
+                  )}
                 </DetailBlock>
               )}
               {business && (
-                <DetailBlock title="Business feasibility">
-                  <p>{formatStatus(feasibility)}.</p>
+                <DetailBlock title={t('ad.canWork')}>
+                  <p>{statusText(feasibility, t)}</p>
                 </DetailBlock>
               )}
               {risk && (
-                <DetailBlock title="Repayment risk">
-                  <p>{formatRisk(riskLevel)}{hasNumber(repaymentPressure) ? `, with repayment pressure of ${formatNumber(repaymentPressure)}%.` : '.'}</p>
+                <DetailBlock title={t('ad.repayRisk')}>
+                  <p>{riskText(riskLevel, t)}</p>
+                  {hasNumber(repaymentPressure) && (
+                    <p className="mt-1">{t('ad.pressureIs', { value: formatPercent(repaymentPressure, t) })}</p>
+                  )}
+                  {/* pressure_ratio_percent is null when the monthly surplus is
+                      not positive. A zero-length bar would read as "no pressure",
+                      the most reassuring possible misreading, so the backend's own
+                      reason sentence is printed instead of a chart. */}
+                  {hasNumber(repaymentPressure) ? (
+                    <div className="mt-3">
+                      <BarRow
+                        label={t('f.emiPressure')}
+                        icon="⚖️"
+                        valueText={formatPercent(repaymentPressure, t)}
+                        fraction={Number(repaymentPressure) / 100}
+                        tone={pressureTone(repaymentPressure)}
+                        marks={[{ at: 0.3 }, { at: 0.5 }]}
+                      />
+                      <p className="ui-chart-caption">{t('ch.pressureCaption')}</p>
+                    </div>
+                  ) : (
+                    riskReason && <p className="mt-3">{riskReason}</p>
+                  )}
                 </DetailBlock>
               )}
               {observations.length > 0 && (
-                <DetailBlock title="Business observations">
+                <DetailBlock title={t('an.noticed')}>
                   <ul className="space-y-2">
                     {observations.map((observation, index) => <li key={index}>• {observation}</li>)}
                   </ul>
@@ -126,24 +208,22 @@ function AdvisoryPage() {
       )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <Link to="/schemes">
-          <Button variant="secondary" className="w-full min-h-12 py-4">
-            🏛️ Review schemes
-          </Button>
-        </Link>
-        <Link to="/report">
-          <Button className="w-full min-h-12 py-4">📄 Generate my report</Button>
-        </Link>
+        <Button to="/schemes" variant="secondary" size="lg" className="w-full">
+          <span aria-hidden="true">🏛️</span> {t('ad.reviewSchemes')}
+        </Button>
+        <Button to="/report" size="lg" className="w-full">
+          <span aria-hidden="true">📄</span> {t('ad.makeReport')}
+        </Button>
       </div>
 
       <p className="mt-5 text-center text-xs leading-5 text-[var(--color-text-muted)]">
-        This advisory is for guidance. It does not guarantee business success, scheme eligibility, loan approval or financial outcomes.
+        {t('ad.disclaimer')}
       </p>
     </>
   )
 }
 
-function AdvisoryCard({ icon, title, value, description }) {
+function AdvisoryCard({ icon, title, value, description, chart }) {
   return (
     <article className="ui-card">
       <div className="flex min-w-0 items-start gap-4">
@@ -152,6 +232,7 @@ function AdvisoryCard({ icon, title, value, description }) {
           <p className="text-sm font-semibold text-[var(--color-text-muted)]">{title}</p>
           <p className="mt-1 text-xl font-extrabold text-[var(--color-text)]">{value}</p>
           <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{description}</p>
+          {chart && <div className="mt-4">{chart}</div>}
         </div>
       </div>
     </article>
@@ -178,56 +259,88 @@ function DetailBlock({ title, children }) {
   )
 }
 
-function getBusinessRecommendation(feasibility) {
-  if (feasibility === 'feasible') return 'Your business plan looks feasible'
-  if (feasibility === 'not_feasible') return 'Review your business plan before investing more'
-  return 'Review your business position before the next step'
+// The advice sentences. These are our own copy, not backend prose, so every
+// branch resolves to a key and the numbers are composed into the templates
+// rather than concatenated into an English sentence.
+function businessRecommendation(feasibility, t) {
+  if (feasibility === 'feasible') return t('ad.feasibleTitle')
+  if (feasibility === 'not_feasible') return t('ad.notFeasibleTitle')
+  return t('ad.unknownTitle')
 }
 
-function getBusinessDescription(feasibility) {
-  if (feasibility === 'feasible') return 'The current assessment supports moving forward carefully.'
-  if (feasibility === 'not_feasible') return 'Some parts of the plan need attention before moving forward.'
-  return 'The assessment does not have enough information for a clear conclusion.'
+function businessDescription(feasibility, t) {
+  if (feasibility === 'feasible') return t('ad.feasibleDesc')
+  if (feasibility === 'not_feasible') return t('ad.notFeasibleDesc')
+  return t('ad.unknownDesc')
 }
 
-function getFinancialDescription(profit, margin) {
-  if (!hasNumber(profit)) return 'Review your monthly income and expenses.'
-  const marginText = hasNumber(margin) ? ` Profit margin is ${formatNumber(margin)}%.` : ''
-  return `Estimated monthly money left is ${formatCurrency(profit)}.${marginText}`
+function financialDescription(profit, margin, t) {
+  if (!hasNumber(profit)) return t('ad.finReview')
+  const left = t('ad.finLeft', { amount: formatCurrency(profit, t) })
+  if (!hasNumber(margin)) return left
+  return left + ' ' + t('ad.marginIs', { value: formatPercent(margin, t) })
 }
 
-function getRiskDescription(level, pressure) {
-  const pressureText = hasNumber(pressure) ? ` Repayment pressure is ${formatNumber(pressure)}%.` : ''
-  if (level === 'low') return `Current repayment pressure appears manageable.${pressureText}`
-  if (level === 'moderate') return `Be careful with new borrowing and watch your cash flow.${pressureText}`
-  if (level === 'high') return `Avoid unnecessary borrowing until repayment capacity improves.${pressureText}`
-  return `Review repayment capacity before taking additional debt.${pressureText}`
+function riskDescription(level, pressure, t) {
+  const base = riskAdvice(level, t)
+  if (!hasNumber(pressure)) return base
+  return base + ' ' + t('ad.pressureIs', { value: formatPercent(pressure, t) })
 }
 
-function formatRisk(value) {
-  if (value === 'low') return 'Low risk'
-  if (value === 'moderate') return 'Moderate risk'
-  if (value === 'high') return 'High risk'
-  return 'Risk not available'
+function riskAdvice(level, t) {
+  if (level === 'low') return t('ad.riskLowDesc')
+  if (level === 'moderate') return t('ad.riskModDesc')
+  if (level === 'high') return t('ad.riskHighDesc')
+  return t('ad.riskUnknownDesc')
 }
 
-function formatStatus(value) {
-  if (!value) return 'Not available'
-  return String(value).replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase())
+// 30% and 50% are the same bands the backend uses for risk_level, so the bar
+// colour and the risk word can never disagree.
+function pressureTone(pressure) {
+  const value = Number(pressure)
+  if (value > 50) return 'bad'
+  if (value >= 30) return 'warn'
+  return 'good'
 }
 
-function formatCurrency(value) {
-  const number = Number(value)
-  return Number.isFinite(number) ? `₹${number.toLocaleString('en-IN')}` : '₹0'
+// Backend enums stay English because they are load-bearing; they are turned
+// into plain language only at render, and an unknown value still prints.
+const STATUS_KEYS = {
+  profitable: 'st.profitable', break_even: 'st.break_even', loss: 'st.loss',
+  feasible: 'st.feasible', not_feasible: 'st.not_feasible',
+  good: 'st.good', attention_needed: 'st.attention_needed', review: 'st.review',
 }
 
-function formatNumber(value) {
-  const number = Number(value)
-  return Number.isFinite(number) ? number.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0'
+function statusText(value, t) {
+  if (value === undefined || value === null || String(value).trim() === '') return t('common.notAvailable')
+  const key = STATUS_KEYS[String(value).toLowerCase()]
+  if (key) return t(key)
+  return String(value).replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+const RISK_KEYS = { low: 'risk.low', moderate: 'risk.moderate', high: 'risk.high' }
+
+function riskText(value, t) {
+  const key = RISK_KEYS[String(value || '').toLowerCase()]
+  return key ? t(key) : t('risk.unknown')
+}
+
+// 'en-IN' grouping with Latin digits is what people read on money in India, so
+// the digits stay Latin even when the interface is Tamil or Telugu.
+function formatCurrency(value, t) {
+  if (!hasNumber(value)) return t('common.notAvailable')
+  return '₹' + Number(value).toLocaleString('en-IN')
+}
+
+function formatPercent(value, t) {
+  if (!hasNumber(value)) return t('common.notAvailable')
+  return Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 }) + '%'
 }
 
 // The backend sends null for percentages it could not compute. Number(null) is 0
-// and passes Number.isFinite, so guard on the raw value before printing it.
+// and passes Number.isFinite, so guard on the raw value before printing it — a
+// missing value must never be rendered as a confident, reassuring zero. A real
+// zero still has to print as 0, so this rejects only null, undefined and ''.
 function hasNumber(value) {
   return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
 }

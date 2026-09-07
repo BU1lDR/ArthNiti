@@ -2,23 +2,28 @@ import { useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
+import { useI18n } from '../i18n/LanguageContext'
 
-const fieldClass = 'mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-base text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary-strong)]'
+const fieldClass = 'mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-base text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary-strong)]'
 
+// The value is what goes to the backend and must stay English — the scheme
+// matcher and CATEGORY_SYNONYMS key off these exact strings. Only the label is
+// translated.
 const categories = [
-  ['retail', '🛒', 'Retail / Shop'],
-  ['food processing', '🍲', 'Food / Food Processing'],
-  ['handicrafts', '🧵', 'Handicrafts'],
-  ['tailoring', '✂️', 'Tailoring / Garments'],
-  ['agriculture', '🌾', 'Agriculture'],
-  ['dairy', '🐄', 'Livestock / Dairy'],
-  ['services', '🧰', 'Services'],
-  ['manufacturing', '🏭', 'Manufacturing'],
-  ['other', '➕', 'Other'],
+  ['retail', '🛒', 'cat.retail'],
+  ['food processing', '🍲', 'cat.food'],
+  ['handicrafts', '🧵', 'cat.handicrafts'],
+  ['tailoring', '✂️', 'cat.tailoring'],
+  ['agriculture', '🌾', 'cat.agriculture'],
+  ['dairy', '🐄', 'cat.dairy'],
+  ['services', '🧰', 'cat.services'],
+  ['manufacturing', '🏭', 'cat.manufacturing'],
+  ['other', '➕', 'cat.other'],
 ]
 
 function BusinessPage() {
   const { applicationData, updateSection } = useApp()
+  const { t } = useI18n()
   const navigate = useNavigate()
   const business = applicationData.business
   const [categoryError, setCategoryError] = useState(false)
@@ -50,97 +55,107 @@ function BusinessPage() {
   return (
     <section className="mx-auto max-w-4xl">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <Link to="/profile" className="text-sm font-bold text-[var(--color-primary-strong)] hover:underline">
-          ← Profile
+        <Link to="/profile" className="inline-flex min-h-11 min-w-11 items-center text-sm font-bold text-[var(--color-primary-strong)] hover:underline">
+          <span aria-hidden="true">←</span> {t('nav.profile')}
         </Link>
-        <span className="rounded-full bg-[var(--color-surface-soft)] px-3 py-2 text-xs font-extrabold text-[var(--color-text-muted)]">Step 2 of 4</span>
+        <span className="rounded-full bg-[var(--color-surface-soft)] px-3 py-2 text-xs font-extrabold text-[var(--color-text-muted)]">{t('common.stepOf', { n: 2, total: 4 })}</span>
       </div>
 
       <div className="ui-page-intro">
-        <p className="ui-eyebrow">🏪 Your business</p>
-        <h1 className="ui-page-title">Tell us about your business</h1>
-        <p className="ui-page-subtitle">Choose what you do, then tell us a few numbers. We’ll use them to check how your business is doing.</p>
+        <p className="ui-eyebrow"><span aria-hidden="true">🏪</span> {t('business.eyebrow')}</p>
+        <h1 className="ui-page-title">{t('business.title')}</h1>
+        <p className="ui-page-subtitle">{t('business.subtitle')}</p>
       </div>
 
-      <form onSubmit={handleContinue} className="ui-card overflow-hidden p-0">
-        <div className="space-y-7 p-5 sm:p-8">
-          <div>
-            <label className="text-base font-extrabold" htmlFor="business-name">What is your business called?</label>
-            <input id="business-name" name="businessName" value={business.businessName} onChange={handleChange} type="text" placeholder="e.g. Rahul General Store" className={fieldClass} required />
+      <form onSubmit={handleContinue} className="space-y-6">
+        <div className="ui-formsection">
+          <div className="ui-formsection-head">
+            <span className="ui-formsection-num" aria-hidden="true">1</span>
+            <h2 className="ui-formsection-title">{t('business.category')}</h2>
           </div>
-
-          <fieldset ref={categoryRef} aria-describedby={categoryError ? 'category-error' : undefined}>
-            <legend className="text-base font-extrabold">What kind of business do you run?</legend>
-            <p className="mt-1 text-sm text-[var(--color-text-muted)]">Tap one option.</p>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {categories.map(([value, icon, label]) => {
-                const selected = business.category === value
-                return (
-                  <button key={value} type="button" onClick={() => handleCategory(value)} className={`rounded-2xl border-2 p-4 text-left transition ${selected ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'}`} aria-pressed={selected}>
-                    <span className="text-2xl" aria-hidden="true">{icon}</span>
-                    <span className="mt-2 block text-sm font-extrabold">{label}</span>
-                  </button>
-                )
-              })}
-            </div>
-            {business.category === 'other' && (
-              <label className="mt-4 block">
-                <span className="font-bold">Tell us what kind of business you run</span>
-                <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">Type it in your own words.</span>
-                <input name="categoryOther" value={business.categoryOther} onChange={handleChange} type="text" minLength={2} placeholder="e.g. Mobile repair shop" className={fieldClass} required />
+          <div className="ui-formsection-body space-y-6">
+            <div>
+              <label className="text-base font-extrabold" htmlFor="business-name">
+                {t('business.nameLabel')} <span className="ui-required" aria-hidden="true">*</span>
               </label>
-            )}
-
-            {categoryError && (
-              <p id="category-error" role="alert" className="mt-3 text-sm font-bold text-[var(--color-danger)]">
-                Please tap the kind of business you run.
-              </p>
-            )}
-          </fieldset>
-
-          <div className="ui-card-soft p-5 sm:p-6">
-            <div className="flex items-start gap-3">
-              <span className="ui-feature-icon" aria-hidden="true">₹</span>
-              <div>
-                <h2 className="text-lg font-extrabold">Your business numbers</h2>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Rough estimates are okay. You can change them later.</p>
-              </div>
+              <input id="business-name" name="businessName" value={business.businessName} onChange={handleChange} type="text" placeholder="e.g. Rahul General Store" className={fieldClass} required />
             </div>
+
+            <fieldset ref={categoryRef} aria-describedby={categoryError ? 'category-error' : undefined}>
+              <legend className="text-base font-extrabold">
+                {t('business.category')} <span className="ui-required" aria-hidden="true">*</span>
+              </legend>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('business.tapOne')}</p>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {categories.map(([value, icon, labelKey]) => {
+                  const selected = business.category === value
+                  return (
+                    <button key={value} type="button" onClick={() => handleCategory(value)} className={`rounded-xl border-2 p-4 text-left transition ${selected ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'}`} aria-pressed={selected}>
+                      <span className="text-2xl" aria-hidden="true">{icon}</span>
+                      <span className="mt-2 block text-sm font-extrabold">{t(labelKey)}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {business.category === 'other' && (
+                <label className="mt-4 block">
+                  <span className="font-bold">{t('business.otherLabel')}</span>
+                  <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{t('business.otherHint')}</span>
+                  <input name="categoryOther" value={business.categoryOther} onChange={handleChange} type="text" minLength={2} placeholder="e.g. Mobile repair shop" className={fieldClass} required />
+                </label>
+              )}
+
+              {categoryError && (
+                <p id="category-error" role="alert" className="ui-notice ui-notice-danger mt-3 font-bold text-[var(--color-danger)]">
+                  {t('business.categoryError')}
+                </p>
+              )}
+            </fieldset>
+          </div>
+        </div>
+
+        <div className="ui-formsection">
+          <div className="ui-formsection-head">
+            <span className="ui-formsection-num" aria-hidden="true">2</span>
+            <h2 className="ui-formsection-title">{t('business.numbersTitle')}</h2>
+          </div>
+          <div className="ui-formsection-body">
+            <p className="text-sm text-[var(--color-text-muted)]">{t('business.numbersHint')}</p>
 
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <label className="block">
-                <span className="font-bold">How much money do you require? <span className="font-normal text-[var(--color-text-muted)]">₹</span></span>
+                <span className="font-bold">{t('business.investment')} <span className="font-normal text-[var(--color-text-muted)]">₹</span> <span className="ui-required" aria-hidden="true">*</span></span>
                 <input name="initialInvestment" value={business.initialInvestment} onChange={handleChange} type="number" min="0" placeholder="e.g. 100000" className={fieldClass} required />
               </label>
               <label className="block">
-                <span className="font-bold">Expected monthly sales / income <span className="font-normal text-[var(--color-text-muted)]">₹</span></span>
+                <span className="font-bold">{t('business.revenue')} <span className="font-normal text-[var(--color-text-muted)]">₹</span> <span className="ui-required" aria-hidden="true">*</span></span>
                 <input name="monthlyRevenue" value={business.monthlyRevenue} onChange={handleChange} type="number" min="0" placeholder="e.g. 30000" className={fieldClass} required />
               </label>
               <label className="block">
-                <span className="font-bold">Monthly business expenses <span className="font-normal text-[var(--color-text-muted)]">₹</span></span>
-                <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">Only business costs — stock, rent, transport, electricity.</span>
+                <span className="font-bold">{t('business.opex')} <span className="font-normal text-[var(--color-text-muted)]">₹</span> <span className="ui-required" aria-hidden="true">*</span></span>
+                <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{t('business.opexHint')}</span>
                 <input name="monthlyOperatingExpenses" value={business.monthlyOperatingExpenses} onChange={handleChange} type="number" min="0" placeholder="e.g. 18000" className={fieldClass} required />
               </label>
             </div>
-          </div>
 
-          <details className="ui-disclosure">
-            <summary>⚙️ More business details</summary>
-            <div className="ui-disclosure-body grid gap-5 sm:grid-cols-2">
-              <label className="block">
-                <span className="font-bold">How many people work here?</span>
-                <input name="employees" value={business.employees} onChange={handleChange} type="number" min="0" placeholder="e.g. 2" className={fieldClass} />
-              </label>
-              <label className="block">
-                <span className="font-bold">Existing business debt <span className="font-normal text-[var(--color-text-muted)]">(₹)</span></span>
-                <input name="existingDebt" value={business.existingDebt} onChange={handleChange} type="number" min="0" placeholder="0 if none" className={fieldClass} />
-              </label>
-            </div>
-          </details>
+            <details className="ui-disclosure mt-6">
+              <summary><span aria-hidden="true">⚙️</span> {t('business.moreDetails')}</summary>
+              <div className="ui-disclosure-body grid gap-5 sm:grid-cols-2">
+                <label className="block">
+                  <span className="font-bold">{t('business.employees')}</span>
+                  <input name="employees" value={business.employees} onChange={handleChange} type="number" min="0" placeholder="e.g. 2" className={fieldClass} />
+                </label>
+                <label className="block">
+                  <span className="font-bold">{t('business.debt')} <span className="font-normal text-[var(--color-text-muted)]">(₹)</span></span>
+                  <input name="existingDebt" value={business.existingDebt} onChange={handleChange} type="number" min="0" placeholder="0" className={fieldClass} />
+                </label>
+              </div>
+            </details>
+          </div>
         </div>
 
-        <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-soft)] p-5 sm:px-8">
-          <Button type="submit" className="w-full py-4 text-base sm:w-auto sm:min-w-56">Continue to location →</Button>
+        <div className="ui-card p-5">
+          <Button type="submit" size="lg" className="w-full sm:w-auto sm:min-w-56">{t('business.submit')} <span aria-hidden="true">→</span></Button>
         </div>
       </form>
     </section>
