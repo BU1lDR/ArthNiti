@@ -45,38 +45,14 @@ function ProfilePage() {
             <input id="profile-name" name="name" value={profile.name} onChange={handleChange} type="text" placeholder="Your name" className={fieldClass} autoComplete="name" required />
           </div>
 
-          <div className="ui-card-soft p-5">
-            <h2 className="text-base font-extrabold">How should we talk to you?</h2>
-            <p className="mt-1 text-sm text-[var(--color-text-muted)]">You can change this later.</p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-sm font-bold">Language</span>
-                <select name="language" value={profile.language || 'Hindi'} onChange={handleChange} className={fieldClass}>
-                  <option value="Hindi">हिन्दी / Hindi</option>
-                  <option value="English">English</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-sm font-bold">Dialect <span className="font-normal text-[var(--color-text-muted)]">(optional)</span></span>
-                <input name="dialect" value={profile.dialect || ''} onChange={handleChange} type="text" placeholder="Awadhi, Bhojpuri, Braj…" className={fieldClass} />
-              </label>
-            </div>
+          <div>
+            <label className="text-base font-extrabold" htmlFor="profile-language">Which language should we use?</label>
+            <span className="mt-1 block text-sm text-[var(--color-text-muted)]">You can change this later.</span>
+            <select id="profile-language" name="language" value={profile.language || 'Hindi'} onChange={handleChange} className={fieldClass}>
+              <option value="Hindi">हिन्दी / Hindi</option>
+              <option value="English">English</option>
+            </select>
           </div>
-
-          <details className="ui-disclosure">
-            <summary>⚙️ More personalisation</summary>
-            <div className="ui-disclosure-body">
-              <label className="block">
-                <span className="font-bold text-[var(--color-text)]">How comfortable are you with reading?</span>
-                <select name="literacyLevel" value={profile.literacyLevel || 'low'} onChange={handleChange} className={fieldClass}>
-                  <option value="low">Basic — keep advice very simple</option>
-                  <option value="medium">Comfortable — simple explanations</option>
-                  <option value="high">Advanced — detailed explanations</option>
-                </select>
-              </label>
-              <p className="mt-3 text-sm">This setting helps us decide how much detail to show. Your answers and calculations remain the same.</p>
-            </div>
-          </details>
         </div>
 
         <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-soft)] p-5 sm:px-8">
