@@ -1,0 +1,233 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 460" width="1200" height="460">
+  <!--
+    Landing hero backdrop: a small-town (tier 2 / tier 3) main street with an
+    advisory conversation in the foreground. Drawn in mid-tone colours on a
+    transparent canvas so the same file reads on the light cream background and
+    on the dark navy one; the theme only changes opacity and brightness.
+    The gradient mask dissolves the top edge so the artwork never cuts off in a
+    hard line behind the hero text.
+  -->
+  <defs>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0" />
+      <stop offset="0.3" stop-color="#ffffff" stop-opacity="0.45" />
+      <stop offset="0.62" stop-color="#ffffff" stop-opacity="0.88" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="1" />
+    </linearGradient>
+    <mask id="softTop">
+      <rect width="1200" height="460" fill="url(#fade)" />
+    </mask>
+  </defs>
+
+  <g mask="url(#softTop)">
+    <!-- distant hills -->
+    <path d="M0 330 C 70 298 132 312 192 326 C 252 340 292 326 346 304 C 402 282 458 298 506 324 L 506 400 L 0 400 Z" fill="#7f9d8c" opacity="0.45" />
+    <path d="M430 338 C 486 314 536 308 582 322 C 636 338 682 326 736 308 C 806 286 872 308 922 332 L 922 400 L 430 400 Z" fill="#8aa896" opacity="0.38" />
+
+    <!-- back rooftops -->
+    <g fill="#b9a184">
+      <rect x="40" y="256" width="108" height="144" rx="3" />
+      <rect x="158" y="212" width="84" height="188" rx="3" />
+      <rect x="252" y="272" width="128" height="128" rx="3" />
+      <rect x="700" y="242" width="96" height="158" rx="3" />
+      <rect x="808" y="278" width="118" height="122" rx="3" />
+      <rect x="1062" y="252" width="106" height="148" rx="3" />
+    </g>
+    <g fill="#a68f74">
+      <rect x="34" y="248" width="120" height="12" rx="4" />
+      <rect x="152" y="204" width="96" height="12" rx="4" />
+      <rect x="246" y="264" width="140" height="12" rx="4" />
+      <rect x="694" y="234" width="108" height="12" rx="4" />
+      <rect x="802" y="270" width="130" height="12" rx="4" />
+      <rect x="1056" y="244" width="118" height="12" rx="4" />
+    </g>
+
+    <!-- upper-storey windows -->
+    <g fill="#e8e4d6" opacity="0.7">
+      <rect x="58" y="274" width="22" height="28" rx="2" />
+      <rect x="94" y="274" width="22" height="28" rx="2" />
+      <rect x="58" y="318" width="22" height="28" rx="2" />
+      <rect x="94" y="318" width="22" height="28" rx="2" />
+      <rect x="176" y="232" width="22" height="28" rx="2" />
+      <rect x="206" y="232" width="22" height="28" rx="2" />
+      <rect x="176" y="276" width="22" height="28" rx="2" />
+      <rect x="206" y="276" width="22" height="28" rx="2" />
+      <rect x="272" y="292" width="24" height="26" rx="2" />
+      <rect x="310" y="292" width="24" height="26" rx="2" />
+      <rect x="348" y="292" width="24" height="26" rx="2" />
+      <rect x="718" y="262" width="22" height="28" rx="2" />
+      <rect x="752" y="262" width="22" height="28" rx="2" />
+      <rect x="718" y="306" width="22" height="28" rx="2" />
+      <rect x="752" y="306" width="22" height="28" rx="2" />
+      <rect x="826" y="298" width="24" height="26" rx="2" />
+      <rect x="864" y="298" width="24" height="26" rx="2" />
+      <rect x="1080" y="272" width="24" height="28" rx="2" />
+      <rect x="1120" y="272" width="24" height="28" rx="2" />
+      <rect x="1080" y="316" width="24" height="28" rx="2" />
+      <rect x="1120" y="316" width="24" height="28" rx="2" />
+    </g>
+
+    <!-- rooftop water tank on stilts -->
+    <g fill="#93a6ae">
+      <rect x="292" y="180" width="66" height="42" rx="12" />
+      <rect x="286" y="172" width="78" height="10" rx="5" />
+      <rect x="300" y="222" width="8" height="44" />
+      <rect x="342" y="222" width="8" height="44" />
+      <rect x="296" y="252" width="58" height="6" />
+    </g>
+
+    <!-- temple, with shikhara and flag -->
+    <g>
+      <rect x="396" y="228" width="76" height="172" fill="#c9b79a" />
+      <path d="M410 232 L 434 154 L 458 232 Z" fill="#c07a5e" />
+      <rect x="431" y="120" width="5" height="36" fill="#a68f74" />
+      <path d="M436 122 L 470 132 L 436 142 Z" fill="#c07a5e" />
+      <path d="M418 400 L 418 322 C 418 302 450 302 450 322 L 450 400 Z" fill="#8d7a63" opacity="0.8" />
+      <rect x="388" y="222" width="92" height="12" rx="4" fill="#a68f74" />
+    </g>
+
+    <!-- clock tower: the ghantaghar most small towns are laid out around -->
+    <g>
+      <rect x="596" y="164" width="60" height="236" fill="#c9b79a" />
+      <path d="M588 166 L 626 124 L 664 166 Z" fill="#b8624a" />
+      <rect x="586" y="164" width="80" height="11" rx="4" fill="#a68f74" />
+      <circle cx="626" cy="212" r="19" fill="#e8e4d6" />
+      <circle cx="626" cy="212" r="19" fill="none" stroke="#8d7a63" stroke-width="3" />
+      <path d="M626 212 L 626 200 M 626 212 L 635 217" stroke="#3f5c50" stroke-width="3" stroke-linecap="round" fill="none" />
+      <rect x="612" y="266" width="28" height="34" rx="3" fill="#7d8f9c" opacity="0.8" />
+      <rect x="612" y="320" width="28" height="34" rx="3" fill="#7d8f9c" opacity="0.8" />
+    </g>
+
+    <!-- shop row: shutters, signboards and striped awnings -->
+    <g>
+      <rect x="480" y="312" width="96" height="88" fill="#c9b79a" />
+      <rect x="486" y="344" width="84" height="56" rx="2" fill="#7d8f9c" />
+      <rect x="476" y="306" width="104" height="16" rx="4" fill="#d9c85f" />
+      <rect x="486" y="332" width="84" height="8" rx="3" fill="#a68f74" />
+
+      <rect x="668" y="318" width="88" height="82" fill="#c9b79a" />
+      <rect x="674" y="348" width="76" height="52" rx="2" fill="#7d8f9c" />
+      <rect x="664" y="312" width="96" height="16" rx="4" fill="#cfd97a" />
+      <path d="M664 330 L 760 330 L 748 356 L 676 356 Z" fill="#c07a5e" opacity="0.85" />
+
+      <rect x="944" y="308" width="104" height="92" fill="#c9b79a" />
+      <rect x="952" y="342" width="88" height="58" rx="2" fill="#7d8f9c" />
+      <rect x="940" y="302" width="112" height="16" rx="4" fill="#d9c85f" />
+      <path d="M938 324 L 1054 324 L 1042 352 L 950 352 Z" fill="#b8624a" opacity="0.85" />
+
+      <rect x="1062" y="330" width="86" height="70" fill="#c9b79a" />
+      <rect x="1070" y="356" width="70" height="44" rx="2" fill="#7d8f9c" />
+      <rect x="1058" y="324" width="94" height="14" rx="4" fill="#cfd97a" />
+    </g>
+
+    <!-- hoardings, poles and overhead wires -->
+    <g>
+      <rect x="784" y="292" width="6" height="108" fill="#8d7a63" />
+      <rect x="742" y="258" width="90" height="40" rx="3" fill="#e8e4d6" opacity="0.75" />
+      <rect x="752" y="270" width="46" height="6" rx="3" fill="#6f9c6a" />
+      <rect x="752" y="282" width="66" height="6" rx="3" fill="#c07a5e" />
+      <rect x="118" y="268" width="6" height="132" fill="#8d7a63" />
+      <rect x="100" y="268" width="42" height="6" rx="3" fill="#8d7a63" />
+      <rect x="1022" y="256" width="6" height="144" fill="#8d7a63" />
+      <rect x="1004" y="256" width="42" height="6" rx="3" fill="#8d7a63" />
+      <path d="M121 274 C 380 306 700 306 1025 262" stroke="#8d7a63" stroke-width="2" fill="none" opacity="0.7" />
+      <path d="M121 284 C 380 318 700 318 1025 272" stroke="#8d7a63" stroke-width="2" fill="none" opacity="0.55" />
+    </g>
+
+    <!-- neem trees -->
+    <g>
+      <rect x="924" y="342" width="8" height="58" fill="#8d7a63" />
+      <circle cx="928" cy="326" r="30" fill="#6f9c6a" />
+      <circle cx="906" cy="338" r="20" fill="#57855a" />
+      <circle cx="950" cy="338" r="19" fill="#57855a" />
+      <rect x="1180" y="336" width="8" height="64" fill="#8d7a63" />
+      <circle cx="1184" cy="318" r="32" fill="#6f9c6a" />
+      <circle cx="1160" cy="332" r="21" fill="#57855a" />
+      <rect x="18" y="330" width="8" height="70" fill="#8d7a63" />
+      <circle cx="22" cy="312" r="30" fill="#6f9c6a" />
+      <circle cx="46" cy="328" r="20" fill="#57855a" />
+    </g>
+
+    <!-- street -->
+    <rect x="0" y="400" width="1200" height="60" fill="#9aa39c" opacity="0.45" />
+    <g fill="#e8e4d6" opacity="0.45">
+      <rect x="60" y="428" width="52" height="6" rx="3" />
+      <rect x="176" y="428" width="52" height="6" rx="3" />
+      <rect x="292" y="428" width="52" height="6" rx="3" />
+      <rect x="640" y="428" width="52" height="6" rx="3" />
+      <rect x="756" y="428" width="52" height="6" rx="3" />
+      <rect x="872" y="428" width="52" height="6" rx="3" />
+      <rect x="988" y="428" width="52" height="6" rx="3" />
+    </g>
+
+    <!-- auto-rickshaw waiting outside the shops -->
+    <g>
+      <path d="M700 400 L 700 362 C 700 344 712 334 730 334 L 758 334 C 776 334 788 344 794 358 L 804 382 L 804 400 Z" fill="#c0a24e" />
+      <path d="M712 348 L 754 348 L 754 372 L 712 372 Z" fill="#e8e4d6" opacity="0.7" />
+      <circle cx="718" cy="402" r="13" fill="#4a5a51" />
+      <circle cx="792" cy="402" r="13" fill="#4a5a51" />
+    </g>
+
+    <!-- handcart with produce -->
+    <g>
+      <rect x="848" y="358" width="76" height="12" rx="3" fill="#a8825f" />
+      <rect x="852" y="342" width="68" height="18" rx="3" fill="#c07a5e" opacity="0.85" />
+      <circle cx="864" cy="378" r="9" fill="#4a5a51" />
+      <circle cx="908" cy="378" r="9" fill="#4a5a51" />
+      <rect x="920" y="352" width="6" height="26" rx="3" fill="#a8825f" />
+    </g>
+
+    <!--
+      Foreground: the advisory conversation. An advisor on the left talks a
+      shopkeeper on the right through a simple chart on the table between them.
+    -->
+    <g>
+      <!-- table -->
+      <rect x="150" y="340" width="300" height="14" rx="7" fill="#a8825f" />
+      <rect x="170" y="354" width="12" height="46" rx="4" fill="#8d6a4c" />
+      <rect x="418" y="354" width="12" height="46" rx="4" fill="#8d6a4c" />
+
+      <!-- chart board propped on the table -->
+      <rect x="252" y="272" width="96" height="70" rx="5" fill="#e8e4d6" />
+      <rect x="252" y="272" width="96" height="70" rx="5" fill="none" stroke="#8d7a63" stroke-width="2" />
+      <rect x="266" y="312" width="14" height="20" fill="#6f9c6a" />
+      <rect x="288" y="300" width="14" height="32" fill="#57855a" />
+      <rect x="310" y="288" width="14" height="44" fill="#c07a5e" />
+      <path d="M262 306 L 296 292 L 330 278" stroke="#00804c" stroke-width="3" fill="none" stroke-linecap="round" />
+
+      <!-- papers and ledger -->
+      <rect x="356" y="326" width="60" height="14" rx="2" fill="#e8e4d6" />
+      <rect x="362" y="330" width="42" height="3" rx="1.5" fill="#8d7a63" opacity="0.8" />
+      <rect x="362" y="336" width="30" height="3" rx="1.5" fill="#8d7a63" opacity="0.8" />
+
+      <!-- advisor, seated left, gesturing at the chart -->
+      <g fill="#4f6b7a">
+        <circle cx="196" cy="258" r="21" />
+        <path d="M160 340 C 160 300 175 282 196 282 C 217 282 232 300 232 340 Z" />
+        <path d="M226 300 L 268 318 L 262 330 L 220 312 Z" />
+      </g>
+      <path d="M178 244 C 184 232 208 232 214 244 C 206 238 186 238 178 244 Z" fill="#3f5c50" />
+
+      <!-- shopkeeper, seated right, ledger in hand -->
+      <g fill="#6d5a4a">
+        <circle cx="400" cy="264" r="20" />
+        <path d="M366 340 C 366 304 380 288 400 288 C 420 288 434 304 434 340 Z" />
+        <path d="M372 306 L 344 322 L 350 334 L 378 318 Z" />
+      </g>
+      <path d="M382 250 C 390 240 410 240 418 250 L 418 244 C 410 234 390 234 382 244 Z" fill="#4a3d33" />
+
+      <!-- two glasses of chai -->
+      <g fill="#e8e4d6">
+        <rect x="424" y="326" width="14" height="14" rx="2" />
+        <rect x="164" y="326" width="14" height="14" rx="2" />
+      </g>
+
+      <!-- potted plant beside the table -->
+      <g>
+        <path d="M466 400 L 470 372 L 500 372 L 504 400 Z" fill="#c07a5e" />
+        <circle cx="478" cy="356" r="14" fill="#6f9c6a" />
+        <circle cx="496" cy="360" r="11" fill="#57855a" />
+      </g>
+    </g>
+  </g>
+</svg>
