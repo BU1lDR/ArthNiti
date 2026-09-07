@@ -7,7 +7,9 @@
     "demand_indicator": "medium",
     "seasonality": "Demand is generally stable with moderate seasonal variation.",
     "source": "Prototype estimate / illustrative data",
-    "last_verified": "2026-09-02"
+    "last_verified": "2026-09-02",
+    "seasonality_code": "seas.stableModerate",
+    "source_code": "src.prototypeEstimate"
   },
   {
     "state": "Uttar Pradesh",
@@ -17,7 +19,9 @@
     "demand_indicator": "medium",
     "seasonality": "Demand may increase during festival and wedding seasons.",
     "source": "Prototype estimate / illustrative data",
-    "last_verified": "2026-09-02"
+    "last_verified": "2026-09-02",
+    "seasonality_code": "seas.festivalWedding",
+    "source_code": "src.prototypeEstimate"
   },
   {
     "state": "Uttar Pradesh",
@@ -27,7 +31,9 @@
     "demand_indicator": "high",
     "seasonality": "Demand varies by product and local seasonal consumption.",
     "source": "Prototype estimate / illustrative data",
-    "last_verified": "2026-09-02"
+    "last_verified": "2026-09-02",
+    "seasonality_code": "seas.variesByProduct",
+    "source_code": "src.prototypeEstimate"
   },
   {
     "state": "Uttar Pradesh",
@@ -37,7 +43,9 @@
     "demand_indicator": "medium",
     "seasonality": "Demand rises around festivals and the wedding season.",
     "source": "Prototype estimate / illustrative data",
-    "last_verified": "2026-09-02"
+    "last_verified": "2026-09-02",
+    "seasonality_code": "seas.festivalWedding",
+    "source_code": "src.prototypeEstimate"
   },
   {
     "state": "Uttar Pradesh",
@@ -47,7 +55,9 @@
     "demand_indicator": "high",
     "seasonality": "Demand can increase around festivals and wedding periods.",
     "source": "Prototype estimate / illustrative data",
-    "last_verified": "2026-09-02"
+    "last_verified": "2026-09-02",
+    "seasonality_code": "seas.festivalWedding",
+    "source_code": "src.prototypeEstimate"
   },
   {
     "state": "Uttar Pradesh",
@@ -57,7 +67,9 @@
     "demand_indicator": "high",
     "seasonality": "Demand rises around festivals and the wedding season.",
     "source": "Prototype estimate / illustrative data",
-    "last_verified": "2026-09-02"
+    "last_verified": "2026-09-02",
+    "seasonality_code": "seas.festivalWedding",
+    "source_code": "src.prototypeEstimate"
   },
   {
     "state": "Uttar Pradesh",
@@ -67,7 +79,9 @@
     "demand_indicator": "medium",
     "seasonality": "Demand varies by product and local seasonal consumption.",
     "source": "Prototype estimate / illustrative data",
-    "last_verified": "2026-09-02"
+    "last_verified": "2026-09-02",
+    "seasonality_code": "seas.variesByProduct",
+    "source_code": "src.prototypeEstimate"
   },
   {
     "state": "Uttar Pradesh",
@@ -77,7 +91,9 @@
     "demand_indicator": "medium",
     "seasonality": "Demand is generally stable with moderate seasonal variation.",
     "source": "Prototype estimate / illustrative data",
-    "last_verified": "2026-09-02"
+    "last_verified": "2026-09-02",
+    "seasonality_code": "seas.stableModerate",
+    "source_code": "src.prototypeEstimate"
   },
   {
     "state": "Uttar Pradesh",
@@ -87,6 +103,8 @@
     "demand_indicator": "high",
     "seasonality": "Demand can increase around festivals and wedding periods.",
     "source": "Prototype estimate / illustrative data",
-    "last_verified": "2026-09-02"
+    "last_verified": "2026-09-02",
+    "seasonality_code": "seas.festivalWedding",
+    "source_code": "src.prototypeEstimate"
   }
 ]
