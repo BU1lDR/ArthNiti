@@ -6,12 +6,18 @@ def calculate_financial_metrics(
 ):
     monthly_profit = expected_monthly_revenue - monthly_expenses
 
+    # A margin needs revenue to be a share *of*. With no revenue there is no
+    # answer, so say so rather than saying 0 — a printed "0%" reads as
+    # break-even, and this branch is reached exactly when someone has entered
+    # expenses but no expected income, which is a loss. `estimated_roi_percent`
+    # already returns None for the same reason when the investment is 0; these
+    # are the same situation and must not give two different answers.
     if expected_monthly_revenue > 0:
         profit_margin = (
             monthly_profit / expected_monthly_revenue
         ) * 100
     else:
-        profit_margin = 0
+        profit_margin = None
 
     if monthly_profit > 0:
         financial_status = "profitable"
@@ -26,7 +32,9 @@ def calculate_financial_metrics(
 
     return {
         "monthly_profit": round(monthly_profit, 2),
-        "profit_margin_percent": round(profit_margin, 2),
+        "profit_margin_percent": (
+            round(profit_margin, 2) if profit_margin is not None else None
+        ),
         "financial_status": financial_status,
         "available_capital": available_capital,
         "monthly_expenses": monthly_expenses,

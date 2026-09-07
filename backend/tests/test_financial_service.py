@@ -46,7 +46,9 @@ def test_zero_revenue():
     )
 
     assert result["monthly_profit"] == -5000
-    assert result["profit_margin_percent"] == 0
+    # None, not 0. There is no revenue to take a share of, and a printed "0%"
+    # reads as break-even on a page that is in fact reporting a loss.
+    assert result["profit_margin_percent"] is None
     assert result["financial_status"] == "loss"
 
 
@@ -58,8 +60,24 @@ def test_zero_expenses_and_revenue():
     )
 
     assert result["monthly_profit"] == 0
-    assert result["profit_margin_percent"] == 0
+    assert result["profit_margin_percent"] is None
     assert result["financial_status"] == "break_even"
+
+
+def test_a_real_zero_margin_still_reports_zero():
+    """
+    The None above is "could not compute", not "collapse every zero". A business
+    whose revenue exactly equals its expenses has a genuine 0% margin and must
+    print 0%, or the two cases become indistinguishable to the reader.
+    """
+    result = calculate_financial_metrics(
+        available_capital=50000,
+        monthly_expenses=30000,
+        expected_monthly_revenue=30000,
+    )
+
+    assert result["profit_margin_percent"] == 0
+    assert result["profit_margin_percent"] is not None
 
 
 def test_profit_margin_is_rounded():

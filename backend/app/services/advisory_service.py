@@ -6,7 +6,7 @@
 # describes index i of the other.
 def generate_advice(
     financial_status: str,
-    profit_margin_percent: float,
+    profit_margin_percent: float | None,
     available_capital: float
 ):
     recommendations = []
@@ -30,7 +30,14 @@ def generate_advice(
         )
         codes.append("adv.maintainExpand")
 
-    if profit_margin_percent < 10:
+    # None means the margin could not be computed — no revenue to take a share
+    # of. Guard before comparing: `None < 10` is a TypeError in Python 3, and
+    # treating it as 0 would advise "improve the margin" to someone whose real
+    # problem is that they have not entered any expected income at all.
+    if profit_margin_percent is None:
+        pass
+
+    elif profit_margin_percent < 10:
         recommendations.append(
             "Improve the profit margin before making major expansion decisions."
         )

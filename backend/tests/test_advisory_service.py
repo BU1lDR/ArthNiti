@@ -116,3 +116,23 @@ def test_advice_response_contains_recommendations_list():
 
     assert "recommendations" in result
     assert isinstance(result["recommendations"], list)
+
+def test_an_uncomputable_margin_does_not_crash_and_gives_no_margin_advice():
+    """
+    financial_service returns None for the margin when there is no revenue to
+    take a share of. `None < 10` is a TypeError in Python 3, so this is the one
+    input that could take the whole endpoint down rather than misreport a
+    number — and treating None as 0 would advise "improve the margin" to
+    someone who has simply not entered any expected income.
+    """
+    result = generate_advice(
+        financial_status="loss",
+        profit_margin_percent=None,
+        available_capital=50000,
+    )
+
+    assert isinstance(result["recommendations"], list)
+    assert len(result["recommendations"]) == len(result["recommendation_codes"])
+    assert not any("margin" in item for item in result["recommendations"])
+    assert "adv.improveMargin" not in result["recommendation_codes"]
+    assert "adv.healthyMargin" not in result["recommendation_codes"]
