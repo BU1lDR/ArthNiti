@@ -1,4 +1,4 @@
-# ArthNiti — SIH 2026 MVP
+# अर्थNiti — SIH 2026 MVP
 ## Shared team context: what we actually built
 
 > **Purpose:** the single shared context document for all six team members and their AI assistants.
@@ -9,7 +9,7 @@
 
 | | |
 |---|---|
-| Project name | **ArthNiti** (frozen) |
+| Project name | **अर्थNiti** (frozen) |
 | Phase | Working prototype, feature-frozen except polish |
 | Backend | Runs. 8 routers, 135 passing tests |
 | Frontend | Runs. 9 routes, full journey works end to end |
@@ -24,13 +24,19 @@
 # 1. Project Identity
 
 ## Project Name
-**ArthNiti** — *अर्थ* (money / economy) + *नीति* (policy, plan, prudent course). "A money plan."
+**अर्थNiti** — *अर्थ* (money / economy) + *नीति* (policy, plan, prudent course). "A money plan."
+
+Written exactly like that: Devanagari **अर्थ** and Latin **Niti**, one word, no space. The mixed script is the wordmark and is what appears in the logo. It was written `ArthNiti` until 8 September 2026 — that spelling is retired.
+
+**The name does not translate.** Switching the interface to Tamil or Bengali changes every other word on the page and leaves the name alone, because a brand is a proper noun. It lives in one place in the code (`frontend/src/i18n/brand.js`) so it cannot drift between the masthead, the footer, the report sheet and the browser tab. If you are writing a slide, a script or a caption, spell it `अर्थNiti` there too.
+
+**The logo** is an eight-petal lotus rosette around a ₹ coin with three coins falling below it, drawn as SVG so it recolours itself for dark mode and for both high-contrast modes and still prints in full colour on the `/report` PDF. It appears in the masthead, on `/login`, in the footer, on the printed report and as the browser tab icon.
 
 ## SIH Problem Statement
 **AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs**
 
 ## One-Line Pitch
-> ArthNiti asks a rural micro-entrepreneur eight plain-language questions and returns a structured, explainable business and financing assessment — local market prices, monthly profit, repayment risk, matched government schemes, and a printable action plan.
+> अर्थNiti asks a rural micro-entrepreneur eight plain-language questions and returns a structured, explainable business and financing assessment — local market prices, monthly profit, repayment risk, matched government schemes, and a printable action plan.
 
 ## Core Idea
 We are NOT building a generic AI chatbot. We built a guided four-step form that feeds a deterministic advisory engine and returns five kinds of answer on one screen.
@@ -175,7 +181,7 @@ Returns operating surplus, operating margin %, annual surplus, estimated ROI %, 
 ## Feature 5 — Financial Structuring Engine · **PARTIAL**
 Built: monthly profit, profit margin, `funding_gap = max(initial_investment − available_capital, 0)`, and repayment-pressure risk.
 **Not built:** suggested financing range, indicative EMI scenarios, cash-flow coverage schedule. The user supplies their own EMI; we assess it rather than propose one.
-Framing that must stay: ArthNiti is a **decision-support prototype, not a lender and not a financial guarantee**.
+Framing that must stay: अर्थNiti is a **decision-support prototype, not a lender and not a financial guarantee**.
 
 ## Feature 6 — Scheme Matching · **BUILT**
 `backend/app/data/schemes.json` holds **3 verified central schemes**, each with description, target segment, business categories, states, eligibility rules, support type, documents, official URL and `last_verified` date:
@@ -561,7 +567,7 @@ Differences from the plan worth knowing: no `.env.example` (nothing needs one), 
 
 # 15. The AI Question — read this before you present
 
-**ArthNiti currently makes zero LLM calls.** There is no model SDK in `requirements.txt`, no API key, no environment variable, no HTTP client used for inference, no `ai/` module. Every number and every sentence the user sees is produced by hand-written Python `if`/`else` in `backend/app/services/`.
+**अर्थNiti currently makes zero LLM calls.** There is no model SDK in `requirements.txt`, no API key, no environment variable, no HTTP client used for inference, no `ai/` module. Every number and every sentence the user sees is produced by hand-written Python `if`/`else` in `backend/app/services/`.
 
 **Nobody on the team should describe the current build as using an LLM.** If a judge asks whether AI is running and the honest answer is dodged, one follow-up question — "which model?" — ends the conversation badly. If someone asks us to "improve the AI", clarify first whether they mean wiring up a real model or improving the rules.
 
@@ -605,7 +611,7 @@ Preferred response shape:
 
 Recommended 8–10 slides:
 
-1. Title — **ArthNiti**
+1. Title — **अर्थNiti**
 2. Problem
 3. Who is affected
 4. Current gap
@@ -652,7 +658,7 @@ Answer honestly, and lead with the design decision — see §15. Then: the *AI-d
 There is nothing to hallucinate. Every number comes from a unit-tested formula; every scheme fact comes from a structured dataset transcribed from an official source with a verification date and a link the judge can open. When we do add a model, it will be allowed to rephrase and explain, never to calculate or to decide eligibility (§15).
 
 ## "How is this different from ChatGPT?"
-ChatGPT does not know the indicative price of handicrafts in Lucknow, cannot tell you whether *your* EMI fits *your* surplus, and will not tell you when it has no data for your district. ArthNiti combines structured entrepreneur input, a district-level dataset, deterministic financial calculation, rule-based scheme matching with visible reasons, and a printable next-step plan — and it says out loud when a number is a state-level fallback rather than local.
+ChatGPT does not know the indicative price of handicrafts in Lucknow, cannot tell you whether *your* EMI fits *your* surplus, and will not tell you when it has no data for your district. अर्थNiti combines structured entrepreneur input, a district-level dataset, deterministic financial calculation, rule-based scheme matching with visible reasons, and a printable next-step plan — and it says out loud when a number is a state-level fallback rather than local.
 
 ## "Show me the hyperlocal part."
 `/analysis` → "Your local market". Then point at the provenance line. `district` means it is their own district; `state` means we had no district row and said so. **This is the differentiator judges remember**, because most prototypes silently present national averages as local.
@@ -867,7 +873,7 @@ LLM integration · a database · Hindi translation · charts · EMI scenarios ·
 Any AI assistant reading this file should:
 
 - Treat **[CLAUDE.md](CLAUDE.md)** as the authoritative engineering context and this file as the product/team context. CLAUDE.md is more likely to be current on code detail.
-- **Never describe ArthNiti as using an LLM.** It does not (§15). If asked to "improve the AI", ask whether that means wiring up a model or improving the rules.
+- **Never describe अर्थNiti as using an LLM.** It does not (§15). If asked to "improve the AI", ask whether that means wiring up a model or improving the rules.
 - Remember there is **no database and no persistence**. Do not suggest a migration, an ORM model, or a query.
 - Keep financial calculations deterministic and unit-tested. Never move arithmetic into a model.
 - **Never widen scheme eligibility** to make output look more complete (§9, §21).
