@@ -8,6 +8,10 @@ class Scheme(BaseModel):
     target_segment: str
     business_categories: List[str]
     states: List[str]
+    # Which layer of government runs the scheme: central, state, regional,
+    # district, sub_district, block or local_body. Defaulted rather than
+    # required so a scheme dict written before this field existed still loads.
+    level: str = "central"
     eligibility_rules: List[str]
     support_type: str
     documents: List[str]

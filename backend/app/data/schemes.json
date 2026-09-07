@@ -1,5 +1,6 @@
 [
   {
+    "id": "pmfme",
     "name": "Pradhan Mantri Formalisation of Micro Food Processing Enterprises (PMFME)",
     "description": "Provides support for eligible micro food processing enterprises, including credit-linked capital subsidy for individual micro food processing units.",
     "target_segment": "Micro food processing enterprises",
@@ -11,6 +12,7 @@
     "states": [
       "ALL"
     ],
+    "level": "central",
     "eligibility_rules": [
       "Applicant should be involved in an eligible micro food processing activity.",
       "Individual micro food processing units may receive credit-linked capital subsidy of 35% of eligible project cost, subject to a maximum of Rs.10 lakh per unit.",
@@ -25,9 +27,24 @@
       "Project report"
     ],
     "official_url": "https://www.mofpi.gov.in/en/pmfme/shgs-fpos-co-operatives-individual-micro-food-enterprise",
-    "last_verified": "2026-09-01"
+    "last_verified": "2026-09-01",
+    "eligibility_codes": [
+      "elig.pmfme.activity",
+      "elig.pmfme.subsidy",
+      "elig.pmfme.contribution"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.businessDetails",
+      "doc.bank",
+      "doc.projectReport"
+    ],
+    "description_code": "sdata.pmfme.description",
+    "support_type_code": "sdata.pmfme.support"
   },
   {
+    "id": "pmegp",
     "name": "Prime Minister's Employment Generation Programme (PMEGP)",
     "description": "A credit-linked subsidy programme supporting eligible new micro-enterprises in manufacturing and service/trading activities.",
     "target_segment": "New micro-enterprises",
@@ -39,6 +56,7 @@
     "states": [
       "ALL"
     ],
+    "level": "central",
     "eligibility_rules": [
       "The applicant must satisfy the eligibility conditions specified in the current PMEGP guidelines.",
       "Maximum project cost for manufacturing units is Rs.50 lakh.",
@@ -54,9 +72,25 @@
       "Bank-related documents"
     ],
     "official_url": "https://www.kviconline.gov.in/pmegpeportal/",
-    "last_verified": "2026-09-01"
+    "last_verified": "2026-09-01",
+    "eligibility_codes": [
+      "elig.pmegp.guidelines",
+      "elig.pmegp.maxManufacturing",
+      "elig.pmegp.maxService",
+      "elig.pmegp.financing"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.projectReport",
+      "doc.education",
+      "doc.bank"
+    ],
+    "description_code": "sdata.pmegp.description",
+    "support_type_code": "sdata.pmegp.support"
   },
   {
+    "id": "pmmy",
     "name": "Pradhan Mantri MUDRA Yojana (PMMY)",
     "description": "Provides collateral-free institutional credit to eligible micro enterprises for income-generating activities.",
     "target_segment": "Micro enterprises",
@@ -71,6 +105,7 @@
     "states": [
       "ALL"
     ],
+    "level": "central",
     "eligibility_rules": [
       "Loans are intended for eligible non-agricultural income-generating micro enterprise activities, including specified allied agricultural activities.",
       "Shishu loans are up to Rs.50,000.",
@@ -86,6 +121,1313 @@
       "Bank-related documents"
     ],
     "official_url": "https://financialservices.gov.in/pradhan-mantri-mudra-yojana-pmmy",
-    "last_verified": "2026-09-01"
+    "last_verified": "2026-09-01",
+    "eligibility_codes": [
+      "elig.pmmy.activity",
+      "elig.pmmy.shishu",
+      "elig.pmmy.kishore",
+      "elig.pmmy.tarun",
+      "elig.pmmy.tarunPlus"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.businessInfo",
+      "doc.bank"
+    ],
+    "description_code": "sdata.pmmy.description",
+    "support_type_code": "sdata.pmmy.support"
+  },
+  {
+    "id": "pmvishwakarma",
+    "name": "PM Vishwakarma",
+    "description": "Support for traditional artisans and craftspeople: skill training with a daily stipend, a toolkit incentive, and collateral-free credit at a concessional rate of interest.",
+    "target_segment": "Traditional artisans and craftspeople working with hand tools",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "handicrafts",
+      "tailoring"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "central",
+    "eligibility_rules": [
+      "The applicant must work in a traditional trade using hand tools.",
+      "The applicant must work in one of the 18 trades covered by the scheme, such as tailoring, pottery, blacksmithy, carpentry, hair cutting, goldsmithy, basket weaving or cobbling.",
+      "A toolkit incentive of Rs.15,000 is available after basic skill training.",
+      "Collateral-free credit of up to Rs.1 lakh in the first tranche and up to Rs.2 lakh in the second, at 5% interest.",
+      "The applicant must be at least 18 years old."
+    ],
+    "support_type": "Toolkit incentive, training stipend and concessional credit",
+    "documents": [
+      "Aadhaar card",
+      "Bank-related documents",
+      "Address proof",
+      "Recent passport-size photograph",
+      "Verification letter from the Gram Panchayat or urban local body"
+    ],
+    "official_url": "https://pmvishwakarma.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.traditionalTrade",
+      "elig.pmvishwakarma.trades",
+      "elig.pmvishwakarma.toolkit",
+      "elig.pmvishwakarma.loan",
+      "elig.common.age18"
+    ],
+    "document_codes": [
+      "doc.aadhaar",
+      "doc.bank",
+      "doc.address",
+      "doc.photo",
+      "doc.gpRecommendation"
+    ],
+    "description_code": "sdata.pmvishwakarma.description",
+    "support_type_code": "sdata.pmvishwakarma.support"
+  },
+  {
+    "id": "standupindia",
+    "name": "Stand-Up India",
+    "description": "Bank loans between Rs.10 lakh and Rs.1 crore for a first enterprise set up by a woman entrepreneur, or by an entrepreneur from a Scheduled Caste or Scheduled Tribe community.",
+    "target_segment": "First-time women, Scheduled Caste and Scheduled Tribe entrepreneurs",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "agriculture"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "central",
+    "eligibility_rules": [
+      "The enterprise must be majority owned and controlled by a woman, or by a person from a Scheduled Caste or Scheduled Tribe community.",
+      "The loan size ranges from Rs.10 lakh to Rs.1 crore.",
+      "The unit must be new, not an existing or transferred unit.",
+      "Activities allied to agriculture, such as dairy, poultry and food processing, are covered; crop cultivation on its own is not."
+    ],
+    "support_type": "Bank loan for a first-time enterprise",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Caste certificate, where applicable",
+      "Project report",
+      "Bank-related documents"
+    ],
+    "official_url": "https://www.standupmitra.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.standupindia.who",
+      "elig.standupindia.amount",
+      "elig.common.newUnit",
+      "elig.standupindia.agriAllied"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.caste",
+      "doc.projectReport",
+      "doc.bank"
+    ],
+    "description_code": "sdata.standupindia.description",
+    "support_type_code": "sdata.standupindia.support"
+  },
+  {
+    "id": "nlm",
+    "name": "National Livestock Mission - Entrepreneurship Development",
+    "description": "Capital subsidy that does not have to be repaid, of up to half the project cost, for setting up poultry, sheep and goat, piggery, or feed and fodder units.",
+    "target_segment": "Poultry, small ruminant, piggery and fodder entrepreneurs",
+    "business_categories": [
+      "poultry",
+      "agriculture"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "central",
+    "eligibility_rules": [
+      "Covers poultry, sheep and goat rearing, piggery, and feed and fodder units.",
+      "Up to 50% of the project cost is given as a subsidy that is not repaid, subject to a ceiling of Rs.50 lakh.",
+      "Relevant training or experience in the activity, and land for the unit, are required.",
+      "Final sanction rests with the financing bank."
+    ],
+    "support_type": "Capital subsidy of up to half the project cost",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Project report",
+      "Ownership or rent agreement for the work premises",
+      "Details of livestock held or planned",
+      "Bank-related documents"
+    ],
+    "official_url": "https://nlm.udyamimitra.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.nlm.activities",
+      "elig.nlm.subsidy",
+      "elig.nlm.training",
+      "elig.common.bankApproval"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.projectReport",
+      "doc.landOrRent",
+      "doc.livestockDetails",
+      "doc.bank"
+    ],
+    "description_code": "sdata.nlm.description",
+    "support_type_code": "sdata.nlm.support"
+  },
+  {
+    "id": "ahidf",
+    "name": "Animal Husbandry Infrastructure Development Fund (AHIDF)",
+    "description": "A bank loan on which the government pays part of the interest, for setting up milk chilling and milk product units, meat processing units, and animal feed plants.",
+    "target_segment": "Dairy, meat and animal feed processing units",
+    "business_categories": [
+      "dairy",
+      "poultry",
+      "food processing"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "central",
+    "eligibility_rules": [
+      "Covers milk chilling and dairy product units, meat processing units, and animal feed plants.",
+      "An interest subvention of 3% is available for up to eight years.",
+      "The applicant must contribute at least 10% of the project cost."
+    ],
+    "support_type": "Bank loan with 3% of the interest paid by government",
+    "documents": [
+      "Identity proof",
+      "Project report",
+      "Ownership or rent agreement for the work premises",
+      "Bank-related documents",
+      "Udyam registration number, where already held"
+    ],
+    "official_url": "https://ahidf.udyamimitra.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.ahidf.purpose",
+      "elig.ahidf.subvention",
+      "elig.common.ownContribution10"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.projectReport",
+      "doc.landOrRent",
+      "doc.bank",
+      "doc.udyam"
+    ],
+    "description_code": "sdata.ahidf.description",
+    "support_type_code": "sdata.ahidf.support"
+  },
+  {
+    "id": "aif",
+    "name": "Agriculture Infrastructure Fund (AIF)",
+    "description": "A loan of up to Rs.2 crore on which the government pays 3% of the interest, for storage, cold rooms, grading and packing, and small units that process farm produce.",
+    "target_segment": "Post-harvest and primary processing projects",
+    "business_categories": [
+      "agriculture",
+      "food processing",
+      "dairy"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "central",
+    "eligibility_rules": [
+      "Covers post-harvest work such as storage, cold rooms, grading and packing houses, and primary processing units.",
+      "Interest subvention of 3% applies on a loan of up to Rs.2 crore, for up to seven years.",
+      "Farmers, self-help groups, farmer producer organisations and micro enterprises may apply."
+    ],
+    "support_type": "Loan with 3% of the interest paid by government",
+    "documents": [
+      "Identity proof",
+      "Land record extract",
+      "Project report",
+      "Quotations for machinery, tools or equipment",
+      "Bank-related documents"
+    ],
+    "official_url": "https://agriinfra.dac.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.aif.purpose",
+      "elig.aif.subvention",
+      "elig.aif.who"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.landRecord",
+      "doc.projectReport",
+      "doc.quotation",
+      "doc.bank"
+    ],
+    "description_code": "sdata.aif.description",
+    "support_type_code": "sdata.aif.support"
+  },
+  {
+    "id": "kcc",
+    "name": "Kisan Credit Card (KCC)",
+    "description": "A card from your bank for short-term borrowing at a concessional rate of interest, repayable after harvest. Animal husbandry and fisheries are also covered.",
+    "target_segment": "Farmers, tenant farmers and share-croppers",
+    "business_categories": [
+      "agriculture",
+      "dairy",
+      "poultry"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "central",
+    "eligibility_rules": [
+      "Available to land-owning farmers, tenant farmers, share-croppers and joint liability groups.",
+      "Interest is 7% on credit up to Rs.3 lakh, reduced to 4% on timely repayment.",
+      "Animal husbandry and fisheries are covered up to Rs.2 lakh."
+    ],
+    "support_type": "Concessional short-term credit from your bank",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Land record extract",
+      "Recent passport-size photograph",
+      "Bank-related documents"
+    ],
+    "official_url": "https://www.nabard.org/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.kcc.who",
+      "elig.kcc.rate",
+      "elig.kcc.animal"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.landRecord",
+      "doc.photo",
+      "doc.bank"
+    ],
+    "description_code": "sdata.kcc.description",
+    "support_type_code": "sdata.kcc.support"
+  },
+  {
+    "id": "up_myuva",
+    "name": "Mukhyamantri Yuva Udyami Vikas Abhiyan (MYUVA), Uttar Pradesh",
+    "description": "For young people in Uttar Pradesh starting their own enterprise: a project of up to Rs.5 lakh financed on an interest-free basis, arranged through the District Industries Centre.",
+    "target_segment": "Young first-generation entrepreneurs in Uttar Pradesh",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "food processing",
+      "handicrafts",
+      "tailoring"
+    ],
+    "states": [
+      "Uttar Pradesh"
+    ],
+    "level": "state",
+    "eligibility_rules": [
+      "The applicant must generally be between 21 and 40 years of age.",
+      "The applicant must have passed at least class 8, or hold a recognised skill training certificate.",
+      "Project cost of up to Rs.5 lakh is financed, with no interest payable by the beneficiary for the stated period.",
+      "The applicant must be a resident of the state."
+    ],
+    "support_type": "Interest-free loan of up to Rs.5 lakh",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Domicile or residence certificate for the state",
+      "Educational or training documents where applicable",
+      "Project report",
+      "Bank-related documents"
+    ],
+    "official_url": "https://msme.up.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.age21to40",
+      "elig.common.class8",
+      "elig.myuva.amount",
+      "elig.common.residentState"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.domicile",
+      "doc.education",
+      "doc.projectReport",
+      "doc.bank"
+    ],
+    "description_code": "sdata.up_myuva.description",
+    "support_type_code": "sdata.up_myuva.support"
+  },
+  {
+    "id": "up_vssy",
+    "name": "Vishwakarma Shram Samman Yojana, Uttar Pradesh",
+    "description": "Six days of free skill training and a free toolkit for traditional workers in Uttar Pradesh - tailors, potters, blacksmiths, carpenters, barbers, cobblers and others.",
+    "target_segment": "Traditional artisans in Uttar Pradesh",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "handicrafts",
+      "tailoring"
+    ],
+    "states": [
+      "Uttar Pradesh"
+    ],
+    "level": "state",
+    "eligibility_rules": [
+      "The applicant must work in a traditional trade using hand tools.",
+      "Covers traditional trades such as tailoring, pottery, blacksmithy, carpentry, hair cutting and shoe making.",
+      "The applicant must be at least 18 years old.",
+      "The applicant must be a resident of the state.",
+      "No fee is charged for this assistance."
+    ],
+    "support_type": "Free skill training and a free toolkit",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Domicile or residence certificate for the state",
+      "Recent passport-size photograph",
+      "Bank-related documents"
+    ],
+    "official_url": "https://msme.up.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.traditionalTrade",
+      "elig.vssy.trades",
+      "elig.common.age18",
+      "elig.common.residentState",
+      "elig.common.freeOfCost"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.domicile",
+      "doc.photo",
+      "doc.bank"
+    ],
+    "description_code": "sdata.up_vssy.description",
+    "support_type_code": "sdata.up_vssy.support"
+  },
+  {
+    "id": "mh_cmegp",
+    "name": "Chief Minister's Employment Generation Programme (CMEGP), Maharashtra",
+    "description": "For new small units in Maharashtra: a bank loan with 15% to 35% of the project cost provided as a subsidy that is not repaid.",
+    "target_segment": "New micro and small units in Maharashtra",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "food processing",
+      "handicrafts",
+      "tailoring"
+    ],
+    "states": [
+      "Maharashtra"
+    ],
+    "level": "state",
+    "eligibility_rules": [
+      "The applicant must generally be between 18 and 45 years of age.",
+      "Project cost may go up to Rs.50 lakh for manufacturing and Rs.10 lakh for service activities.",
+      "A subsidy of 15% to 35% of project cost applies, depending on the applicant category and the location of the unit.",
+      "The unit must be new, not an existing or transferred unit."
+    ],
+    "support_type": "Bank loan with part of the project cost as subsidy",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Domicile or residence certificate for the state",
+      "Educational or training documents where applicable",
+      "Project report",
+      "Bank-related documents"
+    ],
+    "official_url": "https://maha-cmegp.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.age18to45",
+      "elig.cmegp.limits",
+      "elig.cmegp.subsidy",
+      "elig.common.newUnit"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.domicile",
+      "doc.education",
+      "doc.projectReport",
+      "doc.bank"
+    ],
+    "description_code": "sdata.mh_cmegp.description",
+    "support_type_code": "sdata.mh_cmegp.support"
+  },
+  {
+    "id": "tn_needs",
+    "name": "New Entrepreneur cum Enterprise Development Scheme (NEEDS), Tamil Nadu",
+    "description": "For educated young people in Tamil Nadu setting up a unit: business training, a bank loan, and 25% of the project cost as a subsidy that is not repaid.",
+    "target_segment": "Educated first-generation entrepreneurs in Tamil Nadu",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "food processing",
+      "handicrafts",
+      "tailoring"
+    ],
+    "states": [
+      "Tamil Nadu"
+    ],
+    "level": "state",
+    "eligibility_rules": [
+      "The applicant must be at least 21 years old and hold a degree, diploma or ITI qualification.",
+      "A capital subsidy of 25% of the project cost applies, on project cost of up to Rs.75 lakh.",
+      "Training forms part of the scheme.",
+      "The applicant must be a resident of the state."
+    ],
+    "support_type": "Training, bank loan and a 25% subsidy",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Domicile or residence certificate for the state",
+      "Educational or training documents where applicable",
+      "Project report",
+      "Bank-related documents"
+    ],
+    "official_url": "https://www.msmeonline.tn.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.needs.who",
+      "elig.needs.subsidy",
+      "elig.common.trainingIncluded",
+      "elig.common.residentState"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.domicile",
+      "doc.education",
+      "doc.projectReport",
+      "doc.bank"
+    ],
+    "description_code": "sdata.tn_needs.description",
+    "support_type_code": "sdata.tn_needs.support"
+  },
+  {
+    "id": "kl_ess",
+    "name": "Entrepreneur Support Scheme (ESS), Kerala",
+    "description": "Kerala pays back part of what you spend on land, building, machinery and electric fitting for a small manufacturing unit - from 15% up to 45% for some groups of people.",
+    "target_segment": "Micro and small manufacturing units in Kerala",
+    "business_categories": [
+      "manufacturing",
+      "food processing",
+      "handicrafts",
+      "tailoring"
+    ],
+    "states": [
+      "Kerala"
+    ],
+    "level": "state",
+    "eligibility_rules": [
+      "Open to micro and small manufacturing units registered in Kerala.",
+      "Assistance ranges from 15% to 45% of eligible investment, with the higher rates for women, young entrepreneurs, and applicants from Scheduled Caste and Scheduled Tribe communities.",
+      "Part of the assistance may be claimed before commencement and the balance after the unit starts production.",
+      "Udyam registration is required."
+    ],
+    "support_type": "Part of your set-up spending paid back",
+    "documents": [
+      "Identity proof",
+      "Udyam registration number, where already held",
+      "Ownership or rent agreement for the work premises",
+      "Quotations for machinery, tools or equipment",
+      "Bank-related documents"
+    ],
+    "official_url": "https://industry.kerala.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.ess.who",
+      "elig.ess.rate",
+      "elig.ess.stage",
+      "elig.common.udyamNeeded"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.udyam",
+      "doc.landOrRent",
+      "doc.quotation",
+      "doc.bank"
+    ],
+    "description_code": "sdata.kl_ess.description",
+    "support_type_code": "sdata.kl_ess.support"
+  },
+  {
+    "id": "wb_bcc",
+    "name": "Bhabishyat Credit Card, West Bengal",
+    "description": "For young people in West Bengal starting their own work: a project of up to Rs.5 lakh, guaranteed by the state, with 10% of the cost given as a subsidy.",
+    "target_segment": "Young entrepreneurs in West Bengal",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "food processing",
+      "handicrafts",
+      "tailoring"
+    ],
+    "states": [
+      "West Bengal"
+    ],
+    "level": "state",
+    "eligibility_rules": [
+      "The applicant must generally be between 18 and 45 years of age.",
+      "Project cost of up to Rs.5 lakh is covered, and the state provides the credit guarantee.",
+      "A subsidy of 10% of the project cost is provided and is not repaid.",
+      "The applicant must be a resident of the state."
+    ],
+    "support_type": "State-guaranteed loan with a 10% subsidy",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Domicile or residence certificate for the state",
+      "Project report",
+      "Bank-related documents"
+    ],
+    "official_url": "https://wb.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.age18to45",
+      "elig.bcc.amount",
+      "elig.bcc.subsidy",
+      "elig.common.residentState"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.domicile",
+      "doc.projectReport",
+      "doc.bank"
+    ],
+    "description_code": "sdata.wb_bcc.description",
+    "support_type_code": "sdata.wb_bcc.support"
+  },
+  {
+    "id": "ka_udyogini",
+    "name": "Udyogini, Karnataka",
+    "description": "For women in Karnataka running or starting a small business: a loan of up to Rs.3 lakh, with part of it given as a subsidy for women from certain groups.",
+    "target_segment": "Women entrepreneurs in Karnataka",
+    "business_categories": [
+      "trading",
+      "services",
+      "manufacturing",
+      "food processing",
+      "handicrafts",
+      "tailoring"
+    ],
+    "states": [
+      "Karnataka"
+    ],
+    "level": "state",
+    "eligibility_rules": [
+      "Only women applicants are eligible.",
+      "Loans of up to Rs.3 lakh are available for the listed categories of business.",
+      "A subsidy of 30% of the loan, up to Rs.90,000, applies for applicants from Scheduled Caste, Scheduled Tribe and other specified categories.",
+      "A family income ceiling applies, except for widows and women with a disability.",
+      "The applicant must be a resident of the state."
+    ],
+    "support_type": "Loan for women with part given as subsidy",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Income certificate",
+      "Caste certificate, where applicable",
+      "Recent passport-size photograph",
+      "Bank-related documents"
+    ],
+    "official_url": "https://kswdc.karnataka.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.womenOnly",
+      "elig.udyogini.amount",
+      "elig.udyogini.subsidy",
+      "elig.udyogini.income",
+      "elig.common.residentState"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.income",
+      "doc.caste",
+      "doc.photo",
+      "doc.bank"
+    ],
+    "description_code": "sdata.ka_udyogini.description",
+    "support_type_code": "sdata.ka_udyogini.support"
+  },
+  {
+    "id": "unnati_ner",
+    "name": "UNNATI 2024 - Uttar Poorva Transformative Industrialization Scheme",
+    "description": "For new and growing units in the eight North Eastern states: money towards the cost of your building, plant and machinery, along with other production-linked support.",
+    "target_segment": "New and expanding units in the eight North Eastern states",
+    "business_categories": [
+      "manufacturing",
+      "food processing",
+      "services",
+      "handicrafts",
+      "tailoring"
+    ],
+    "states": [
+      "Arunachal Pradesh",
+      "Assam",
+      "Manipur",
+      "Meghalaya",
+      "Mizoram",
+      "Nagaland",
+      "Sikkim",
+      "Tripura"
+    ],
+    "level": "regional",
+    "eligibility_rules": [
+      "The unit must be located in one of the eight North Eastern states.",
+      "Capital investment incentive is provided towards plant, machinery and building, at a higher rate in the more remote districts.",
+      "Registration on the scheme portal is required before commencing the investment.",
+      "Udyam registration is required."
+    ],
+    "support_type": "Money towards your building, plant and machinery",
+    "documents": [
+      "Identity proof",
+      "Udyam registration number, where already held",
+      "Ownership or rent agreement for the work premises",
+      "Project report",
+      "Quotations for machinery, tools or equipment"
+    ],
+    "official_url": "https://dpiit.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.unnati.where",
+      "elig.unnati.support",
+      "elig.unnati.register",
+      "elig.common.udyamNeeded"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.udyam",
+      "doc.landOrRent",
+      "doc.projectReport",
+      "doc.quotation"
+    ],
+    "description_code": "sdata.unnati_ner.description",
+    "support_type_code": "sdata.unnati_ner.support"
+  },
+  {
+    "id": "vvp_border",
+    "name": "Vibrant Villages Programme",
+    "description": "For villages in the notified border blocks of the northern and north-eastern hills: support to build local earning work such as home-stays, dairy and animal keeping, and craft.",
+    "target_segment": "Villages in notified border blocks of the northern and north-eastern hills",
+    "business_categories": [
+      "dairy",
+      "handicrafts",
+      "services",
+      "agriculture",
+      "food processing"
+    ],
+    "states": [
+      "Arunachal Pradesh",
+      "Sikkim",
+      "Uttarakhand",
+      "Himachal Pradesh",
+      "Ladakh",
+      "Jammu and Kashmir"
+    ],
+    "level": "regional",
+    "eligibility_rules": [
+      "Only villages in the border blocks notified under the programme are covered.",
+      "Support is directed at home-stays and rural tourism, dairy and animal husbandry, craft, and small local enterprise.",
+      "Rates and conditions vary by location, so confirm them at the local office."
+    ],
+    "support_type": "Support to build local earning work",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Verification letter from the Gram Panchayat or urban local body",
+      "Project report"
+    ],
+    "official_url": "https://www.mha.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.vvp.where",
+      "elig.vvp.what",
+      "elig.common.askLocalOffice"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.gpRecommendation",
+      "doc.projectReport"
+    ],
+    "description_code": "sdata.vvp_border.description",
+    "support_type_code": "sdata.vvp_border.support"
+  },
+  {
+    "id": "dic",
+    "name": "District Industries Centre (DIC)",
+    "description": "The government office in your own district that registers small enterprises, sends your subsidy and loan applications on to the state and central schemes, and tells you which ones you qualify for.",
+    "target_segment": "Micro and small enterprises in the district",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "food processing",
+      "handicrafts",
+      "tailoring"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "district",
+    "eligibility_rules": [
+      "Anyone carrying on or planning work in the area may approach the office.",
+      "The office handles Udyam registration, forwards applications under state and central schemes, and arranges entrepreneurship training.",
+      "No fee is charged for this assistance."
+    ],
+    "support_type": "Free help with registration and scheme applications",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Udyam registration number, where already held",
+      "Project report"
+    ],
+    "official_url": "https://msme.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.anyoneInArea",
+      "elig.dic.what",
+      "elig.common.freeOfCost"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.udyam",
+      "doc.projectReport"
+    ],
+    "description_code": "sdata.dic.description",
+    "support_type_code": "sdata.dic.support"
+  },
+  {
+    "id": "rseti",
+    "name": "Rural Self Employment Training Institute (RSETI)",
+    "description": "A free training institute in your district, run with the banks. You stay there for one to six weeks, learn a trade, and the institute then helps you apply for a loan and keeps following up.",
+    "target_segment": "Rural youth in the district",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "food processing",
+      "handicrafts",
+      "tailoring",
+      "agriculture",
+      "dairy",
+      "poultry",
+      "beekeeping"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "district",
+    "eligibility_rules": [
+      "The applicant must generally be between 18 and 45 years of age.",
+      "The applicant must be from a rural area of the district.",
+      "Training, boarding and lodging are provided at no cost to the trainee.",
+      "After training the institute assists with the loan application and follows up for about two years."
+    ],
+    "support_type": "Free training with food and stay, and loan help after",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Recent passport-size photograph",
+      "Educational or training documents where applicable"
+    ],
+    "official_url": "https://rural.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.age18to45",
+      "elig.common.ruralArea",
+      "elig.rseti.free",
+      "elig.rseti.followUp"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.photo",
+      "doc.education"
+    ],
+    "description_code": "sdata.rseti.description",
+    "support_type_code": "sdata.rseti.support"
+  },
+  {
+    "id": "kvk",
+    "name": "Krishi Vigyan Kendra (KVK)",
+    "description": "The farm science centre in your district. It gives free advice and short courses on dairy, poultry, beekeeping, mushroom growing and food making, and it tests your soil.",
+    "target_segment": "Farmers and rural workers in the district",
+    "business_categories": [
+      "agriculture",
+      "dairy",
+      "poultry",
+      "beekeeping",
+      "food processing"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "district",
+    "eligibility_rules": [
+      "Farmers, farm labourers and farm groups of the area are eligible.",
+      "Short courses are run on animal husbandry, beekeeping, mushroom cultivation, food processing and seed production.",
+      "No fee is charged for this assistance."
+    ],
+    "support_type": "Free training, advice and soil testing",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Land record extract"
+    ],
+    "official_url": "https://icar.org.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.farmerOrLabourer",
+      "elig.kvk.what",
+      "elig.common.freeOfCost"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.landRecord"
+    ],
+    "description_code": "sdata.kvk.description",
+    "support_type_code": "sdata.kvk.support"
+  },
+  {
+    "id": "odop_up",
+    "name": "One District One Product (ODOP), Uttar Pradesh",
+    "description": "Every district in Uttar Pradesh has one chosen craft or product. If your work is your district's product, you can get a toolkit, training, help selling at fairs, and margin money on a loan.",
+    "target_segment": "Artisans and units working on their district's notified product",
+    "business_categories": [
+      "handicrafts",
+      "tailoring",
+      "food processing",
+      "manufacturing"
+    ],
+    "states": [
+      "Uttar Pradesh"
+    ],
+    "level": "district",
+    "eligibility_rules": [
+      "Your activity must be the product notified for your own district - ask your District Industries Centre which one it is.",
+      "Trained artisans receive a toolkit and may take part in state and national fairs.",
+      "A loan with margin money assistance is available under the ODOP financing component.",
+      "The applicant must be a resident of the state."
+    ],
+    "support_type": "Toolkit, training, help selling, and margin money",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Domicile or residence certificate for the state",
+      "Project report",
+      "Bank-related documents"
+    ],
+    "official_url": "https://odopup.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.odop.product",
+      "elig.odop.toolkit",
+      "elig.odop.margin",
+      "elig.common.residentState"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.domicile",
+      "doc.projectReport",
+      "doc.bank"
+    ],
+    "description_code": "sdata.odop_up.description",
+    "support_type_code": "sdata.odop_up.support"
+  },
+  {
+    "id": "tehsil_certificates",
+    "name": "Tehsil or Taluka office - certificates for scheme applications",
+    "description": "Almost every scheme asks for an income, caste or residence certificate, and your tehsil or taluka office is what issues them. Get them before you apply anywhere else, or the application will be held up.",
+    "target_segment": "Anyone applying to a government scheme",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "food processing",
+      "handicrafts",
+      "tailoring",
+      "agriculture",
+      "dairy",
+      "poultry",
+      "beekeeping"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "sub_district",
+    "eligibility_rules": [
+      "The office issues income, caste, residence and land-related certificates.",
+      "A certificate is usually issued within a few working days once the papers are complete.",
+      "Many states also accept these applications online or through a Common Service Centre."
+    ],
+    "support_type": "The certificates other schemes ask you for",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Recent passport-size photograph",
+      "Land record extract"
+    ],
+    "official_url": "https://services.india.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.tehsil.what",
+      "elig.tehsil.time",
+      "elig.tehsil.online"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.photo",
+      "doc.landRecord"
+    ],
+    "description_code": "sdata.tehsil_certificates.description",
+    "support_type_code": "sdata.tehsil_certificates.support"
+  },
+  {
+    "id": "subdiv_agri",
+    "name": "Sub-Divisional Agriculture Office",
+    "description": "The agriculture office for your tehsil or sub-division. It sanctions the government share on seeds, hand tools, small machines and drip or sprinkler watering, and its staff come out to villages.",
+    "target_segment": "Farmers in the sub-division",
+    "business_categories": [
+      "agriculture",
+      "dairy",
+      "poultry",
+      "food processing",
+      "beekeeping"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "sub_district",
+    "eligibility_rules": [
+      "Farmers, farm labourers and farm groups of the area are eligible.",
+      "A share of the cost of seeds, hand tools, small farm machinery and micro-irrigation is met by the government.",
+      "Rates and conditions vary by location, so confirm them at the local office."
+    ],
+    "support_type": "Government share on farm tools and inputs",
+    "documents": [
+      "Identity proof",
+      "Land record extract",
+      "Quotations for machinery, tools or equipment",
+      "Bank-related documents"
+    ],
+    "official_url": "https://agriwelfare.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.farmerOrLabourer",
+      "elig.subdivAgri.what",
+      "elig.common.askLocalOffice"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.landRecord",
+      "doc.quotation",
+      "doc.bank"
+    ],
+    "description_code": "sdata.subdiv_agri.description",
+    "support_type_code": "sdata.subdiv_agri.support"
+  },
+  {
+    "id": "bdo_nrlm",
+    "name": "Block Development Office - rural livelihoods team",
+    "description": "Your block office runs the rural livelihoods mission. Its team helps form self-help groups, gives a group its own money to lend to its members, and trains members to start small work.",
+    "target_segment": "Rural families and self-help group members in the block",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "food processing",
+      "handicrafts",
+      "tailoring",
+      "agriculture",
+      "dairy",
+      "poultry",
+      "beekeeping"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "block",
+    "eligibility_rules": [
+      "Rural households are covered, in particular women joining a self-help group.",
+      "A well-functioning group receives a revolving fund and a community investment fund to on-lend to its members.",
+      "The Lakhpati Didi effort supports women members in building annual earnings of a lakh or more.",
+      "Membership of a self-help group is required."
+    ],
+    "support_type": "Group funds and training through your block",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Proof of self-help group membership",
+      "Bank-related documents"
+    ],
+    "official_url": "https://rural.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.bdo.who",
+      "elig.bdo.funds",
+      "elig.bdo.lakhpati",
+      "elig.common.shgMember"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.shgMembership",
+      "doc.bank"
+    ],
+    "description_code": "sdata.bdo_nrlm.description",
+    "support_type_code": "sdata.bdo_nrlm.support"
+  },
+  {
+    "id": "blbc",
+    "name": "Block Level Bankers' Committee (BLBC)",
+    "description": "Every block has a standing meeting of all its bank branches together with block officers. If a branch refuses or sits on your scheme loan without a clear reason, your case can be raised here.",
+    "target_segment": "Applicants whose scheme loan is stuck or refused",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "food processing",
+      "handicrafts",
+      "tailoring",
+      "agriculture",
+      "dairy",
+      "poultry",
+      "beekeeping"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "block",
+    "eligibility_rules": [
+      "Anyone carrying on or planning work in the area may approach the office.",
+      "Ask your block office or bank branch for the date of the next meeting and how to place your case before it.",
+      "The committee meets once a quarter and reviews the block credit plan and pending applications."
+    ],
+    "support_type": "A place to take a refused or delayed scheme loan",
+    "documents": [
+      "Identity proof",
+      "Bank-related documents",
+      "Project report"
+    ],
+    "official_url": "https://www.rbi.org.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.anyoneInArea",
+      "elig.blbc.how",
+      "elig.blbc.meets"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.bank",
+      "doc.projectReport"
+    ],
+    "description_code": "sdata.blbc.description",
+    "support_type_code": "sdata.blbc.support"
+  },
+  {
+    "id": "atma_block",
+    "name": "ATMA - block farm technology team",
+    "description": "The block farm team under ATMA runs field demonstrations and farmer field schools, arranges study visits to other districts, and pays a small allowance while you train.",
+    "target_segment": "Farmers and farm groups in the block",
+    "business_categories": [
+      "agriculture",
+      "dairy",
+      "poultry",
+      "beekeeping",
+      "food processing"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "block",
+    "eligibility_rules": [
+      "Farmers, farm labourers and farm groups of the area are eligible.",
+      "Field demonstrations, farmer field schools, and sponsored study visits within and outside the district are provided.",
+      "Each village has a designated farmer friend who can be approached first."
+    ],
+    "support_type": "Free farm training and study visits",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Land record extract"
+    ],
+    "official_url": "https://agriwelfare.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.farmerOrLabourer",
+      "elig.atma.what",
+      "elig.atma.friend"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.landRecord"
+    ],
+    "description_code": "sdata.atma_block.description",
+    "support_type_code": "sdata.atma_block.support"
+  },
+  {
+    "id": "gp_licence",
+    "name": "Gram Panchayat - trade permission and village plan",
+    "description": "Your Gram Panchayat issues the no-objection letter and trade permission a village shop or small unit needs, and its yearly village plan can pay for a shed, water or an approach road to your work place.",
+    "target_segment": "Work carried on within the Gram Panchayat area",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "food processing",
+      "handicrafts",
+      "tailoring",
+      "dairy",
+      "poultry",
+      "beekeeping"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "local_body",
+    "eligibility_rules": [
+      "Anyone carrying on or planning work in the area may approach the office.",
+      "The Panchayat issues a no-objection letter and trade permission, and verifies your papers for other schemes.",
+      "Ask for your requirement to be included in the yearly Gram Panchayat Development Plan at the Gram Sabha meeting."
+    ],
+    "support_type": "Trade permission and village plan works",
+    "documents": [
+      "Identity proof",
+      "Address proof",
+      "Ownership or rent agreement for the work premises",
+      "Recent passport-size photograph"
+    ],
+    "official_url": "https://panchayat.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.anyoneInArea",
+      "elig.gp.what",
+      "elig.gp.plan"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.address",
+      "doc.landOrRent",
+      "doc.photo"
+    ],
+    "description_code": "sdata.gp_licence.description",
+    "support_type_code": "sdata.gp_licence.support"
+  },
+  {
+    "id": "csc",
+    "name": "Common Service Centre (CSC) - Digital Seva Kendra",
+    "description": "The village computer centre. The operator fills online scheme forms for you, scans your papers, and handles Aadhaar, bank and certificate work for a small fixed charge.",
+    "target_segment": "Anyone in the village or ward",
+    "business_categories": [
+      "manufacturing",
+      "services",
+      "trading",
+      "food processing",
+      "handicrafts",
+      "tailoring",
+      "agriculture",
+      "dairy",
+      "poultry",
+      "beekeeping"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "local_body",
+    "eligibility_rules": [
+      "Anyone carrying on or planning work in the area may approach the office.",
+      "The operator can register you under PM Vishwakarma, MUDRA and other schemes, and print the acknowledgement.",
+      "A small fixed service charge applies for each service.",
+      "An Aadhaar card and a bank account in the applicant's own name are required."
+    ],
+    "support_type": "Help to fill online scheme forms",
+    "documents": [
+      "Aadhaar card",
+      "Bank-related documents",
+      "Recent passport-size photograph",
+      "Working mobile number linked to Aadhaar"
+    ],
+    "official_url": "https://csc.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.anyoneInArea",
+      "elig.csc.what",
+      "elig.common.smallFee",
+      "elig.common.aadhaarBank"
+    ],
+    "document_codes": [
+      "doc.aadhaar",
+      "doc.bank",
+      "doc.photo",
+      "doc.mobile"
+    ],
+    "description_code": "sdata.csc.description",
+    "support_type_code": "sdata.csc.support"
+  },
+  {
+    "id": "svanidhi",
+    "name": "PM SVANidhi - through your urban local body",
+    "description": "For street vendors in a town or city. The vending certificate or survey letter from your local body gets you a working capital loan of Rs.10,000, then Rs.20,000, then Rs.50,000, with money back for repaying on time.",
+    "target_segment": "Street vendors in a town or city area",
+    "business_categories": [
+      "trading",
+      "food processing",
+      "street vending"
+    ],
+    "states": [
+      "ALL"
+    ],
+    "level": "local_body",
+    "eligibility_rules": [
+      "The activity must be in a town or city area covered by an urban local body.",
+      "The vendor must have been covered by the local body vending survey, or hold a certificate of vending or a letter of recommendation.",
+      "The first loan is Rs.10,000; on timely repayment the next is Rs.20,000, and then Rs.50,000.",
+      "Digital transactions earn cash back, and timely repayment earns a 7% interest subsidy.",
+      "No collateral has to be pledged."
+    ],
+    "support_type": "Working capital loan for street vendors",
+    "documents": [
+      "Identity proof",
+      "Certificate of vending or the local body survey letter",
+      "Bank-related documents",
+      "Aadhaar card"
+    ],
+    "official_url": "https://pmsvanidhi.mohua.gov.in/",
+    "last_verified": "2026-09-07",
+    "eligibility_codes": [
+      "elig.common.urbanArea",
+      "elig.svanidhi.who",
+      "elig.svanidhi.ladder",
+      "elig.svanidhi.cashback",
+      "elig.common.noCollateral"
+    ],
+    "document_codes": [
+      "doc.identity",
+      "doc.vendingCertificate",
+      "doc.bank",
+      "doc.aadhaar"
+    ],
+    "description_code": "sdata.svanidhi.description",
+    "support_type_code": "sdata.svanidhi.support"
   }
 ]
