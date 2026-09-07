@@ -17,6 +17,8 @@ export function AppProvider({ children }) {
     business: {
       businessName: '',
       category: '',
+      // Only used when category is 'other', where the user types their own.
+      categoryOther: '',
       initialInvestment: '',
       monthlyRevenue: '',
       monthlyOperatingExpenses: '',
@@ -29,7 +31,8 @@ export function AppProvider({ children }) {
       district: '',
       state: '',
       locationType: 'rural',
-      marketType: '',
+      // A list: customers can buy in more than one place.
+      marketType: [],
       customers: '',
     },
 

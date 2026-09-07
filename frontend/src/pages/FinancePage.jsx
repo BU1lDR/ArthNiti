@@ -30,17 +30,24 @@ function FinancePage() {
   const fundingGap = Math.max(investment - availableCapital, 0)
   const monthlySurplus = Math.max(monthlyRevenue - monthlyExpenses - monthlyEmi, 0)
 
+  // 'other' is a placeholder for whatever the user typed on the business step,
+  // and the backend expects one market_type string, not the list we collect.
+  const businessCategory = business.category === 'other'
+    ? (business.categoryOther || '').trim()
+    : business.category
+  const marketTypes = Array.isArray(location.marketType) ? location.marketType : []
+
   const handleContinue = async (event) => {
     event.preventDefault()
     setLoading(true)
     setError('')
 
     const payload = {
-      business_category: business.category,
+      business_category: businessCategory,
       state: location.state,
       district: location.district || '',
       village: location.village || '',
-      market_type: location.marketType || '',
+      market_type: marketTypes.join(', '),
       customers: location.customers || '',
       available_capital: availableCapital,
       monthly_expenses: monthlyExpenses,

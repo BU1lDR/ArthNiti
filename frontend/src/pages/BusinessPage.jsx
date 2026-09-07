@@ -83,6 +83,14 @@ function BusinessPage() {
                 )
               })}
             </div>
+            {business.category === 'other' && (
+              <label className="mt-4 block">
+                <span className="font-bold">Tell us what kind of business you run</span>
+                <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">Type it in your own words.</span>
+                <input name="categoryOther" value={business.categoryOther} onChange={handleChange} type="text" minLength={2} placeholder="e.g. Mobile repair shop" className={fieldClass} required />
+              </label>
+            )}
+
             {categoryError && (
               <p id="category-error" role="alert" className="mt-3 text-sm font-bold text-[var(--color-danger)]">
                 Please tap the kind of business you run.
@@ -101,7 +109,7 @@ function BusinessPage() {
 
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <label className="block">
-                <span className="font-bold">How much money will you invest? <span className="font-normal text-[var(--color-text-muted)]">₹</span></span>
+                <span className="font-bold">How much money do you require? <span className="font-normal text-[var(--color-text-muted)]">₹</span></span>
                 <input name="initialInvestment" value={business.initialInvestment} onChange={handleChange} type="number" min="0" placeholder="e.g. 100000" className={fieldClass} required />
               </label>
               <label className="block">

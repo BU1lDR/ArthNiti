@@ -34,6 +34,26 @@ function ChoiceGrid({ value, options, onChange, columns = 'sm:grid-cols-3' }) {
   )
 }
 
+// Same grid, but the selection is a list: tapping a tile adds or removes it.
+function MultiChoiceGrid({ values, options, onToggle, columns = 'sm:grid-cols-3' }) {
+  const selected = Array.isArray(values) ? values : []
+
+  return (
+    <div className={`mt-4 grid grid-cols-1 gap-3 ${columns}`}>
+      {options.map(([option, icon, label]) => {
+        const isSelected = selected.includes(option)
+        return (
+          <button key={option} type="button" onClick={() => onToggle(option)} aria-pressed={isSelected} className={`relative rounded-2xl border-2 p-4 text-left transition ${isSelected ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'}`}>
+            <span className="text-2xl" aria-hidden="true">{icon}</span>
+            <span className="mt-2 block text-sm font-extrabold">{label}</span>
+            {isSelected && <span className="absolute right-3 top-3 font-black text-[var(--color-primary-strong)]" aria-hidden="true">✓</span>}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function LocationPage() {
   const { applicationData, updateSection } = useApp()
   const navigate = useNavigate()
@@ -46,6 +66,16 @@ function LocationPage() {
 
   const setValue = (name, value) => {
     updateSection('location', { [name]: value })
+  }
+
+  const toggleMarketType = (option) => {
+    const current = Array.isArray(location.marketType) ? location.marketType : []
+
+    updateSection('location', {
+      marketType: current.includes(option)
+        ? current.filter((item) => item !== option)
+        : [...current, option],
+    })
   }
 
   const handleContinue = (event) => {
@@ -94,8 +124,8 @@ function LocationPage() {
 
           <fieldset className="ui-card-soft p-5 sm:p-6">
             <legend className="text-base font-extrabold">Where do your customers usually buy from you?</legend>
-            <p className="mt-1 text-sm text-[var(--color-text-muted)]">This helps us understand your main market.</p>
-            <ChoiceGrid value={location.marketType} options={marketTypes} onChange={(value) => setValue('marketType', value)} columns="sm:grid-cols-2 lg:grid-cols-3" />
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">Tap every place that applies. You can choose more than one.</p>
+            <MultiChoiceGrid values={location.marketType} options={marketTypes} onToggle={toggleMarketType} columns="sm:grid-cols-2 lg:grid-cols-3" />
           </fieldset>
 
           <details className="ui-disclosure">
