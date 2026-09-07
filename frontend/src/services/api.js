@@ -3,17 +3,45 @@ const API_BASE_URL =
 
 const REQUEST_TIMEOUT_MS = 20000
 
+// Every error this module throws carries a `code` alongside its English
+// `message`, because the banner that shows it is the one piece of user-facing
+// text in the app that used to be English in all eight languages — and it is
+// the text a reader is most likely to meet, since "the backend is not running"
+// is the commonest failure on a demo laptop. The page translates `code` through
+// `t()` and falls back to `message`, so an untranslated build still reads.
+//
+// Codes live in strings.js as `err.*`; the field names they interpolate are
+// `errf.*`. Whole sentences, never assembled from parts — see the note in
+// CLAUDE.md about Latin word order leaking into Devanagari.
+const ERROR_CODES = {
+  timeout: 'err.timeout',
+  offline: 'err.offline',
+  badResponse: 'err.badResponse',
+  validation: 'err.checkFields',
+  generic: 'err.generic',
+}
+
 // Plain-language names for the fields the backend can reject, so a validation
 // error reads as something the user can act on instead of Pydantic's wording.
+// `key` is what the page renders; `en` is the fallback baked into the thrown
+// message so a bare `error.message` is still a readable English sentence.
 const FIELD_LABELS = {
-  business_category: 'the kind of business',
-  state: 'your state',
-  available_capital: 'the money you already have',
-  monthly_expenses: 'how much you spend each month',
-  expected_monthly_revenue: 'your expected monthly income',
-  monthly_emi: 'your monthly EMI',
-  initial_investment: 'the money you will invest',
-  monthly_operating_expenses: 'your monthly business expenses',
+  business_category: { key: 'errf.category', en: 'the kind of business' },
+  state: { key: 'errf.state', en: 'your state' },
+  available_capital: { key: 'errf.capital', en: 'the money you already have' },
+  monthly_expenses: { key: 'errf.expenses', en: 'how much you spend each month' },
+  expected_monthly_revenue: { key: 'errf.revenue', en: 'your expected monthly income' },
+  monthly_emi: { key: 'errf.emi', en: 'your monthly EMI' },
+  initial_investment: { key: 'errf.investment', en: 'the money you will invest' },
+  monthly_operating_expenses: { key: 'errf.opExpenses', en: 'your monthly business expenses' },
+}
+
+// One place that builds the thrown Error, so no call site can forget the code.
+function analysisError(code, message, fields, cause) {
+  const error = new Error(message, cause ? { cause } : undefined)
+  error.code = code
+  if (fields && fields.length) error.fields = fields
+  return error
 }
 
 export async function runAnalysis(payload) {
@@ -30,32 +58,43 @@ export async function runAnalysis(payload) {
     })
   } catch (error) {
     if (error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
-      throw new Error(
+      throw analysisError(
+        ERROR_CODES.timeout,
         'The analysis service is taking too long to answer. Please try again.',
-        { cause: error },
+        null,
+        error,
       )
     }
 
-    throw new Error(
+    throw analysisError(
+      ERROR_CODES.offline,
       'Unable to connect to the analysis service. Please make sure the backend is running and try again.',
-      { cause: error },
+      null,
+      error,
     )
   }
 
+  let parsed = false
   let data = {}
 
   try {
     data = await response.json()
+    parsed = true
   } catch {
-    if (!response.ok) {
-      throw new Error(
-        'The analysis service returned an unexpected response. Please try again.',
-      )
-    }
+    // Fall through: a 2xx with an unreadable body is as broken as a 500, and
+    // returning {} would drop the reader onto empty result pages with nothing
+    // said about why.
+  }
+
+  if (!parsed) {
+    throw analysisError(
+      ERROR_CODES.badResponse,
+      'The analysis service returned an unexpected response. Please try again.',
+    )
   }
 
   if (!response.ok) {
-    throw new Error(readErrorMessage(data))
+    throw readError(data)
   }
 
   return data
@@ -63,31 +102,43 @@ export async function runAnalysis(payload) {
 
 // FastAPI reports validation errors as a list of objects. Handing that list to
 // Error() renders as "[object Object]", so name the fields instead.
-function readErrorMessage(data) {
+function readError(data) {
   const detail = data && data.detail
 
   if (typeof detail === 'string' && detail.trim()) {
-    return detail
+    // A hand-written detail from the backend is already a sentence; there is no
+    // code for it, so the page prints it as sent.
+    return analysisError(null, detail)
   }
 
   if (Array.isArray(detail)) {
-    const fields = detail
-      .map((item) => {
-        const path = Array.isArray(item && item.loc) ? item.loc : []
-        const field = path[path.length - 1]
+    const fields = []
 
-        if (field === undefined || field === null) return null
+    for (const item of detail) {
+      const path = Array.isArray(item && item.loc) ? item.loc : []
+      const field = path[path.length - 1]
 
-        return FIELD_LABELS[field] || String(field).replaceAll('_', ' ')
-      })
-      .filter(Boolean)
+      if (field === undefined || field === null) continue
 
-    const unique = [...new Set(fields)]
+      const label = FIELD_LABELS[field] || {
+        key: null,
+        en: String(field).replaceAll('_', ' '),
+      }
 
-    if (unique.length) {
-      return `Please check ${unique.join(', ')}. Go back, fill in the missing details, then try again.`
+      if (!fields.some((existing) => existing.en === label.en)) fields.push(label)
+    }
+
+    if (fields.length) {
+      return analysisError(
+        ERROR_CODES.validation,
+        `Please check ${fields.map((field) => field.en).join(', ')}. Go back, fill in the missing details, then try again.`,
+        fields,
+      )
     }
   }
 
-  return 'The analysis service could not process your request. Please try again.'
+  return analysisError(
+    ERROR_CODES.generic,
+    'The analysis service could not process your request. Please try again.',
+  )
 }
