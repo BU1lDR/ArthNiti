@@ -1,0 +1,158 @@
+import { useI18n } from './LanguageContext'
+
+// One place that knows how to read the code fields the Python services attach to
+// their prose. Without this, four result pages would each re-derive the same
+// "prefer the code, fall back to the English sentence" logic, and the scheme
+// reason — the only one that needs a placeholder filled — would get it wrong in
+// three of them.
+//
+// The formatters (formatCurrency, hasNumber) stay duplicated per page as the rest
+// of this codebase does, because each page wants slightly different empty-state
+// wording. This is different: the mapping from a code to a string is the same
+// everywhere, and a copy that drifts shows a user English on one page and their
+// own language on the next.
+
+// Scheme documents name a kind of work in their own vocabulary. Those words are
+// data, not UI copy, so they live in schemes.json in English and are translated
+// here at render. Every value in schemes.json's `business_categories` must have a
+// key; an unmapped one falls through to the English word rather than vanishing.
+// All 13 distinct values in the file are mapped. If you add a scheme with a
+// fourteenth, add the word here and to schemeStrings.js in the same edit.
+const CATEGORY_KEYS = {
+  'food processing': 'scat.foodProcessing',
+  'food manufacturing': 'scat.foodManufacturing',
+  'agri-food processing': 'scat.agriFoodProcessing',
+  'street vending': 'scat.streetVending',
+  agriculture: 'scat.agriculture',
+  manufacturing: 'scat.manufacturing',
+  services: 'scat.services',
+  trading: 'scat.trading',
+  tailoring: 'scat.tailoring',
+  handicrafts: 'scat.handicrafts',
+  dairy: 'scat.dairy',
+  poultry: 'scat.poultry',
+  beekeeping: 'scat.beekeeping',
+}
+
+// Which layer of government runs a scheme. `level` is a backend enum and stays
+// English internally because scheme_service sorts on it (LEVEL_RANK in
+// scheme_service.py must stay in step with LEVEL_ORDER below); it becomes a
+// reader-facing phrase only here.
+//
+// Deliberately camelCase on the right: `t()` renders a missing key as its own
+// dotted name, so `lvl.sub_district` would leak an underscore into the page if
+// the key were ever mistyped. The keys in resultStrings.js are lvl.subDistrict
+// and lvl.localBody for that reason.
+const LEVEL_KEYS = {
+  central: 'central',
+  state: 'state',
+  regional: 'regional',
+  district: 'district',
+  sub_district: 'subDistrict',
+  block: 'block',
+  local_body: 'localBody',
+}
+
+// Outward from Delhi to the reader's own panchayat — the same order the backend
+// sorts by, so a grouped page and an ungrouped list agree about what comes first.
+export const LEVEL_ORDER = ['central', 'state', 'regional', 'district', 'sub_district', 'block', 'local_body']
+
+const normalise = (level) => String(level === undefined || level === null ? '' : level).trim().toLowerCase()
+
+// An unrecognised level title-cases rather than vanishing or printing a dotted
+// key — the same contract STATUS_KEYS and CHOICE_KEYS follow on the result
+// pages. A missing level is different from an unknown one: it gets the catch-all
+// heading, because there is no enum text to show.
+function levelLabel(level, t) {
+  const raw = normalise(level)
+  if (!raw) return t('lvl.other')
+  const key = LEVEL_KEYS[raw]
+  if (key) return t(`lvl.${key}`)
+  return raw.replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+// A tier name on its own teaches a reader nothing — plenty of people have never
+// heard the words "block office". The note says where they would physically go,
+// which is the whole reason the tier is worth showing.
+function levelNote(level, t) {
+  return t(`lvlnote.${LEVEL_KEYS[normalise(level)] || 'other'}`)
+}
+
+// A scheme's own prose is keyed by its id. The backend sends the key outright as
+// description_code / support_type_code; deriving it from `scheme_id` is the
+// fallback for a scheme row that has an id but no explicit code. Neither one
+// means no key, which means tBackend prints the English the backend sent — so a
+// scheme added to schemes.json without either still renders, just untranslated.
+const schemeKey = (scheme, part, explicit) =>
+  explicit || (scheme && scheme.scheme_id ? `sdata.${scheme.scheme_id}.${part}` : null)
+
+export function useBackendText() {
+  const { t, tBackend, tBackendEach } = useI18n()
+
+  // Joined with ' / ' here rather than in Python, because the backend would have
+  // to join English words before we ever saw them. Translating each word and
+  // rejoining is what keeps "manufacturing / services" from appearing inside an
+  // otherwise Tamil sentence.
+  const categoryWords = (categories) =>
+    (categories || [])
+      .map((name) => {
+        const key = CATEGORY_KEYS[String(name).toLowerCase().trim()]
+        return key ? t(key) : name
+      })
+      .join(' / ')
+
+  return {
+    advice: (advisory) =>
+      tBackendEach(advisory?.recommendation_codes, advisory?.recommendations),
+
+    observations: (business) =>
+      tBackendEach(business?.observation_codes, business?.observations),
+
+    riskReason: (risk) => tBackend(risk?.reason_code, risk?.reason),
+
+    summaryMessage: (summary) => tBackend(summary?.message_code, summary?.simple_message),
+
+    // `next_step_code` is null in one branch on purpose: when the step is
+    // borrowed from the advisory list the backend copies that entry's code, and
+    // if the list were somehow empty there is no code to copy.
+    nextStep: (summary) => tBackend(summary?.next_step_code, summary?.next_step),
+
+    seasonality: (row) => tBackend(row?.seasonality_code, row?.seasonality),
+
+    marketSource: (row) => tBackend(row?.source_code, row?.source),
+
+    // Not tBackend: `level` is an enum the backend chose, not a sentence it
+    // wrote, so there is no English prose to fall back to — the label comes from
+    // our own dictionary via t().
+    schemeLevel: (scheme) => levelLabel(scheme?.level, t),
+
+    schemeLevelNote: (scheme) => levelNote(scheme?.level, t),
+
+    levelLabel: (level) => levelLabel(level, t),
+
+    levelNote: (level) => levelNote(level, t),
+
+    schemeDescription: (scheme) =>
+      tBackend(schemeKey(scheme, 'description', scheme?.description_code), scheme?.description),
+
+    schemeSupport: (scheme) =>
+      tBackend(schemeKey(scheme, 'support', scheme?.support_type_code), scheme?.support_type),
+
+    // Not tBackendEach: each code here is an object carrying its own
+    // `categories`, so the placeholder has to be filled per item.
+    schemeReasons: (scheme) => {
+      const english = Array.isArray(scheme?.match_reasons) ? scheme.match_reasons : []
+      const codes = Array.isArray(scheme?.match_reason_codes) ? scheme.match_reason_codes : []
+      return english.map((text, index) => {
+        const entry = codes[index]
+        if (!entry || !entry.code) return text
+        return tBackend(entry.code, text, { categories: categoryWords(entry.categories) })
+      })
+    },
+
+    schemeEligibility: (scheme) =>
+      tBackendEach(scheme?.eligibility_codes, scheme?.eligibility_rules),
+
+    schemeDocuments: (scheme) => tBackendEach(scheme?.document_codes, scheme?.documents),
+  }
+}
