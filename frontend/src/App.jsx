@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Button from './components/Button'
+import { useApp } from './context/AppContext'
 import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
 import BusinessPage from './pages/BusinessPage'
@@ -10,22 +11,30 @@ import FinancePage from './pages/FinancePage'
 import SchemesPage from './pages/SchemesPage'
 import AdvisoryPage from './pages/AdvisoryPage'
 import ReportPage from './pages/ReportPage'
+import { useI18n } from './i18n/LanguageContext'
+import { LANGUAGES } from './i18n/languages'
 
 const journey = [
-  { path: '/profile', label: 'Profile', icon: '👤' },
-  { path: '/business', label: 'Business', icon: '🏪' },
-  { path: '/location', label: 'Location', icon: '📍' },
-  { path: '/finance', label: 'Finance', icon: '💰' },
+  { path: '/profile', label: 'nav.profile', icon: '👤' },
+  { path: '/business', label: 'nav.business', icon: '🏪' },
+  { path: '/location', label: 'nav.location', icon: '📍' },
+  { path: '/finance', label: 'nav.finance', icon: '💰' },
 ]
 
 const resultLinks = [
-  { path: '/analysis', label: 'Analysis', icon: '📊' },
-  { path: '/schemes', label: 'Schemes', icon: '🛠️' },
-  { path: '/advisory', label: 'Advice', icon: '💡' },
-  { path: '/report', label: 'Report', icon: '📄' },
+  { path: '/analysis', label: 'nav.analysis', icon: '📊' },
+  { path: '/schemes', label: 'nav.schemes', icon: '🛠️' },
+  { path: '/advisory', label: 'nav.advisory', icon: '💡' },
+  { path: '/report', label: 'nav.report', icon: '📄' },
 ]
 
+// Three steps only. A stepper with a dozen sizes is a settings screen; this is a
+// utility. The scale multiplies the reader's own browser font size rather than
+// replacing it, so someone who already runs their browser at 20px keeps that.
+const TEXT_SCALES = { sm: 0.94, md: 1, lg: 1.18 }
+
 function ThemeToggle() {
+  const { t } = useI18n()
   const [theme, setTheme] = useState(() => localStorage.getItem('sih-theme') || 'light')
 
   useEffect(() => {
@@ -33,151 +42,425 @@ function ThemeToggle() {
     localStorage.setItem('sih-theme', theme)
   }, [theme])
 
+  const label = theme === 'light' ? t('common.darkMode') : t('common.lightMode')
+
   return (
     <button
       type="button"
-      className="ui-icon-button"
+      className="ui-utility-button"
       onClick={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))}
-      aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
-      title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+      aria-label={label}
+      title={label}
     >
-      {theme === 'light' ? '🌙' : '☀️'}
+      <span aria-hidden="true">{theme === 'light' ? '🌙' : '☀️'}</span>
+      <span className="hidden sm:inline">{label}</span>
     </button>
+  )
+}
+
+function TextSizeControl() {
+  const { t } = useI18n()
+  const [size, setSize] = useState(() => localStorage.getItem('sih-textsize') || 'md')
+
+  useEffect(() => {
+    const scale = TEXT_SCALES[size] || 1
+    document.documentElement.style.setProperty('--ui-scale', String(scale))
+    localStorage.setItem('sih-textsize', size)
+  }, [size])
+
+  const steps = [
+    ['sm', 'A－', t('common.decreaseText')],
+    ['md', 'A', t('common.normalText')],
+    ['lg', 'A＋', t('common.increaseText')],
+  ]
+
+  return (
+    <span className="ui-textsize" role="group" aria-label={t('common.textSize')}>
+      {steps.map(([value, glyph, label]) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => setSize(value)}
+          aria-pressed={size === value}
+          aria-label={label}
+          title={label}
+        >
+          {glyph}
+        </button>
+      ))}
+    </span>
+  )
+}
+
+function ContrastToggle() {
+  const { t } = useI18n()
+  const [high, setHigh] = useState(() => localStorage.getItem('sih-contrast') === 'high')
+
+  useEffect(() => {
+    if (high) {
+      document.documentElement.dataset.contrast = 'high'
+    } else {
+      delete document.documentElement.dataset.contrast
+    }
+    localStorage.setItem('sih-contrast', high ? 'high' : 'normal')
+  }, [high])
+
+  return (
+    <button
+      type="button"
+      className="ui-utility-button"
+      onClick={() => setHigh((current) => !current)}
+      aria-pressed={high}
+      title={t('common.highContrast')}
+    >
+      <span aria-hidden="true">◐</span>
+      <span className="hidden sm:inline">{t('common.highContrast')}</span>
+    </button>
+  )
+}
+
+// The answers now survive a refresh, so a refresh no longer clears them. This is
+// the replacement: the only way back to an empty form without closing the tab.
+// It renders only once there is something to lose, which keeps it from being
+// clicked idly on a fresh load.
+function StartOverButton() {
+  const { applicationData, resetApplication } = useApp()
+  const { t } = useI18n()
+  const navigate = useNavigate()
+
+  const { profile, business, location, finance, result } = applicationData
+  const started = Boolean(
+    result ||
+      profile.name ||
+      business.businessName ||
+      business.category ||
+      location.state ||
+      finance.availableCapital,
+  )
+
+  if (!started) return null
+
+  return (
+    <button
+      type="button"
+      className="ui-utility-button"
+      onClick={() => {
+        resetApplication()
+        navigate('/')
+      }}
+      title={t('common.startOver')}
+    >
+      <span aria-hidden="true">↺</span>
+      <span className="hidden sm:inline">{t('common.startOver')}</span>
+    </button>
+  )
+}
+
+// Language first, dialect second, and the dialect list is filtered by the
+// language — the same cascade as state and district.
+function LanguagePicker() {
+  const { language, setLanguage, dialect, setDialect, dialects, t } = useI18n()
+
+  // The option-list colours live on .ui-utility-select in index.css, not here:
+  // the open panel is native chrome on a permanently dark strip, so it must not
+  // follow the theme tokens the way the rest of the page does.
+  const selectClass =
+    'ui-utility-select rounded-md border border-white/35 bg-transparent px-2 py-1 text-xs font-bold text-inherit outline-none'
+
+  return (
+    <>
+      <label className="inline-flex items-center gap-2">
+        <span className="sr-only">{t('common.chooseLanguage')}</span>
+        <span aria-hidden="true">🌐</span>
+        <select
+          value={language}
+          onChange={(event) => setLanguage(event.target.value)}
+          className={selectClass}
+          title={t('common.language')}
+        >
+          {LANGUAGES.map((entry) => (
+            // Endonym first: a reader who cannot read English still recognises
+            // their own script. The English name follows for everyone else.
+            <option key={entry.code} value={entry.code}>
+              {entry.endonym}
+              {entry.endonym === entry.name ? '' : ` · ${entry.name}`}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {dialects.length > 1 && (
+        <label className="hidden items-center gap-2 md:inline-flex">
+          <span className="sr-only">{t('common.dialect')}</span>
+          <select
+            value={dialect}
+            onChange={(event) => setDialect(event.target.value)}
+            className={selectClass}
+            title={t('common.dialect')}
+          >
+            <option value="">{t('common.dialect')}</option>
+            {dialects.map((entry) => (
+              <option key={entry.code} value={entry.code}>
+                {entry.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </>
   )
 }
 
 function AppShell({ children }) {
   const location = useLocation()
+  const { t } = useI18n()
   const isJourneyPage = journey.some((item) => item.path === location.pathname)
   const isResultPage = resultLinks.some((item) => item.path === location.pathname)
+  const isLanding = location.pathname === '/'
 
   return (
     <div className="ui-shell">
-      <header className="ui-topbar">
-        <div className="ui-topbar-inner">
-          <Link to="/" className="ui-brand" aria-label="ArthNiti home">
+      <a className="ui-skip-link" href="#main">
+        {t('common.skipToMain')}
+      </a>
+
+      <div className="ui-utilitybar">
+        <div className="ui-utilitybar-inner">
+          {/* Said in the chrome, on every page: the visual language is
+              government-like on purpose, and a viewer must not conclude this is
+              an official service. */}
+          <span className="ui-utilitybar-note">
+            <span aria-hidden="true">ℹ</span>
+            {t('common.prototypeNotice')}
+          </span>
+          <div className="ui-utilitybar-tools">
+            <LanguagePicker />
+            <TextSizeControl />
+            <ContrastToggle />
+            <ThemeToggle />
+            <StartOverButton />
+          </div>
+        </div>
+      </div>
+
+      <header className="ui-masthead">
+        <div className="ui-masthead-inner">
+          <Link to="/" className="ui-brand" aria-label={`${t('common.appName')} — ${t('nav.home')}`}>
             <span className="ui-brand-mark" aria-hidden="true">अ</span>
-            <span className="ui-brand-name">ArthNiti</span>
+            <span>
+              <span className="ui-brand-name">{t('common.appName')}</span>
+              <span className="ui-brand-sub">{t('common.appTagline')}</span>
+            </span>
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
-            <NavLink to="/" className="rounded-full px-3 py-2 text-sm font-semibold transition hover:bg-[var(--color-surface-soft)]">Home</NavLink>
-            {journey.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => `rounded-full px-3 py-2 text-sm font-semibold transition hover:bg-[var(--color-surface-soft)] ${isActive ? 'bg-[var(--color-surface-soft)] text-[var(--color-primary-strong)]' : ''}`}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-
           <div className="ui-header-actions">
-            <span className="hidden text-sm font-semibold text-[var(--color-text-muted)] sm:mr-3 sm:inline">Hindi/English का/A</span>
-            <Link to="/login" className="hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-bold text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] sm:inline-flex">
-              Log in
+            <Link
+              to="/login"
+              className="hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-bold text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] sm:inline-flex"
+            >
+              {t('common.login')}
             </Link>
-            <ThemeToggle />
           </div>
         </div>
       </header>
 
-      <main className="ui-main">
-        {(isJourneyPage || isResultPage) && <JourneyBar isResultPage={isResultPage} currentPath={location.pathname} />}
+      <div className="ui-tricolour" aria-hidden="true" />
+
+      <nav className="ui-navbar" aria-label={t('nav.journey')}>
+        <div className="ui-navbar-inner">
+          <NavLink to="/" end className={({ isActive }) => `ui-navbar-link ${isActive ? 'is-active' : ''}`}>
+            <span aria-hidden="true">🏠</span>
+            {t('nav.home')}
+          </NavLink>
+          {[...journey, ...resultLinks].map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) => `ui-navbar-link ${isActive ? 'is-active' : ''}`}
+            >
+              <span aria-hidden="true">{item.icon}</span>
+              {t(item.label)}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
+
+      <main className="ui-main" id="main">
+        {!isLanding && <Breadcrumb pathname={location.pathname} />}
+        {(isJourneyPage || isResultPage) && (
+          <JourneyBar isResultPage={isResultPage} currentPath={location.pathname} />
+        )}
         {children}
       </main>
 
-      <footer className="ui-footer">
-        <div className="flex flex-col justify-between gap-2 border-t border-[var(--color-border)] pt-5 sm:flex-row">
-          <span>ArthNiti · Your business, your next step.</span>
-          <span>Simple by default · Detailed when you need it.</span>
-        </div>
-      </footer>
+      <GovFooter />
     </div>
   )
 }
 
+function Breadcrumb({ pathname }) {
+  const { t } = useI18n()
+  const current = [...journey, ...resultLinks].find((item) => item.path === pathname)
+
+  return (
+    <nav className="ui-breadcrumb" aria-label={t('common.breadcrumb')}>
+      <Link to="/">{t('nav.home')}</Link>
+      <span className="ui-breadcrumb-sep" aria-hidden="true">›</span>
+      <span>{current ? t(current.label) : t('common.appName')}</span>
+    </nav>
+  )
+}
+
+function GovFooter() {
+  const { t } = useI18n()
+
+  return (
+    <>
+      <div className="ui-footer-gov">
+        <div className="ui-footer-inner">
+          <div>
+            <p className="ui-footer-title">{t('common.appName')}</p>
+            <p>{t('common.appTagline')}</p>
+          </div>
+          <div>
+            <p className="ui-footer-title">{t('nav.journey')}</p>
+            <p>
+              {journey.map((item, index) => (
+                <span key={item.path}>
+                  {index > 0 && ' · '}
+                  <Link to={item.path} className="text-[var(--color-primary-strong)]">
+                    {t(item.label)}
+                  </Link>
+                </span>
+              ))}
+            </p>
+          </div>
+          <div>
+            <p className="ui-footer-title">{t('common.helpline')}</p>
+            {/* The real national MSME helpline, so the page ends on something a
+                user can actually act on. */}
+            <p>Udyami Helpline 1800-11-6666</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="ui-footer-bottom">
+        <div className="ui-footer-bottom-inner">
+          <span>{t('common.disclaimer')}</span>
+          <span>
+            {t('common.lastReviewed')}: 07/09/2026 · {t('common.prototypeNotice')}
+          </span>
+        </div>
+      </div>
+    </>
+  )
+}
+
 function JourneyBar({ isResultPage, currentPath }) {
+  const { t } = useI18n()
   const steps = isResultPage ? resultLinks : journey
   const currentIndex = steps.findIndex((step) => step.path === currentPath)
 
+  // The dots are decoration and are marked aria-hidden: the label beside them
+  // already says which step this is, so per-dot labels were four redundant
+  // announcements — and an aria-label on a plain <div> with no role is ignored by
+  // most screen readers anyway, so those labels were untranslated English doing
+  // nothing.
+  //
+  // The four journey pages print their own "Step N of 4" chip next to the back
+  // link, so printing it here too showed the same number twice on one screen.
+  // The result pages have no such chip, so there it stays visible. Either way the
+  // number is announced, because the dots themselves say nothing.
+  const stepText = t('common.stepOf', { n: currentIndex + 1, total: steps.length })
+  const sectionText = isResultPage ? t('nav.results') : t('nav.journey')
+
   return (
-    <div className="ui-progress" aria-label="Application progress">
+    <div className="ui-progress">
       {steps.map((step, index) => (
         <div
           key={step.path}
+          aria-hidden="true"
           className={`ui-progress-step ${index < currentIndex ? 'is-complete' : ''} ${index === currentIndex ? 'is-active' : ''}`}
-          aria-label={`${step.label}: ${index < currentIndex ? 'complete' : index === currentIndex ? 'current' : 'upcoming'}`}
         />
       ))}
       <span className="ui-progress-label">
-        {isResultPage ? `${currentIndex + 1} of ${steps.length} · Your results` : `${currentIndex + 1} of ${steps.length} · Your business journey`}
+        <span className={isResultPage ? undefined : 'sr-only'}>{stepText} · </span>
+        {sectionText}
       </span>
     </div>
   )
 }
 
 function LandingPage() {
+  const { t } = useI18n()
+
   return (
     <div>
-      <section className="ui-hero grid min-h-[calc(100vh-150px)] items-center gap-10 py-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-16">
+      <section className="ui-hero grid min-h-[calc(100vh-320px)] items-center gap-10 py-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-14">
         <div>
-          <p className="ui-eyebrow">Sahyog</p>
-          <h1 className="ui-page-title max-w-3xl text-[clamp(2.5rem,6vw,4.8rem)]">
-            Start your business journey with confidence.
+          <p className="ui-eyebrow">{t('landing.eyebrow')}</p>
+          <h1 className="ui-page-title max-w-3xl text-[clamp(2.1rem,5vw,3.9rem)]">
+            {t('landing.title')}
           </h1>
-          <p className="ui-page-subtitle mt-6 max-w-2xl text-lg sm:text-xl">
-            Tell us about yourself and your business. We will turn your information into simple financial guidance, useful schemes, hyper local insights, and clear next steps.
-          </p>
+          <p className="ui-page-subtitle mt-6 max-w-2xl text-lg sm:text-xl">{t('landing.subtitle')}</p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link to="/profile">
-              <Button className="w-full px-7 py-4 sm:w-auto">🚀 Start my journey</Button>
-            </Link>
+            <Button to="/profile" size="lg" className="w-full sm:w-auto">
+              <span aria-hidden="true">🚀</span> {t('landing.cta')}
+            </Button>
+            <a
+              href="#how-it-works"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 font-bold text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)]"
+            >
+              {t('landing.offerEyebrow')} <span aria-hidden="true">↓</span>
+            </a>
           </div>
 
           <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-[var(--color-text-muted)]">
-            <span>✓ Simple language</span>
-            <span>✓ Local context</span>
-            <span>✓ Scheme matching</span>
+            <span><span aria-hidden="true">✓</span> {t('landing.chip1')}</span>
+            <span><span aria-hidden="true">✓</span> {t('landing.chip2')}</span>
+            <span><span aria-hidden="true">✓</span> {t('landing.chip3')}</span>
           </div>
         </div>
 
         <div className="ui-card relative overflow-hidden p-6 sm:p-8">
-          <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-[var(--color-accent)] opacity-70 blur-3xl" aria-hidden="true" />
+          <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-[var(--color-accent)] opacity-40 blur-3xl" aria-hidden="true" />
           <div className="relative">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-[var(--color-text-muted)]">A simple view</p>
-                <h2 className="mt-1 text-2xl font-extrabold">Know what to do next.</h2>
+                <p className="text-sm font-bold text-[var(--color-text-muted)]">{t('landing.miniLead')}</p>
+                <h2 className="mt-1 text-2xl font-extrabold">{t('landing.miniTitle')}</h2>
               </div>
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--color-primary)] text-xl">✓</span>
+              <span className="grid h-12 w-12 place-items-center rounded-xl bg-[var(--color-btn)] text-xl text-[var(--color-on-btn)]" aria-hidden="true">✓</span>
             </div>
 
             <div className="space-y-3">
-              <MiniCard icon="💰" title="Your money" text="See profit, funding need and repayment process." />
-              <MiniCard icon="🛠️" title="Useful schemes" text="Understand which government schemes may fit." />
-              <MiniCard icon="💡" title="Your next steps" text="Get practical advice based on your situation." />
+              <MiniCard icon="💰" title={t('landing.money.title')} text={t('landing.money.text')} />
+              <MiniCard icon="🛠️" title={t('landing.schemes.title')} text={t('landing.schemes.text')} />
+              <MiniCard icon="💡" title={t('landing.next.title')} text={t('landing.next.text')} />
             </div>
 
             <div className="ui-card-soft mt-5 p-4">
-              <p className="text-sm font-bold">Need more detail?</p>
-              <p className="mt-1 text-sm text-[var(--color-text-muted)]">Advanced information stays available whenever you want it.</p>
+              <p className="text-sm font-bold">{t('landing.detailTitle')}</p>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('landing.detailText')}</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="pb-8 sm:pb-12">
+      {/* Top padding, not just the hero's bottom padding: the street artwork is a
+          ::before pinned to `inset: 0` of .ui-hero, so its bottom edge lands
+          exactly where the hero section ends and the eyebrow chip below it had
+          nothing to sit against. */}
+      <section id="how-it-works" className="scroll-mt-24 pt-10 pb-8 sm:pt-16 sm:pb-12">
         <div className="ui-page-intro">
-          <p className="ui-eyebrow">What we offer</p>
-          <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">From idea to action.</h2>
+          <p className="ui-eyebrow">{t('landing.offerEyebrow')}</p>
+          <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('landing.offerTitle')}</h2>
         </div>
         <div className="ui-simple-grid">
-          <Feature icon="📍" title="Hyper local insights">Advice shaped by your village, district, customers and market.</Feature>
-          <Feature icon="📈" title="Financial clarity">Understand whether the business looks sustainable and where money is going.</Feature>
-          <Feature icon="🤝" title="Government support">Find relevant schemes and see why they may match your profile.</Feature>
+          <Feature icon="📍" title={t('landing.f1.title')}>{t('landing.f1.text')}</Feature>
+          <Feature icon="📈" title={t('landing.f2.title')}>{t('landing.f2.text')}</Feature>
+          <Feature icon="🤝" title={t('landing.f3.title')}>{t('landing.f3.text')}</Feature>
         </div>
       </section>
     </div>
@@ -186,8 +469,8 @@ function LandingPage() {
 
 function MiniCard({ icon, title, text }) {
   return (
-    <div className="flex items-start gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--color-surface-soft)] text-lg" aria-hidden="true">{icon}</span>
+    <div className="flex items-start gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[var(--color-surface-soft)] text-lg" aria-hidden="true">{icon}</span>
       <div>
         <h3 className="font-extrabold">{title}</h3>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">{text}</p>
@@ -207,26 +490,21 @@ function Feature({ icon, title, children }) {
 }
 
 function NotFoundPage() {
+  const { t } = useI18n()
+
   return (
     <div className="mx-auto max-w-2xl">
       <section className="ui-card p-5 text-center sm:p-8">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-surface-soft)] text-3xl" aria-hidden="true">
           🧭
         </div>
-        <h1 className="mt-5 text-2xl font-extrabold sm:text-3xl">We could not find that page</h1>
-        <p className="mx-auto mt-3 max-w-xl text-[var(--color-text-muted)]">
-          The link may be old or mistyped. You can go back to the start and begin your business journey.
-        </p>
+        <h1 className="mt-5 text-2xl font-extrabold sm:text-3xl">{t('nf.title')}</h1>
+        <p className="mx-auto mt-3 max-w-xl text-[var(--color-text-muted)]">{t('nf.text')}</p>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link to="/">
-            <Button className="w-full px-6 py-3 sm:w-auto">Go to home</Button>
-          </Link>
-          <Link
-            to="/profile"
-            className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 font-bold text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-surface-soft)]"
-          >
-            Start my journey
-          </Link>
+          <Button to="/" className="w-full sm:w-auto">{t('nf.home')}</Button>
+          <Button to="/profile" variant="secondary" className="w-full sm:w-auto">
+            {t('landing.cta')}
+          </Button>
         </div>
       </section>
     </div>
