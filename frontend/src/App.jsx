@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import Button from './components/Button'
+import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
 import BusinessPage from './pages/BusinessPage'
 import LocationPage from './pages/LocationPage'
@@ -73,7 +74,10 @@ function AppShell({ children }) {
           </nav>
 
           <div className="ui-header-actions">
-            <span className="hidden text-sm font-semibold text-[var(--color-text-muted)] sm:inline">Hindi / English</span>
+            <span className="hidden text-sm font-semibold text-[var(--color-text-muted)] sm:mr-3 sm:inline">Hindi/English का/A</span>
+            <Link to="/login" className="hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-bold text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] sm:inline-flex">
+              Log in
+            </Link>
             <ThemeToggle />
           </div>
         </div>
@@ -117,25 +121,20 @@ function JourneyBar({ isResultPage, currentPath }) {
 function LandingPage() {
   return (
     <div>
-      <section className="grid min-h-[calc(100vh-150px)] items-center gap-10 py-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-16">
+      <section className="ui-hero grid min-h-[calc(100vh-150px)] items-center gap-10 py-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-16">
         <div>
-          <p className="ui-eyebrow">🌱 AI-powered business guidance</p>
+          <p className="ui-eyebrow">Sahyog</p>
           <h1 className="ui-page-title max-w-3xl text-[clamp(2.5rem,6vw,4.8rem)]">
             Start your business journey with confidence.
           </h1>
           <p className="ui-page-subtitle mt-6 max-w-2xl text-lg sm:text-xl">
-            Tell us about yourself and your business. We will turn your information into simple financial guidance, useful schemes, local insights, and clear next steps.
+            Tell us about yourself and your business. We will turn your information into simple financial guidance, useful schemes, hyper local insights, and clear next steps.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link to="/profile">
               <Button className="w-full px-7 py-4 sm:w-auto">🚀 Start my journey</Button>
             </Link>
-            {/* Anchors to the section below. This used to link to /analysis,
-                which on a fresh load only ever shows the empty state. */}
-            <a href="#how-it-works" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 font-bold text-[var(--color-text)] shadow-sm transition hover:bg-[var(--color-surface-soft)]">
-              See how it works
-            </a>
           </div>
 
           <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-[var(--color-text-muted)]">
@@ -157,7 +156,7 @@ function LandingPage() {
             </div>
 
             <div className="space-y-3">
-              <MiniCard icon="💰" title="Your money" text="See profit, funding need and repayment pressure." />
+              <MiniCard icon="💰" title="Your money" text="See profit, funding need and repayment process." />
               <MiniCard icon="🛠️" title="Useful schemes" text="Understand which government schemes may fit." />
               <MiniCard icon="💡" title="Your next steps" text="Get practical advice based on your situation." />
             </div>
@@ -170,13 +169,13 @@ function LandingPage() {
         </div>
       </section>
 
-      <section id="how-it-works" className="scroll-mt-24 pb-8 sm:pb-12">
+      <section className="pb-8 sm:pb-12">
         <div className="ui-page-intro">
-          <p className="ui-eyebrow">Three things in one place</p>
+          <p className="ui-eyebrow">What we offer</p>
           <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">From idea to action.</h2>
         </div>
         <div className="ui-simple-grid">
-          <Feature icon="📍" title="Local insights">Advice shaped by your village, district, customers and market.</Feature>
+          <Feature icon="📍" title="Hyper local insights">Advice shaped by your village, district, customers and market.</Feature>
           <Feature icon="📈" title="Financial clarity">Understand whether the business looks sustainable and where money is going.</Feature>
           <Feature icon="🤝" title="Government support">Find relevant schemes and see why they may match your profile.</Feature>
         </div>
@@ -239,6 +238,7 @@ function App() {
     <AppShell>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/business" element={<BusinessPage />} />
         <Route path="/location" element={<LocationPage />} />
