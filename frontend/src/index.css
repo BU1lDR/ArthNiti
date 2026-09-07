@@ -37,12 +37,61 @@
   --gov-green: #138808;
   --shadow-card: 0 1px 2px rgba(11, 60, 123, 0.06), 0 8px 24px rgba(11, 60, 123, 0.07);
   --radius-card: 0.85rem;
-  /* The artwork is drawn in mid-tones, which sit close to this theme's near-white
-     background, so it needs both more opacity and a darkening filter below to be
-     visible at all — see .ui-hero::before. */
-  --landing-art-opacity: 0.34;
+  /* Higher than the dark theme's, and it has to be: three attenuations multiply
+     before this artwork reaches the screen (per-element opacity in the SVG, the
+     file's own softTop gradient mask, then this), and the fills are mid-tones
+     sitting close to a near-white page. Measured, not guessed — see
+     .ui-hero::before and screenshots/verify/art-contrast.mjs. */
+  --landing-art-opacity: 0.5;
   /* Driven by the A- / A / A+ control in the utility bar. */
   --ui-scale: 1;
+
+  /* The brand mark (components/BrandMark.jsx). These are the only colours in the
+     app that are NOT drawn from the palette above, because a logo is a fixed
+     asset rather than themed chrome — the lotus is magenta-to-gold in every
+     theme, the same way a printed letterhead is. What the theme blocks below
+     change is only the parts that have to react to the page behind it: the petal
+     edge, and in high contrast the whole thing.
+
+     --mark-edge is a hairline, and it is load-bearing rather than decorative:
+     the petals overlap, so without it eight shapes filled from one gradient read
+     as a single blob. --mark-edge-w is a token so high contrast can thicken it. */
+  --mark-petal-outer: #DB1B72;
+  --mark-petal-mid: #F4791F;
+  --mark-petal-inner: #FBC02D;
+  --mark-edge: rgba(136, 14, 79, 0.45);
+  --mark-edge-w: 2.4;
+  --mark-coin-ring: #E8730F;
+  --mark-coin-face: #FBCB48;
+  --mark-coin-shine: #FDEFC0;
+  --mark-coin-glyph: #7A1220;
+  --mark-drop: #F5A31B;
+  --mark-drop-edge: #C2410C;
+
+  /* The अर्थNiti wordmark in the utility strip (components/BrandWordmark.jsx).
+     Only two colour cases exist for these, not four: the utility bar is
+     #08243F in BOTH themes and #000000 in high contrast, so the strip never
+     changes underneath them the way a themed surface does. Measured against
+     #08243F: gold 9.1:1, cream 14:1, swoosh 6.1:1. */
+  --wordmark-arth: #F6C15C;
+  --wordmark-niti: #FFF4E0;
+  --wordmark-swoosh: #E8973A;
+  --wordmark-dot: #F6C15C;
+  --wordmark-swoosh-w: 2;
+
+  /* The instruction manual's book icon (components/InstructionManual.jsx).
+     Same reasoning as the brand mark: a fixed asset, so the colours are its own
+     rather than the palette's, and only what has to react to the page behind it
+     moves per theme. Unlike the wordmark this one sits on a themed card, so it
+     needs all four cases. */
+  --book-cover: #7B1E3C;
+  --book-spine: #5E162E;
+  --book-band: #E2582B;
+  --book-seal: #EFB03C;
+  --book-seal-rim: #D08E1C;
+  --book-pages: #FBEBBE;
+  --book-pageline: #E2CE92;
+  --book-sprout: #23414D;
 }
 
 [data-theme="dark"] {
@@ -63,6 +112,22 @@
   --color-success: #7CD9A5;
   --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
   --landing-art-opacity: 0.26;
+  /* The lotus keeps its own colours here — saturated magenta and gold are what
+     dark surfaces are kindest to. Only the petal edge flips: a deep plum
+     hairline disappears against a navy masthead, so the separator becomes a
+     pale rim instead. */
+  --mark-edge: rgba(255, 226, 240, 0.4);
+  /* The book brightens on navy. The maroon cover and the dark-teal sprout are
+     both near-black against #10273E — the sprout in particular vanished
+     completely, which turned the icon into a book with nothing growing out of
+     it. The gold seal, the orange band and the cream pages are already light
+     and stay as they are.
+
+     The wordmark has no entry here on purpose: it lives in the utility strip,
+     which is the same #08243F in both themes. */
+  --book-cover: #A8294F;
+  --book-spine: #7B1E3C;
+  --book-sprout: #7FD4C1;
 }
 
 /* The high-contrast mode required of government sites: pure black on pure
@@ -85,6 +150,72 @@
   --color-success: #004D25;
   --shadow-card: none;
   --landing-art-opacity: 0;
+
+  /* The brand mark collapses to a two-colour silhouette: ink for every filled
+     shape, paper for the separators. Both are read back off the palette, so the
+     [data-contrast="high"][data-theme="dark"] block below inherits this and
+     comes out yellow-on-black with no extra rules.
+
+     The mark stays visible here even though --landing-art-opacity above drops
+     the landing artwork to nothing. Those are different things: the street scene
+     is decoration, and this is the identity of the service — a high-contrast
+     reader still needs to know which site they are on.
+
+     Note --mark-coin-face and --mark-coin-shine both become paper, which is what
+     deletes the coin highlight. That is deliberate: a 3D shine is exactly the
+     kind of low-contrast detail this mode exists to remove.
+
+     The edge has to get thicker, not just change colour. At ink-on-ink the
+     hairlines are the ONLY thing between one petal and the next, and 2.4 user
+     units is a third of a pixel once the mark is drawn at 40px. */
+  --mark-petal-outer: var(--color-btn);
+  --mark-petal-mid: var(--color-btn);
+  --mark-petal-inner: var(--color-btn);
+  --mark-edge: var(--color-bg);
+  --mark-edge-w: 3.4;
+  --mark-coin-ring: var(--color-btn);
+  --mark-coin-face: var(--color-bg);
+  --mark-coin-shine: var(--color-bg);
+  --mark-coin-glyph: var(--color-btn);
+  --mark-drop: var(--color-btn);
+  --mark-drop-edge: var(--color-bg);
+
+  /* The wordmark goes plain white, and these are the one place in this block
+     that CANNOT read off the palette. The utility strip is forced to
+     #000000/#ffffff for both high-contrast themes by
+     `[data-contrast="high"] .ui-utilitybar`, which never consults a token — so
+     var(--color-bg) would be white here and black in dark high contrast, i.e.
+     black text on the black strip half the time. A fixed strip needs a fixed
+     colour on it.
+
+     The swoosh goes too. At white-on-black a decorative gold underline is
+     either invisible or a second competing ink; the wordmark carries the name
+     on weight contrast alone, which is what it is designed to do anyway.
+
+     The bead at the swoosh's tip has to go with it, not stay behind as a
+     visible dot. It is the tail of the stroke, so on its own — floating past
+     the final "i" with no line running into it — it reads as a stray full stop
+     after the product name rather than as an ornament. Confirmed on the
+     high-contrast captures before this line existed. */
+  --wordmark-arth: #ffffff;
+  --wordmark-niti: #ffffff;
+  --wordmark-swoosh: transparent;
+  --wordmark-dot: transparent;
+
+  /* The book becomes ink-and-paper like the brand mark, and for the same
+     reason: every fill that carries the shape becomes ink, every fill that
+     SEPARATES two shapes becomes paper. So the cover, the seal rim, the page
+     rules and the sprout are ink; the spine edge, the band, the seal face and
+     the page block are paper. Read off the palette, so dark high contrast
+     comes out gold-on-black with no extra rules. */
+  --book-cover: var(--color-btn);
+  --book-spine: var(--color-bg);
+  --book-band: var(--color-bg);
+  --book-seal: var(--color-bg);
+  --book-seal-rim: var(--color-btn);
+  --book-pages: var(--color-bg);
+  --book-pageline: var(--color-btn);
+  --book-sprout: var(--color-btn);
 }
 
 [data-contrast="high"][data-theme="dark"] {
@@ -215,12 +346,49 @@ summary:focus-visible {
   flex-wrap: wrap;
 }
 
-.ui-utilitybar-note {
+/* The अर्थNiti wordmark, at the left of the utility strip, where the prototype
+   notice used to sit. The notice was removed from the page outright on 8 Sept
+   2026 at the owner's explicit instruction, restated after the trade-off was
+   put to them — see the note in CLAUDE.md before adding any disclaimer back.
+
+   Live text, not an image, so it recolours for high contrast, scales with
+   --ui-scale and is read aloud. The family stays inherited (Noto Sans) rather
+   than reaching for a serif: a font that is not installed on the demo laptop
+   falls back to something arbitrary, and the wordmark's character comes from
+   the weight contrast between the two halves plus the gold swoosh under them. */
+.ui-wordmark {
   display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1;
+}
+
+.ui-wordmark-text {
+  font-size: 1.02rem;
+  white-space: nowrap;
+}
+
+.ui-wordmark-arth {
+  color: var(--wordmark-arth);
+  font-weight: 800;
+}
+
+/* Letter-spacing only on the Latin half. Applying it to the container would
+   space out the Devanagari grapheme clusters of अर्थ as well, which pulls the
+   र्थ conjunct apart. */
+.ui-wordmark-niti {
+  color: var(--wordmark-niti);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+/* Stretches to whatever width the name occupies — the parent is a column flex
+   box, so this fills it. In rem rather than px so it keeps its proportion to
+   the name at all three text scales. */
+.ui-wordmark-swoosh {
+  display: block;
+  width: 100%;
+  height: 0.36rem;
 }
 
 .ui-utilitybar-tools {
@@ -366,14 +534,27 @@ summary:focus-visible {
   box-shadow: var(--shadow-card);
 }
 
+/* Wraps to a second row rather than scrolling, on anything wider than a phone.
+   The band used to be overflow-x: auto at every width with the scrollbar hidden,
+   and the scroll HINT only exists below 640px — so on a 1440px desktop a
+   long-script translation simply lost its last links with nothing to say they
+   existed. Measured: Tamil overflowed by 284px and dropped Advice and Report;
+   Malayalam overflowed by 393px and left a bare, label-less icon sliced at the
+   right edge. A mouse has no easy horizontal-scroll gesture, so those links were
+   unreachable, not merely off-screen.
+
+   Two rows in a government-style nav band is an ordinary pattern, and it costs
+   the taller chrome only in the languages that need it. The phone behaviour is
+   unchanged — see the nowrap override in the 640px block, which keeps the
+   deliberate swipe-scroll and its fade hint. */
 .ui-navbar-inner {
   display: flex;
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
   min-height: 48px;
   align-items: center;
+  flex-wrap: wrap;
   gap: 4px;
-  overflow-x: auto;
   scrollbar-width: none;
 }
 
@@ -381,11 +562,15 @@ summary:focus-visible {
   display: none;
 }
 
+/* 11px of side padding rather than 14: with nine links that is 54px back, which
+   is enough to keep Kannada, Telugu, Marathi and Bengali on a single row. Tamil
+   and Malayalam need far more than that and wrap, which is the point of the rule
+   above. */
 .ui-navbar-link {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 12px 14px;
+  padding: 12px 11px;
   border-bottom: 3px solid transparent;
   color: inherit;
   font-size: 0.9rem;
@@ -412,16 +597,38 @@ summary:focus-visible {
   letter-spacing: -0.02em;
 }
 
+/* Three sizes for the lotus mark. Height drives it and the width follows the
+   viewBox, because the mark is taller than it is wide (the falling coins sit
+   below the flower) and a square box would either letterbox it or squash it.
+   `display: block` is what makes `mx-auto` work on the centred placements.
+
+   No tile behind it, which is a change from the `अ` this replaced. That was a
+   navy square filled with --color-btn, and --color-btn is #FFE000 in dark high
+   contrast — a magenta-and-gold lotus on a yellow chip. A mark with its own
+   silhouette does not need a plate, and without one it sits correctly on the
+   masthead, on a card, and on white paper without a fourth special case.
+
+   These heights are the whole viewBox, and the flower is only the top ~75% of it
+   — so a 46px mark drew a 34px flower, which read undersized next to the
+   two-line brand block beside it. Every size is set from the flower up rather
+   than from the box: 54 here gives a 40px flower to match the name plus tagline,
+   38 in the footer, and 88 on /login. */
 .ui-brand-mark {
-  display: grid;
-  width: 46px;
-  height: 46px;
-  place-items: center;
-  border-radius: 10px;
-  background: var(--color-btn);
-  color: var(--color-on-btn);
-  font-size: 22px;
-  box-shadow: var(--shadow-card);
+  display: block;
+  width: auto;
+  height: 54px;
+}
+
+.ui-brand-mark-sm {
+  display: block;
+  width: auto;
+  height: 38px;
+}
+
+.ui-brand-mark-lg {
+  display: block;
+  width: auto;
+  height: 88px;
 }
 
 .ui-brand-name {
@@ -439,9 +646,13 @@ summary:focus-visible {
   letter-spacing: 0.01em;
 }
 
+/* Wraps because it now holds two things — the prototype pill and the login
+   link — and the pill's text is a full sentence in eight languages. */
 .ui-header-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -549,21 +760,345 @@ summary:focus-visible {
   background-repeat: no-repeat;
   background-size: min(1320px, 116%) auto;
   opacity: var(--landing-art-opacity);
-  /* Light mode needs the mirror image of the dark-mode treatment below. One file
-     serves both themes by being drawn in mid-tones, but mid-tones are close in
-     luminance to this theme's near-white page background, so raising the opacity
-     alone made the artwork heavier without making it any easier to see. Deepening
-     and saturating it is what gives the linework something to bite against.
-     Kept mild on purpose: hero body copy sits over the lower half of this
-     illustration, and a darker backdrop eats that text's contrast. */
-  filter: brightness(0.9) saturate(1.3) contrast(1.08);
+  /* Light mode needs the mirror image of the dark-mode treatment below, and it
+     needs to be much stronger than it looks like it should be. One file serves
+     both themes by being drawn in mid-tones, but on a near-white page those
+     mid-tones are almost the background: measured, a third of the drawing landed
+     under dL* 5 against the page, which is why this kept getting reported as
+     "not visible" however much the opacity went up.
+
+     brightness() below 0.5 is the load-bearing part. The fills have to be pushed
+     out of the page's own lightness range before any amount of opacity can show
+     them — and note the previous `contrast(1.08)` was working against that, since
+     contrast above 1 pushes everything lighter than mid-grey further toward white,
+     and most of this palette is lighter than mid-grey. The slight reduction here
+     compresses the range instead, which keeps the darkest fills from getting heavy
+     enough to eat the hero text's contrast. saturate() then has something left to
+     work with; without it, halving the brightness reads as a grey smudge.
+
+     Retuning this by eye does not work, because none of the three multiplied
+     alphas are visible in this file. screenshots/verify/art-contrast.mjs models
+     the whole chain and reports both the visibility and the hero-copy contrast
+     ratio — run it before changing these numbers. */
+  filter: brightness(0.5) saturate(2.2) contrast(0.91);
   pointer-events: none;
+}
+
+/* The hero is the one place body copy sits directly on the artwork, so it drops
+   the muted grey and uses full-strength text. This is what makes the backdrop
+   above possible at all: the model has no solution that keeps the artwork
+   visible AND keeps --color-text-muted at AA, because that grey starts with only
+   ~5.9:1 of headroom on the page and any backdrop at all spends it. At
+   --color-text there is room for both. It reads better for a low-literacy
+   audience regardless — muted grey over a picture is the weakest pairing on the
+   page. Scoped to .ui-hero so every other page keeps its quieter subtitle, and
+   it needs this specificity rather than a call-site utility because
+   .ui-page-subtitle is unlayered and would otherwise win. */
+.ui-hero .ui-page-subtitle {
+  color: var(--color-text);
 }
 
 /* Over the dark navy background the problem reverses — the same mid-tones need
    lifting rather than deepening. Replaces the light-mode filter wholesale. */
 [data-theme="dark"] .ui-hero::before {
   filter: brightness(1.16) saturate(0.9);
+}
+
+/* ---------------------------------------------------------------------------
+   The instruction manual (components/InstructionManual.jsx).
+
+   Two states with deliberately different treatments. Collapsed it is an ordinary
+   in-flow strip at the top of the landing page — NOT an auto-opening overlay,
+   because a dialog on first load is the pattern every user has been trained to
+   dismiss unread, and this is the one piece of content the target reader most
+   needs. Expanded it is a real modal, so eight steps get the whole screen.
+   --------------------------------------------------------------------------- */
+.ui-manual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--color-border);
+  /* The gold edge is the only thing marking this strip as the one piece of help
+     on the page rather than another card. */
+  border-left: 6px solid var(--color-accent);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.ui-manual-icon {
+  display: block;
+  width: auto;
+  height: 46px;
+  flex-shrink: 0;
+}
+
+.ui-manual-head .ui-manual-icon {
+  height: 40px;
+}
+
+/* flex-basis rather than a width: the strip is icon + text + button, and below
+   ~520px the button has to drop to its own row instead of squeezing the text to
+   two words per line. */
+.ui-manual-strip-text {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.ui-manual-badge {
+  color: var(--color-primary-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ui-manual-strip-title {
+  color: var(--color-text);
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.ui-manual-lead {
+  color: var(--color-text-muted);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.ui-manual-open {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 18px;
+  border: 2px solid var(--color-primary-strong);
+  border-radius: 0.6rem;
+  background: var(--color-surface);
+  color: var(--color-primary-strong);
+  font-size: 0.98rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ui-manual-open:hover {
+  background: var(--color-surface-soft);
+}
+
+.ui-manual-overlay {
+  position: fixed;
+  inset: 0;
+  /* Under .ui-skip-link's 100 on purpose — there is no focus trap here, so a
+     keyboard user can still reach the skip link, and Escape closes the panel. */
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 16px;
+  background: rgba(4, 18, 33, 0.62);
+}
+
+/* Translucency is itself a low-contrast device, so the scrim goes nearly
+   opaque here rather than merely darker. */
+[data-contrast="high"] .ui-manual-overlay {
+  background: rgba(0, 0, 0, 0.88);
+}
+
+.ui-manual-panel {
+  width: min(720px, 100%);
+  /* Capped so the panel scrolls internally. Without the cap a taller-than-screen
+     flex item centred by the overlay gets its top clipped with no way to reach
+     it — and at 360px with the 1.18 text scale this content is much taller than
+     the screen. */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+[data-contrast="high"] .ui-manual-panel {
+  border-width: 2px;
+  box-shadow: none;
+}
+
+.ui-manual-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: var(--color-surface-soft);
+}
+
+.ui-manual-title {
+  color: var(--color-text);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.ui-manual-close {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+
+.ui-manual-body {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+/* The manual's own language box. Deliberately the first thing inside the panel:
+   for the reader this is written for, choosing a readable language is step zero,
+   and the picker in the utility strip is above the masthead where they are least
+   likely to look. */
+.ui-manual-lang {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-soft);
+}
+
+.ui-manual-lang-label {
+  color: var(--color-text);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.ui-manual-select {
+  flex: 1 1 180px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+/* The dropdown list is painted by the OS, which does not inherit the field's
+   colours — in light mode that produced white-on-white options. Same fix as
+   .ui-utility-select option. */
+.ui-manual-select option {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.ui-manual-section {
+  margin-top: 4px;
+  color: var(--color-primary-strong);
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
+.ui-manual-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-manual-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+/* The step number is content, not decoration — "2 of 4" is legible to a reader
+   who cannot read the heading beside it — so it stays visible to a screen
+   reader as well. */
+.ui-manual-num {
+  display: inline-flex;
+  min-width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-btn);
+  color: var(--color-on-btn);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.ui-manual-step-icon {
+  flex-shrink: 0;
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+
+.ui-manual-step-title {
+  display: block;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.ui-manual-step-text {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.ui-manual-note-title {
+  color: var(--color-text);
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.ui-manual-note-text {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.ui-manual-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  background: var(--color-surface-soft);
+}
+
+.ui-manual-secondary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.96rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .ui-card {
@@ -963,18 +1498,10 @@ summary:focus-visible {
     font-size: 1rem;
   }
 
-  /* The prototype notice used to be hidden below 800px, purely because the
-     utility bar was one unwrappable row and something had to give. It is back:
-     the tools cluster wraps now (see the phones block below), and this notice is
-     the one thing on the page that stops a government-styled masthead from
-     reading as an official service — hiding it on the device the target user
-     actually holds defeated the entire point of having it. It takes its own row
-     and the tools drop beneath it. */
-  .ui-utilitybar-note {
-    flex: 1 1 100%;
-    line-height: 1.45;
-  }
-
+  /* The tools cluster takes its own row and the wordmark keeps the one above it.
+     Before the tools learned to wrap they formed one unbreakable ~396px row
+     inside a 336px box, and that single overflow pushed the document sideways on
+     every route in the app. */
   .ui-utilitybar-tools {
     flex: 1 1 100%;
   }
@@ -1061,9 +1588,7 @@ summary:focus-visible {
   }
 
   .ui-brand-mark {
-    width: 40px;
-    height: 40px;
-    font-size: 19px;
+    height: 46px;
   }
 }
 
@@ -1085,15 +1610,22 @@ summary:focus-visible {
     overflow-wrap: anywhere;
   }
 
+  /* On a phone the band goes back to one scrolling row. Wrapping nine links at
+     336px would stack them five rows deep and bury the page below the fold,
+     whereas a swipe is a gesture a thumb already has — which is why the scroll
+     was the deliberate choice here in the first place. The fade below is what
+     makes it discoverable. */
+  .ui-navbar-inner {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
   /* The nav band scrolls sideways by design and hides its scrollbar, which on a
      phone leaves the last link sliced mid-word ("Your busi") with nothing to say
      more exists — it reads as broken rather than scrollable. This fades the right
      edge instead. The gradient goes through var(--color-btn), the band's own
      background, so dark mode and high contrast need no extra rule, and
-     pointer-events: none keeps the link underneath tappable.
-
-     Note this deliberately does NOT touch .ui-navbar-inner's overflow-x: auto or
-     its hidden scrollbar — it only signals the behaviour that is already there. */
+     pointer-events: none keeps the link underneath tappable. */
   .ui-navbar::after {
     content: '';
     position: absolute;
@@ -1132,16 +1664,37 @@ summary:focus-visible {
     --color-primary-strong: #0B3C7B;
     --shadow-card: none;
     --ui-scale: 1;
+    /* The brand mark has to be restated here, not just inherited. The
+       high-contrast block above sets every --mark-* to var(--color-btn) or
+       var(--color-bg), and this block does not undo that by resetting the
+       palette — the mark tokens would still point at the button colour, which in
+       dark high contrast is #FFE000. That prints as a yellow lotus on white
+       paper, i.e. an invisible logo on the one page a user carries to a bank. */
+    --mark-petal-outer: #DB1B72;
+    --mark-petal-mid: #F4791F;
+    --mark-petal-inner: #FBC02D;
+    --mark-edge: rgba(136, 14, 79, 0.45);
+    --mark-edge-w: 2.4;
+    --mark-coin-ring: #E8730F;
+    --mark-coin-face: #FBCB48;
+    --mark-coin-shine: #FDEFC0;
+    --mark-coin-glyph: #7A1220;
+    --mark-drop: #F5A31B;
+    --mark-drop-edge: #C2410C;
   }
 
-  /* App chrome is navigation, and navigation means nothing on paper. */
+  /* App chrome is navigation, and navigation means nothing on paper. The manual
+     is landing-page only so it cannot reach /report today, but it is listed
+     because it is help text about using the screen — meaningless once printed. */
   .ui-topbar,
   .ui-utilitybar,
   .ui-navbar,
   .ui-progress,
   .ui-breadcrumb,
   .ui-footer,
-  .ui-skip-link {
+  .ui-skip-link,
+  .ui-manual,
+  .ui-manual-overlay {
     display: none !important;
   }
 
