@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import BrandMark from './components/BrandMark'
+import BrandWordmark from './components/BrandWordmark'
 import Button from './components/Button'
+import InstructionManual from './components/InstructionManual'
 import { useApp } from './context/AppContext'
 import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
@@ -11,6 +14,7 @@ import FinancePage from './pages/FinancePage'
 import SchemesPage from './pages/SchemesPage'
 import AdvisoryPage from './pages/AdvisoryPage'
 import ReportPage from './pages/ReportPage'
+import { APP_NAME } from './i18n/brand'
 import { useI18n } from './i18n/LanguageContext'
 import { LANGUAGES } from './i18n/languages'
 
@@ -226,13 +230,7 @@ function AppShell({ children }) {
 
       <div className="ui-utilitybar">
         <div className="ui-utilitybar-inner">
-          {/* Said in the chrome, on every page: the visual language is
-              government-like on purpose, and a viewer must not conclude this is
-              an official service. */}
-          <span className="ui-utilitybar-note">
-            <span aria-hidden="true">ℹ</span>
-            {t('common.prototypeNotice')}
-          </span>
+          <BrandWordmark />
           <div className="ui-utilitybar-tools">
             <LanguagePicker />
             <TextSizeControl />
@@ -245,10 +243,12 @@ function AppShell({ children }) {
 
       <header className="ui-masthead">
         <div className="ui-masthead-inner">
-          <Link to="/" className="ui-brand" aria-label={`${t('common.appName')} — ${t('nav.home')}`}>
-            <span className="ui-brand-mark" aria-hidden="true">अ</span>
+          {/* APP_NAME, not t(). The product name is a proper noun and does not
+              change when the interface language does — see i18n/brand.js. */}
+          <Link to="/" className="ui-brand" aria-label={`${APP_NAME} — ${t('nav.home')}`}>
+            <BrandMark />
             <span>
-              <span className="ui-brand-name">{t('common.appName')}</span>
+              <span className="ui-brand-name">{APP_NAME}</span>
               <span className="ui-brand-sub">{t('common.appTagline')}</span>
             </span>
           </Link>
@@ -298,15 +298,22 @@ function AppShell({ children }) {
   )
 }
 
+// The last crumb has to name the page the reader is on. Only two routes are
+// outside the journey and the results — /login and the catch-all — and both used
+// to fall back to the product name, which reads as though the page itself were
+// called अर्थNiti and tells a lost reader nothing about where they landed.
+const CRUMB_FALLBACK = { '/login': 'common.login' }
+
 function Breadcrumb({ pathname }) {
   const { t } = useI18n()
   const current = [...journey, ...resultLinks].find((item) => item.path === pathname)
+  const label = current ? current.label : CRUMB_FALLBACK[pathname] || 'nf.title'
 
   return (
     <nav className="ui-breadcrumb" aria-label={t('common.breadcrumb')}>
       <Link to="/">{t('nav.home')}</Link>
       <span className="ui-breadcrumb-sep" aria-hidden="true">›</span>
-      <span>{current ? t(current.label) : t('common.appName')}</span>
+      <span>{t(label)}</span>
     </nav>
   )
 }
@@ -319,7 +326,11 @@ function GovFooter() {
       <div className="ui-footer-gov">
         <div className="ui-footer-inner">
           <div>
-            <p className="ui-footer-title">{t('common.appName')}</p>
+            {/* Government footers lead with the owning body's emblem. Ours leads
+                with the mark, which is also the one place on the page where it
+                appears at rest rather than as a link target. */}
+            <BrandMark size="sm" className="mb-3" />
+            <p className="ui-footer-title">{APP_NAME}</p>
             <p>{t('common.appTagline')}</p>
           </div>
           <div>
@@ -347,9 +358,7 @@ function GovFooter() {
       <div className="ui-footer-bottom">
         <div className="ui-footer-bottom-inner">
           <span>{t('common.disclaimer')}</span>
-          <span>
-            {t('common.lastReviewed')}: 07/09/2026 · {t('common.prototypeNotice')}
-          </span>
+          <span>{t('common.lastReviewed')}: 07/09/2026</span>
         </div>
       </div>
     </>
@@ -396,9 +405,14 @@ function LandingPage() {
 
   return (
     <div>
+      {/* Above the hero, not inside it: the artwork backdrop lives on .ui-hero,
+          and a help card is the one thing on this page that must not have a
+          picture behind its text. */}
+      <InstructionManual />
+
       <section className="ui-hero grid min-h-[calc(100vh-320px)] items-center gap-10 py-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-14">
         <div>
-          <p className="ui-eyebrow">{t('landing.eyebrow')}</p>
+          <p className="ui-eyebrow">{APP_NAME}</p>
           <h1 className="ui-page-title max-w-3xl text-[clamp(2.1rem,5vw,3.9rem)]">
             {t('landing.title')}
           </h1>
@@ -416,7 +430,12 @@ function LandingPage() {
             </a>
           </div>
 
-          <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-[var(--color-text-muted)]">
+          {/* Full-strength text, not the muted grey these would normally use.
+              This line sits lowest in the hero, which is where the street artwork
+              behind it is at its strongest — the softTop mask ramps to 1 at the
+              bottom edge — so it is the worst-case pairing on the page. At 14px
+              it is "normal text" for WCAG, so it needs the full 4.5:1. */}
+          <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-[var(--color-text)]">
             <span><span aria-hidden="true">✓</span> {t('landing.chip1')}</span>
             <span><span aria-hidden="true">✓</span> {t('landing.chip2')}</span>
             <span><span aria-hidden="true">✓</span> {t('landing.chip3')}</span>
@@ -426,12 +445,19 @@ function LandingPage() {
         <div className="ui-card relative overflow-hidden p-6 sm:p-8">
           <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-[var(--color-accent)] opacity-40 blur-3xl" aria-hidden="true" />
           <div className="relative">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
+            {/* gap-4 / min-w-0 / shrink-0 are all three load-bearing, and the row
+                had none of them. justify-between leaves NO space between the
+                children once the slack runs out, and a flex item will not shrink
+                past its min-content width without min-width: 0 — so a title that
+                grew in translation pushed straight into the badge instead of
+                wrapping. Measured flush at 0px in Tamil, Telugu, Malayalam and
+                Kannada; the heading's first line ran under the ✓. */}
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div className="min-w-0">
                 <p className="text-sm font-bold text-[var(--color-text-muted)]">{t('landing.miniLead')}</p>
                 <h2 className="mt-1 text-2xl font-extrabold">{t('landing.miniTitle')}</h2>
               </div>
-              <span className="grid h-12 w-12 place-items-center rounded-xl bg-[var(--color-btn)] text-xl text-[var(--color-on-btn)]" aria-hidden="true">✓</span>
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[var(--color-btn)] text-xl text-[var(--color-on-btn)]" aria-hidden="true">✓</span>
             </div>
 
             <div className="space-y-3">

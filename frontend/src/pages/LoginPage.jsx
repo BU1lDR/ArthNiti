@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
+import BrandMark from '../components/BrandMark'
 import Button from '../components/Button'
+import { APP_NAME } from '../i18n/brand'
 import { useI18n } from '../i18n/LanguageContext'
 
 const fieldClass = 'mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-base text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary-strong)]'
@@ -35,8 +37,13 @@ function LoginPage() {
       </div>
 
       <div className="ui-page-intro text-center">
-        <span className="ui-brand-mark mx-auto" aria-hidden="true">अ</span>
-        <h1 className="ui-page-title mt-4">{t('login.title')}</h1>
+        <BrandMark size="lg" className="mx-auto" />
+        {/* The brand goes in as a placeholder rather than being written into each
+            translation, so the eight versions of this sentence can be translated
+            without eight spellings of the product name. Languages that need a
+            case ending attach it to the placeholder with a hyphen, which is the
+            normal convention for a foreign-script word in Tamil or Telugu. */}
+        <h1 className="ui-page-title mt-4">{t('login.title', { app: APP_NAME })}</h1>
         <p className="ui-page-subtitle mx-auto">{t('login.subtitle')}</p>
       </div>
 

@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
+import BrandMark from '../components/BrandMark'
 import Button from '../components/Button'
 import { BarGroup } from '../components/Charts'
 import { useApp } from '../context/AppContext'
+import { APP_NAME } from '../i18n/brand'
 import { useI18n } from '../i18n/LanguageContext'
 import { useBackendText } from '../i18n/backendText'
 import { languageByCode } from '../i18n/languages'
@@ -51,7 +53,9 @@ function ReportPage() {
 
   return <div className="print:bg-white">
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4 print:hidden"><Link to="/advisory" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--color-primary-strong)] hover:underline"><span aria-hidden="true">←</span> {t('res.backAdvisory')}</Link><Button onClick={() => window.print()}><span aria-hidden="true">🖨️</span> {t('common.print')}</Button></div>
-    <header className="ui-card sm:p-8"><p className="ui-eyebrow"><span aria-hidden="true">📄</span> {t('rp.eyebrow')}</p><h1 className="ui-page-title mt-1">{t('rp.title')}</h1><p className="ui-page-subtitle">{t('rp.subtitle')}</p></header>
+    {/* A masthead for the sheet itself. `window.print()` hides all the app chrome, so
+        without this the PDF a user carries to a bank names no service at all. */}
+    <header className="ui-card sm:p-8"><div className="mb-4 flex items-center gap-3 border-b border-[var(--color-border)] pb-4"><BrandMark size="sm" /><span className="text-lg font-extrabold text-[var(--color-text)]">{APP_NAME}</span></div><p className="ui-eyebrow"><span aria-hidden="true">📄</span> {t('rp.eyebrow')}</p><h1 className="ui-page-title mt-1">{t('rp.title')}</h1><p className="ui-page-subtitle">{t('rp.subtitle')}</p></header>
     <section className="ui-card mt-6 sm:p-8"><div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-surface-soft)] text-3xl" aria-hidden="true">{feasibility === 'feasible' ? '✅' : '📌'}</div><div><p className="ui-eyebrow">{t('rp.mainResult')}</p><h2 className="mt-1 text-2xl font-extrabold text-[var(--color-text)]">{statusText(feasibility, t)}</h2><p className="mt-2 leading-7 text-[var(--color-text-muted)]">{t('rp.mainResultText')}</p></div></div></section>
     <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard icon="💰" label={t('money.left')} value={formatCurrency(financial?.monthly_profit, t)} /><MetricCard icon="🏦" label={t('money.fundingNeeded')} value={formatCurrency(fundingGap, t)} /><MetricCard icon="📈" label={t('money.margin')} value={formatPercent(financial?.profit_margin_percent) || t('common.notAvailable')} /><MetricCard icon="🛡️" label={t('money.risk')} value={riskText(riskLevel, t)} /></section>
     <ReportSection icon="👤" title={t('rp.profile')}><div className="ui-simple-grid mt-5"><InfoItem label={t('rp.name')} value={profile.name} t={t} /><InfoItem label={t('location.state')} value={location.state} t={t} /><InfoItem label={t('location.district')} value={location.district} t={t} /><InfoItem label={t('common.language')} value={languageLabel} t={t} />{dialectLabel && <InfoItem label={t('common.dialect')} value={dialectLabel} t={t} />}<InfoItem label={t('rp.businessName')} value={business.businessName} t={t} /><InfoItem label={t('f.workType')} value={choiceText(businessAnalysis?.business_type || business.category, t)} t={t} /></div></ReportSection>
