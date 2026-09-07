@@ -137,3 +137,85 @@ def test_frontend_contract_advisory_section():
 
     assert isinstance(advisory["recommendations"], list)
     assert advisory["recommendations"]
+
+
+# The translation codes below are what make the result pages readable in a
+# language other than English. They are a contract in exactly the way the prose
+# fields are: the frontend reads them by name, and dropping one silently reverts
+# that sentence to English rather than raising anything. These tests exist so the
+# revert is a test failure instead of a demo surprise.
+#
+# Every code list is asserted to be the SAME LENGTH as the prose list beside it,
+# because the services build the two in lockstep and index i of one is supposed to
+# describe index i of the other. A length mismatch means a branch appended to one
+# list and forgot the other, which would shift every later sentence onto the wrong
+# translation — a far worse failure than a missing key, and invisible in English.
+def test_frontend_contract_translation_codes_travel_with_their_prose():
+    response = client.post("/api/analysis/run", json=VALID_PAYLOAD)
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    advisory = body["advisory"]
+    assert isinstance(advisory["recommendation_codes"], list)
+    assert len(advisory["recommendation_codes"]) == len(advisory["recommendations"])
+
+    business = body["business_analysis"]
+    assert isinstance(business["observation_codes"], list)
+    assert len(business["observation_codes"]) == len(business["observations"])
+
+    risk = body["risk_analysis"]
+    assert isinstance(risk["reason_code"], str)
+
+    summary = body["mvp_summary"]
+    assert isinstance(summary["message_code"], str)
+    # next_step_code is the one code that may be None: in the branch where the
+    # step is borrowed from the advisory list, it borrows that entry's code too,
+    # and an empty list leaves nothing to borrow.
+    assert summary["next_step_code"] is None or isinstance(summary["next_step_code"], str)
+
+
+def test_frontend_contract_market_rows_carry_translation_codes():
+    response = client.post(
+        "/api/analysis/run",
+        json={**VALID_PAYLOAD, "state": "Uttar Pradesh", "district": "Lucknow"},
+    )
+
+    assert response.status_code == 200
+
+    for row in response.json()["market_context"]:
+        assert isinstance(row["seasonality_code"], str)
+        assert isinstance(row["source_code"], str)
+
+
+def test_frontend_contract_scheme_translation_codes():
+    response = client.post(
+        "/api/analysis/run",
+        json={**VALID_PAYLOAD, "business_category": "tailoring", "state": "Uttar Pradesh"},
+    )
+
+    assert response.status_code == 200
+
+    schemes = response.json()["scheme_matches"]
+
+    assert schemes
+
+    for scheme in schemes:
+        # scheme_id is what the frontend derives the description key from when no
+        # explicit code is sent, so an empty one silently un-translates a scheme.
+        assert scheme["scheme_id"]
+        assert isinstance(scheme["description_code"], str)
+        assert isinstance(scheme["support_type_code"], str)
+
+        assert len(scheme["eligibility_codes"]) == len(scheme["eligibility_rules"])
+        assert len(scheme["document_codes"]) == len(scheme["documents"])
+
+        # Each match reason carries its own category list, because the category
+        # sentence names the matched scheme wording and the frontend translates
+        # each word before rejoining them.
+        assert len(scheme["match_reason_codes"]) == len(scheme["match_reasons"])
+
+        for entry in scheme["match_reason_codes"]:
+            assert isinstance(entry["code"], str)
+            assert isinstance(entry["categories"], list)

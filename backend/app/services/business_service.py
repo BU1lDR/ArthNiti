@@ -42,38 +42,47 @@ def calculate_business_analysis(
     else:
         feasibility_status = "not_feasible"
 
-    # Observations
+    # Observations. `observation_codes` is the translatable twin of
+    # `observations` and is appended in lockstep — index i of one always
+    # describes index i of the other.
     observations = []
+    observation_codes = []
 
     if monthly_operating_surplus < 0:
         observations.append(
             "Projected monthly expenses are higher than expected revenue."
         )
+        observation_codes.append("obs.expensesExceedRevenue")
 
     elif monthly_operating_surplus == 0:
         observations.append(
             "The business is projected to operate at break-even."
         )
+        observation_codes.append("obs.breakEven")
 
     else:
         observations.append(
             "The business is projected to generate a positive monthly operating surplus."
         )
+        observation_codes.append("obs.positiveSurplus")
 
     if operating_margin_percent < 10:
         observations.append(
             "The operating margin is low. Consider reducing costs or increasing revenue."
         )
+        observation_codes.append("obs.lowMargin")
 
     elif operating_margin_percent >= 30:
         observations.append(
             "The projected operating margin is healthy."
         )
+        observation_codes.append("obs.healthyMargin")
 
     if existing_debt > 0:
         observations.append(
             "Existing debt should be considered before taking additional financing."
         )
+        observation_codes.append("obs.existingDebt")
 
     return {
         "business_type": business_type,
@@ -98,4 +107,5 @@ def calculate_business_analysis(
         ),
         "feasibility_status": feasibility_status,
         "observations": observations,
+        "observation_codes": observation_codes,
     }
