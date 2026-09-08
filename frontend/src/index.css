@@ -1,4 +1,26 @@
-@import "tailwindcss";
+/* Tailwind's own sources, named explicitly instead of auto-detected.
+
+   `@import "tailwindcss"` on its own crawls the whole project for class names,
+   which includes the config files next to package.json — and it extracts
+   candidates from PROSE, not just from markup. Adding the words "still a static
+   import" to a comment in vite.config.js put `.static{position:static}` into the
+   built stylesheet: a real utility class, generated from an English sentence, for
+   an element that does not exist. Twenty bytes, but the mechanism is the point —
+   any explanatory comment in any scanned file can silently emit CSS, and nothing
+   reports it.
+
+   source(none) turns the crawl off; the two @source rules are the only places a
+   class can actually come from — the HTML shell and the app. eslint.config.js and
+   vite.config.js are now out of scope by construction rather than by wording, so a
+   comment there stays a comment.
+
+   If a utility ever goes missing, this is the first thing to check: a class used
+   somewhere these globs do not cover will not be generated. Verified when this
+   landed by diffing the built CSS against the auto-detected version — the only
+   difference was `.static` disappearing, i.e. nothing real was lost. */
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "./**/*.{js,jsx}";
 
 /* ---------------------------------------------------------------------------
    Theme tokens.
@@ -37,12 +59,26 @@
   --gov-green: #138808;
   --shadow-card: 0 1px 2px rgba(11, 60, 123, 0.06), 0 8px 24px rgba(11, 60, 123, 0.07);
   --radius-card: 0.85rem;
-  /* Higher than the dark theme's, and it has to be: three attenuations multiply
-     before this artwork reaches the screen (per-element opacity in the SVG, the
-     file's own softTop gradient mask, then this), and the fills are mid-tones
-     sitting close to a near-white page. Measured, not guessed — see
-     .ui-hero::before and screenshots/verify/art-contrast.mjs. */
-  --landing-art-opacity: 0.5;
+  /* The landing backdrop needs its own radius rather than reusing --radius-card,
+     because a corner radius reads relative to the box it is cutting. 13.6px is
+     1.1% of the 1180px hero panel and simply disappears — measured, the panel
+     read as a hard photographic crop, which is what prompted this. The same
+     13.6px on a 300px card is 4.5% and reads as intended. So the token is sized
+     for the panel: 1.5rem is 24px at scale 1, ~2% of the panel at desktop width
+     and ~7% at 336px, which stays a recognisable rounded band at both ends.
+     In `rem` on purpose, so it tracks --ui-scale with everything else. */
+  --radius-hero: 1.5rem;
+  /* This is now the ONLY attenuation, and that is why it went DOWN when the
+     backdrop changed. The old SVG was line art on a transparent ground, so the
+     hero text mostly sat on the page colour and three separate alphas multiplied
+     before anything reached the screen — which is why it needed 0.5. The JPEG is
+     opaque: every pixel behind the copy is artwork, so the text lands on the
+     worst patch in the picture, and the halftone hands contain true black (1.5%
+     of sampled pixels at L* 0.5). Measured over 17,848 pixels, 0.5 puts the hero
+     copy at 4.04:1 — below AA. 0.40 holds 5.48:1 and is MORE visible than the
+     SVG ever was (mean dL* 21.7 at 100% present, against 15.7 at 74%).
+     Guarded by screenshots/verify/hero-art.mjs — run it before changing this. */
+  --landing-art-opacity: 0.4;
   /* Driven by the A- / A / A+ control in the utility bar. */
   --ui-scale: 1;
 
@@ -50,12 +86,16 @@
      app that are NOT drawn from the palette above, because a logo is a fixed
      asset rather than themed chrome — the lotus is magenta-to-gold in every
      theme, the same way a printed letterhead is. What the theme blocks below
-     change is only the parts that have to react to the page behind it: the petal
-     edge, and in high contrast the whole thing.
+     change is only the part that has to react to the page behind it: the petal
+     edge, which a deep-plum hairline loses against a navy masthead.
 
      --mark-edge is a hairline, and it is load-bearing rather than decorative:
      the petals overlap, so without it eight shapes filled from one gradient read
-     as a single blob. --mark-edge-w is a token so high contrast can thicken it. */
+     as a single blob. --mark-edge-w stays a token even though only one value is
+     in use now: it was what let the removed high-contrast mode thicken the
+     hairline to 3.4 when every petal became the same ink, and a hairline that
+     has to survive being the ONLY separator between two shapes is exactly the
+     kind of thing worth keeping adjustable. */
   --mark-petal-outer: #DB1B72;
   --mark-petal-mid: #F4791F;
   --mark-petal-inner: #FBC02D;
@@ -69,10 +109,11 @@
   --mark-drop-edge: #C2410C;
 
   /* The अर्थNiti wordmark in the utility strip (components/BrandWordmark.jsx).
-     Only two colour cases exist for these, not four: the utility bar is
-     #08243F in BOTH themes and #000000 in high contrast, so the strip never
-     changes underneath them the way a themed surface does. Measured against
-     #08243F: gold 9.1:1, cream 14:1, swoosh 6.1:1. */
+     One colour case exists for these, not two: the utility bar is #08243F in
+     BOTH themes, so the strip never changes underneath them the way a themed
+     surface does. Measured against #08243F: gold 9.1:1, cream 14:1,
+     swoosh 6.1:1. (It was two cases until high contrast was removed on 8 Sept
+     2026, when the strip was forced to #000000 and these went plain white.) */
   --wordmark-arth: #F6C15C;
   --wordmark-niti: #FFF4E0;
   --wordmark-swoosh: #E8973A;
@@ -83,7 +124,7 @@
      Same reasoning as the brand mark: a fixed asset, so the colours are its own
      rather than the palette's, and only what has to react to the page behind it
      moves per theme. Unlike the wordmark this one sits on a themed card, so it
-     needs all four cases. */
+     needs both cases rather than one. */
   --book-cover: #7B1E3C;
   --book-spine: #5E162E;
   --book-band: #E2582B;
@@ -128,112 +169,6 @@
   --book-cover: #A8294F;
   --book-spine: #7B1E3C;
   --book-sprout: #7FD4C1;
-}
-
-/* The high-contrast mode required of government sites: pure black on pure
-   white (or the inverse), heavier borders, no decorative shadow or artwork. */
-[data-contrast="high"] {
-  --color-bg: #ffffff;
-  --color-surface: #ffffff;
-  --color-surface-soft: #f0f0f0;
-  --color-primary: #000000;
-  --color-primary-strong: #00006E;
-  --color-btn: #000000;
-  --color-on-btn: #ffffff;
-  --color-accent: #FFE000;
-  --color-on-accent: #000000;
-  --color-text: #000000;
-  --color-text-muted: #1a1a1a;
-  --color-border: #000000;
-  --color-focus: #00006E;
-  --color-danger: #8A0000;
-  --color-success: #004D25;
-  --shadow-card: none;
-  --landing-art-opacity: 0;
-
-  /* The brand mark collapses to a two-colour silhouette: ink for every filled
-     shape, paper for the separators. Both are read back off the palette, so the
-     [data-contrast="high"][data-theme="dark"] block below inherits this and
-     comes out yellow-on-black with no extra rules.
-
-     The mark stays visible here even though --landing-art-opacity above drops
-     the landing artwork to nothing. Those are different things: the street scene
-     is decoration, and this is the identity of the service — a high-contrast
-     reader still needs to know which site they are on.
-
-     Note --mark-coin-face and --mark-coin-shine both become paper, which is what
-     deletes the coin highlight. That is deliberate: a 3D shine is exactly the
-     kind of low-contrast detail this mode exists to remove.
-
-     The edge has to get thicker, not just change colour. At ink-on-ink the
-     hairlines are the ONLY thing between one petal and the next, and 2.4 user
-     units is a third of a pixel once the mark is drawn at 40px. */
-  --mark-petal-outer: var(--color-btn);
-  --mark-petal-mid: var(--color-btn);
-  --mark-petal-inner: var(--color-btn);
-  --mark-edge: var(--color-bg);
-  --mark-edge-w: 3.4;
-  --mark-coin-ring: var(--color-btn);
-  --mark-coin-face: var(--color-bg);
-  --mark-coin-shine: var(--color-bg);
-  --mark-coin-glyph: var(--color-btn);
-  --mark-drop: var(--color-btn);
-  --mark-drop-edge: var(--color-bg);
-
-  /* The wordmark goes plain white, and these are the one place in this block
-     that CANNOT read off the palette. The utility strip is forced to
-     #000000/#ffffff for both high-contrast themes by
-     `[data-contrast="high"] .ui-utilitybar`, which never consults a token — so
-     var(--color-bg) would be white here and black in dark high contrast, i.e.
-     black text on the black strip half the time. A fixed strip needs a fixed
-     colour on it.
-
-     The swoosh goes too. At white-on-black a decorative gold underline is
-     either invisible or a second competing ink; the wordmark carries the name
-     on weight contrast alone, which is what it is designed to do anyway.
-
-     The bead at the swoosh's tip has to go with it, not stay behind as a
-     visible dot. It is the tail of the stroke, so on its own — floating past
-     the final "i" with no line running into it — it reads as a stray full stop
-     after the product name rather than as an ornament. Confirmed on the
-     high-contrast captures before this line existed. */
-  --wordmark-arth: #ffffff;
-  --wordmark-niti: #ffffff;
-  --wordmark-swoosh: transparent;
-  --wordmark-dot: transparent;
-
-  /* The book becomes ink-and-paper like the brand mark, and for the same
-     reason: every fill that carries the shape becomes ink, every fill that
-     SEPARATES two shapes becomes paper. So the cover, the seal rim, the page
-     rules and the sprout are ink; the spine edge, the band, the seal face and
-     the page block are paper. Read off the palette, so dark high contrast
-     comes out gold-on-black with no extra rules. */
-  --book-cover: var(--color-btn);
-  --book-spine: var(--color-bg);
-  --book-band: var(--color-bg);
-  --book-seal: var(--color-bg);
-  --book-seal-rim: var(--color-btn);
-  --book-pages: var(--color-bg);
-  --book-pageline: var(--color-btn);
-  --book-sprout: var(--color-btn);
-}
-
-[data-contrast="high"][data-theme="dark"] {
-  --color-bg: #000000;
-  --color-surface: #000000;
-  --color-surface-soft: #141414;
-  --color-primary: #ffffff;
-  --color-primary-strong: #FFE000;
-  --color-btn: #FFE000;
-  --color-on-btn: #000000;
-  --color-accent: #FFE000;
-  --color-on-accent: #000000;
-  --color-text: #ffffff;
-  --color-text-muted: #e6e6e6;
-  --color-border: #ffffff;
-  --color-focus: #FFE000;
-  --color-danger: #FF8A80;
-  --color-success: #7CD9A5;
 }
 
 /* These element resets belong in @layer base so Tailwind utilities can still
@@ -329,12 +264,6 @@ summary:focus-visible {
   font-size: 0.78rem;
 }
 
-[data-contrast="high"] .ui-utilitybar {
-  background: #000000;
-  color: #ffffff;
-  border-bottom: 1px solid #ffffff;
-}
-
 .ui-utilitybar-inner {
   display: flex;
   width: min(1180px, calc(100% - 32px));
@@ -351,8 +280,8 @@ summary:focus-visible {
    2026 at the owner's explicit instruction, restated after the trade-off was
    put to them — see the note in CLAUDE.md before adding any disclaimer back.
 
-   Live text, not an image, so it recolours for high contrast, scales with
-   --ui-scale and is read aloud. The family stays inherited (Noto Sans) rather
+   Live text, not an image, so it scales with --ui-scale, recolours from tokens
+   and is read aloud. The family stays inherited (Noto Sans) rather
    than reaching for a serif: a font that is not installed on the demo laptop
    falls back to something arbitrary, and the wordmark's character comes from
    the weight contrast between the two halves plus the gold swoosh under them. */
@@ -468,11 +397,6 @@ summary:focus-visible {
 .ui-utility-select option {
   background-color: #0F2E4C;
   color: #F2F7FC;
-}
-
-[data-contrast="high"] .ui-utility-select option {
-  background-color: #000000;
-  color: #ffffff;
 }
 
 .ui-masthead {
@@ -641,7 +565,13 @@ summary:focus-visible {
   display: block;
   margin-top: 1px;
   color: var(--color-text-muted);
-  font-size: 0.74rem;
+  /* Not 0.74rem. `html` is `calc(100% * var(--ui-scale))`, so 0.74rem is 11.84px
+     at scale 1 and 11.13px at 0.94 — under the 12px floor at every scale, on
+     desktop as much as on a phone. This lift used to live only inside the
+     `max-width: 640px` block, so the one viewport where nothing measures font
+     size kept the too-small value. mobile-audit's TINY check runs at phone
+     widths only, which is exactly why it never fired here. */
+  font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
@@ -740,7 +670,8 @@ summary:focus-visible {
   font-size: 1rem;
 }
 
-/* The landing hero sits on a translucent small-town street illustration.
+/* The landing hero sits on a translucent halftone collage (hands, money, an
+   idea bulb) — /hero-backdrop.jpeg, replacing the line-art SVG on 8 Sept 2026.
    `isolation` makes .ui-hero its own stacking context, which matters twice: the
    z-index:-1 layer then paints above .ui-shell's opaque background instead of
    being hidden behind it, and it stays behind the hero text without every child
@@ -755,32 +686,89 @@ summary:focus-visible {
   position: absolute;
   z-index: -1;
   inset: 0;
-  background-image: url("/town-consulting.svg");
-  background-position: bottom center;
+  background-image: url("/hero-backdrop.jpeg");
+  /* `cover`, not a width — and with an opaque image it is not optional. The old
+     SVG was sized to 116% of the width at `bottom center` and simply did not
+     reach the top of the band, which was fine because its ground was
+     transparent. Do that with an opaque photo and the page colour shows above
+     it as a hard horizontal seam. `cover` fills the box; `center` crops the
+     overflow evenly rather than cutting the bulb off one end. The source is
+     735x386 (1.9:1) and the band is wider than that, so cover scales on width
+     and trims top and bottom — the bulb, the hands and the notes all survive
+     it, the globe's bottom arc is the first thing to go. */
+  background-position: center;
   background-repeat: no-repeat;
-  background-size: min(1320px, 116%) auto;
+  background-size: cover;
+  /* The old SVG faded into the page through its own gradient mask, so the
+     backdrop had no edges at all. An opaque image has four, and square corners
+     next to the rounded strip above it and the rounded card on top of it read as
+     a mis-crop rather than a choice.
+
+     This was --radius-card until 8 Sept 2026 and that was not enough: 13.6px on
+     a 1180px panel is 1.1% of its width, which is invisible at arm's length, so
+     the band still read as a hard crop. --radius-hero exists for that reason —
+     see the token for the arithmetic.
+
+     Radius rather than a mask deliberately: a mask would only ever reduce the
+     artwork's alpha, which improves the hero text's contrast but leaves
+     hero-art.mjs overstating the mean dL* it reports, and a metric that flatters
+     itself is worse than a slightly plainer edge. A hairline border is the other
+     option not taken — it would be honest (the perimeter is 40px away from the
+     nearest text, so it cannot move any measured contrast) but it would be a
+     second edge competing with the radius, and the radius is what the reported
+     mis-crop actually needed. */
+  border-radius: var(--radius-hero);
   opacity: var(--landing-art-opacity);
-  /* Light mode needs the mirror image of the dark-mode treatment below, and it
-     needs to be much stronger than it looks like it should be. One file serves
-     both themes by being drawn in mid-tones, but on a near-white page those
-     mid-tones are almost the background: measured, a third of the drawing landed
-     under dL* 5 against the page, which is why this kept getting reported as
-     "not visible" however much the opacity went up.
+  /* Each of the three does a different job, and only two of them are load-bearing.
 
-     brightness() below 0.5 is the load-bearing part. The fills have to be pushed
-     out of the page's own lightness range before any amount of opacity can show
-     them — and note the previous `contrast(1.08)` was working against that, since
-     contrast above 1 pushes everything lighter than mid-grey further toward white,
-     and most of this palette is lighter than mid-grey. The slight reduction here
-     compresses the range instead, which keeps the darkest fills from getting heavy
-     enough to eat the hero text's contrast. saturate() then has something left to
-     work with; without it, halving the brightness reads as a grey smudge.
+     brightness(0.5) is what makes the artwork visible at all: 45% of this image
+     is one mid-tone teal at L* 69.9, and a near-white page is L* 97, so at full
+     brightness the dominant colour is only ~11 dL* from the background however
+     high the opacity goes. Pushing it out of the page's lightness range first is
+     what buys the visibility.
 
-     Retuning this by eye does not work, because none of the three multiplied
-     alphas are visible in this file. screenshots/verify/art-contrast.mjs models
-     the whole chain and reports both the visibility and the hero-copy contrast
-     ratio — run it before changing these numbers. */
-  filter: brightness(0.5) saturate(2.2) contrast(0.91);
+     contrast(0.91) is the accessibility half, and it works in the direction that
+     looks wrong: values BELOW 1 pull everything toward mid-grey, which LIFTS the
+     black halftone off zero and hands the hero text back some contrast (5.18:1 ->
+     5.48:1 on the worst pixel) for 0.5 dL* of visibility. Do not raise it above
+     1 — contrast above 1 pushes everything lighter than mid-grey toward white,
+     and three quarters of this image is lighter than mid-grey.
+
+     saturate(2.6) is the vibrance, and it is the only value here that may be
+     chosen by eye — because it is the only one that is FREE. It was 1.2 until
+     8 Sept 2026, when the backdrop was asked to be more vibrant in light mode.
+     Measured over the real composite, raising it from 1.2 to 2.6 moved:
+
+       mean chroma      C* 3.5 -> 6.6   (the request: +89%)
+       colourful pixels 5% -> 64%       (more colourful than the paper)
+       hero copy        5.47:1 -> 5.47:1  UNCHANGED
+       mean dL*         21.8 -> 21.6      unchanged within noise
+       artwork present  100% -> 100%
+
+     Nothing was traded for that, and the reason is arithmetic rather than luck.
+     The composite is v*b*k + 0.5*(1-k), and the worst pixel for dark hero copy
+     is the densest halftone dot, which in this image is TRUE BLACK. v = 0
+     annihilates b, and saturate is a luminance-preserving matrix, so neither
+     brightness nor saturate can move the text-contrast figure at all — only
+     contrast(k)'s additive term and the opacity blend can. Which is why:
+
+       DO NOT raise opacity to get vibrance. It is the expensive lever: 0.46
+       drops the copy to 4.58:1 and 0.52 to 3.73:1, below AA. 0.40 stays.
+       DO NOT raise brightness for it either. Free on contrast, but it lightens
+       the artwork toward the page — 0.62 costs 3 whole dL* of visibility.
+
+     The ceiling on saturate is posterisation, not contrast. Above ~3 the bulb
+     goes orange-peach and the halftone hands pick up a green cast; the pixel
+     count behind that is channels clamping at the chain floor, 5.8% shipped ->
+     15.5% here -> 17.9% at 3.6. 2.6 is the most colour this collage takes while
+     still reading as a photograph.
+
+     Retuning the other two by eye does not work — visibility and hero-copy
+     contrast pull in opposite directions and neither is legible from this file.
+     screenshots/verify/hero-art.mjs measures both off the real composite, and
+     hero-vibrance.mjs sweeps candidates and adds the chroma figure hero-art.mjs
+     has no way to see. */
+  filter: brightness(0.5) saturate(2.6) contrast(0.91);
   pointer-events: none;
 }
 
@@ -799,7 +787,17 @@ summary:focus-visible {
 }
 
 /* Over the dark navy background the problem reverses — the same mid-tones need
-   lifting rather than deepening. Replaces the light-mode filter wholesale. */
+   lifting rather than deepening. Replaces the light-mode filter wholesale.
+
+   Deliberately NOT retuned for the new backdrop, and the numbers are why. Here
+   the worst patch for the hero copy is the LIGHTEST pixel rather than the
+   darkest (the text is #EAF1F8), and measured on the real image this pairing
+   already gives 6.80:1 at mean dL* 21.8 with 96% of the artwork present — as
+   visible as light mode with more contrast headroom. The sweep does offer mean
+   dL* 25.4 at opacity 0.40, but only by spending the text down to 5.10:1, which
+   is a poor trade for visibility this mode does not need. One consequence worth
+   knowing rather than fixing: the halftone black lands ~2.6 dL* off the navy, so
+   the hands read as silhouettes here and the teal and cream carry the image. */
 [data-theme="dark"] .ui-hero::before {
   filter: brightness(1.16) saturate(0.9);
 }
@@ -904,12 +902,6 @@ summary:focus-visible {
   background: rgba(4, 18, 33, 0.62);
 }
 
-/* Translucency is itself a low-contrast device, so the scrim goes nearly
-   opaque here rather than merely darker. */
-[data-contrast="high"] .ui-manual-overlay {
-  background: rgba(0, 0, 0, 0.88);
-}
-
 .ui-manual-panel {
   width: min(720px, 100%);
   /* Capped so the panel scrolls internally. Without the cap a taller-than-screen
@@ -924,11 +916,6 @@ summary:focus-visible {
   border-radius: var(--radius-card);
   background: var(--color-surface);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
-}
-
-[data-contrast="high"] .ui-manual-panel {
-  border-width: 2px;
-  box-shadow: none;
 }
 
 .ui-manual-head {
@@ -1174,6 +1161,100 @@ summary:focus-visible {
 .ui-required {
   color: var(--color-danger);
   font-weight: 800;
+  /* The gap before it is a margin, and the JSX deliberately puts no space in front
+     of the span. Both halves of that are about the same defect: the asterisk was
+     sitting alone on a line of its own under a question that had wrapped, and that
+     extra line then pushed the field below it out of line with its neighbour in the
+     grid. English already did it on the longest question here and every Indic
+     translation is longer, so it was going to get worse with the language switched,
+     not better. */
+  margin-left: 0.25em;
+}
+
+/* Removing the space was necessary and NOT sufficient — measured, after the marker
+   went on orphaning at 17 widths with no space anywhere in the markup and with
+   `overflow-wrap` computing to `normal`, so neither whitespace nor the inherited
+   `anywhere` was responsible. The break is a Unicode one: every question here ends
+   in a question mark, UAX #14 gives `?` the class EX and `*` the class AL, and the
+   pair table allows a break between them. No amount of editing the markup removes
+   an opportunity the line-breaking algorithm creates from the characters.
+
+   U+2060 WORD JOINER is the character that says exactly "not here". Rule LB11
+   forbids a break on either side of it and is applied before the pair table, so it
+   also covers the case where someone puts the space back. As a pseudo-element it
+   fixes all twelve call sites at once and cannot be forgotten at a new one; it is
+   zero-width, so nothing about the rendering changes; and every .ui-required span
+   is aria-hidden, so the generated character reaches no screen reader. */
+.ui-required::before {
+  content: "\2060";
+}
+
+/* A form field that has to line up with a neighbour in a multi-column grid.
+
+   A grid row is as tall as its tallest cell, but each control sits directly under
+   its own question — so a question that wraps to two lines pushes its box down and
+   the pair stops lining up. Collecting the cell's spare height *under the question*
+   puts every control in the row on the same line, however many lines each question
+   needed. This matters most in translation, where the same two questions take one
+   line in English and two in Tamil.
+
+   The slack goes below the first child rather than above the last so the hint line
+   and the control keep the spacing their own utilities give them: an auto margin on
+   the control would have replaced its `mt-2`, closing the gap on the tallest cell
+   where there is no slack left to spend. */
+.ui-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.ui-field > :first-child {
+  margin-bottom: auto;
+}
+
+/* The ₹ marker on a money input.
+   It used to sit at the end of the question, after the question mark, as one more
+   inline span in the label. That put a unit annotation inside a wrapping sentence,
+   so as soon as the question needed two lines the ₹ and the required asterisk
+   dropped onto the second line on their own — a stray rupee sign floating under
+   the text with nothing beside it. English already did it on the longest of the
+   three questions, and every Indic translation is longer than the English, so it
+   was going to get worse with the language switched, not better.
+   Gluing it back to the last word is not available: the sentence is a translated
+   string and this codebase never assembles one from parts. So the marker moves out
+   of the sentence altogether and into the field, which is also where a currency
+   prefix belongs — the reader sees the unit at the point they type the number
+   rather than trailing a question. Nothing can orphan, in any language, at any
+   width or text scale. */
+.ui-money-field {
+  position: relative;
+  display: block;
+}
+
+/* Deliberately unlayered so it beats the call site's `px-4`. Two competing padding
+   utilities in the same layer are resolved by generated-stylesheet order, not by
+   the class attribute, so the room for the prefix has to be won here rather than
+   by adding a `pl-*` class next to the `px-4` and hoping. em, not px: the input's
+   font size tracks --ui-scale, so the gap has to as well. */
+.ui-money-field > input {
+  padding-left: 2.4em;
+}
+
+.ui-money-prefix {
+  position: absolute;
+  /* The input carries `mt-2`, so the box to centre against starts 8px below the
+     wrapper's top. Pinning top and bottom and centring with flex means the marker
+     stays centred whatever the input's height turns out to be — which changes with
+     the text scale and would need re-tuning if this were a fixed offset. */
+  top: 8px;
+  bottom: 0;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  /* A click on the marker has to reach the input underneath it, or the reader taps
+     the thing labelling the box and nothing happens. */
+  pointer-events: none;
 }
 
 /* Government-style callout: a coloured left rule, no icon-only meaning. */
@@ -1277,7 +1358,7 @@ summary:focus-visible {
 
 /* ---------------------------------------------------------------------------
    Charts. Hand-rolled so the colours come from the theme tokens, dark mode and
-   high contrast work for free, and the bars survive printing — a JS charting
+   the print palette work for free, and the bars survive printing — a JS charting
    library measures its container, and a print layout re-measures to a paper
    width after the measurement has already happened.
    --------------------------------------------------------------------------- */
@@ -1414,8 +1495,8 @@ summary:focus-visible {
 
    `font-size: 0` is what hides the glyph — emoji are colour glyphs and ignore
    `color: transparent`. The box keeps its size because it is set in rem, not em.
-   Ring and fill come from the theme tokens, so dark mode and high contrast are
-   covered with no extra rules. */
+   Ring and fill come from the theme tokens, so dark mode and the print palette
+   are covered with no extra rules. */
 .ui-unit-chart span:not(.is-filled) {
   font-size: 0;
   background: var(--color-surface-soft);
@@ -1575,12 +1656,6 @@ summary:focus-visible {
     min-width: 44px;
   }
 
-  /* 0.74rem lands at 11.8px, under the 12px floor. The audience is low-literacy
-     readers; small text is not a cosmetic question here. */
-  .ui-brand-sub {
-    font-size: 0.82rem;
-  }
-
   /* The masthead's 76px minimum plus a wrapped brand block left a lot of dead
      space above the fold on a 740px-tall screen. */
   .ui-masthead-inner {
@@ -1624,8 +1699,8 @@ summary:focus-visible {
      phone leaves the last link sliced mid-word ("Your busi") with nothing to say
      more exists — it reads as broken rather than scrollable. This fades the right
      edge instead. The gradient goes through var(--color-btn), the band's own
-     background, so dark mode and high contrast need no extra rule, and
-     pointer-events: none keeps the link underneath tappable. */
+     background, so dark mode needs no extra rule, and pointer-events: none
+     keeps the link underneath tappable. */
   .ui-navbar::after {
     content: '';
     position: absolute;
@@ -1649,10 +1724,22 @@ summary:focus-visible {
 
 /* The /report page is printed to PDF from the "Save / Print" button. */
 @media print {
-  /* Print on paper, not in whatever theme the demo laptop happens to be in. */
+  /* Print on paper, not in whatever theme the demo laptop happens to be in.
+     `@media` adds no specificity, so each selector here has to out-specify the
+     screen rule it is undoing. Both of these are (0,1,0) and win on source
+     order.
+
+     This list was four selectors until high contrast was removed on 8 September
+     2026. The two that went were `[data-contrast="high"]` and
+     `[data-contrast="high"][data-theme="dark"]`, and the second one is worth
+     remembering as a specificity lesson even though the mode is gone: at (0,2,0)
+     it out-specified all three single-attribute selectors, so dark + high
+     contrast printed --color-bg: #000000 with --color-text: #ffffff — white ink
+     on a black page, on the one sheet a user physically carries to a bank. A
+     compound selector is not redundant with its own parts. Measured by
+     print-audit.mjs, which asserts the resolved values. */
   :root,
-  [data-theme="dark"],
-  [data-contrast="high"] {
+  [data-theme="dark"] {
     --color-bg: #ffffff;
     --color-surface: #ffffff;
     --color-surface-soft: #f2f5f9;
@@ -1662,14 +1749,42 @@ summary:focus-visible {
     --color-btn: #0B3C7B;
     --color-on-btn: #ffffff;
     --color-primary-strong: #0B3C7B;
+    /* The list is the WHOLE palette, deliberately, including tokens no element
+       on /report happens to draw with today. It used to be a curated subset and
+       stopped at --color-primary-strong, which left six tokens still resolving
+       to the laptop's own theme on paper. Two of them are visible on the sheet:
+       --color-danger draws the shortfall figure in the money grid and the
+       .ui-bar-value.is-bad figure in the charts, and in dark mode it is #FFB4AB
+       — a pale salmon that measures about 1.9:1 on white paper, i.e. text a
+       reader cannot make out on the one page they physically carry to a bank.
+       --color-success fills the "good" bar and is #7CD9A5 in dark mode, so the
+       bar it draws all but disappears while the red one beside it still prints.
+       This is the same defect the --mark-* block below was written for, one
+       level up in the palette.
+
+       Exhaustive rather than curated because a subset cannot be verified as
+       complete: the two entries this block has been wrong about — the mark
+       tokens and these six — were both "the ones nobody drew with on /report",
+       right up until someone did. print-audit.mjs now asserts every token
+       resolves identically in all four modes under media:print, which only
+       holds if the list stays exhaustive. */
+    --color-primary: #2C6DB5;
+    --color-accent: #FFC53D;
+    --color-on-accent: #3A2A00;
+    --color-focus: #0B3C7B;
+    --color-danger: #B3261E;
+    --color-success: #146C43;
     --shadow-card: none;
     --ui-scale: 1;
-    /* The brand mark has to be restated here, not just inherited. The
-       high-contrast block above sets every --mark-* to var(--color-btn) or
-       var(--color-bg), and this block does not undo that by resetting the
-       palette — the mark tokens would still point at the button colour, which in
-       dark high contrast is #FFE000. That prints as a yellow lotus on white
-       paper, i.e. an invisible logo on the one page a user carries to a bank. */
+    /* The brand mark has to be restated here, not just inherited, because
+       resetting the palette does not reset a token that was set from the palette
+       — a --mark-* pointing at var(--color-btn) follows the button colour
+       wherever it goes. The high-contrast mode was the case that proved it: it
+       set every --mark-* that way, and in dark high contrast printed a #FFE000
+       lotus on white paper, an invisible logo on the one page a user carries to
+       a bank. That mode is gone as of 8 September 2026 and this block stays,
+       because [data-theme="dark"] still overrides --mark-edge and the list is
+       exhaustive on purpose — see the paragraph above. */
     --mark-petal-outer: #DB1B72;
     --mark-petal-mid: #F4791F;
     --mark-petal-inner: #FBC02D;
@@ -1685,13 +1800,24 @@ summary:focus-visible {
 
   /* App chrome is navigation, and navigation means nothing on paper. The manual
      is landing-page only so it cannot reach /report today, but it is listed
-     because it is help text about using the screen — meaningless once printed. */
-  .ui-topbar,
+     because it is help text about using the screen — meaningless once printed.
+
+     Every class here must be one the MARKUP carries, not one index.css defines.
+     This list used to name `.ui-topbar` and `.ui-footer`, and App.jsx uses
+     neither — the masthead is `.ui-masthead`, the footer is `.ui-footer-gov` +
+     `.ui-footer-bottom`. So the list read complete while the lotus mark, the
+     tricolour band and the whole government footer, helpline column and all,
+     printed onto the sheet. Hiding a parent removes its `-inner` children from
+     layout too, so those need no separate entry. Measured by print-audit.mjs,
+     which reports a class matching no element as a dead rule for this reason. */
   .ui-utilitybar,
+  .ui-masthead,
+  .ui-tricolour,
   .ui-navbar,
   .ui-progress,
   .ui-breadcrumb,
-  .ui-footer,
+  .ui-footer-gov,
+  .ui-footer-bottom,
   .ui-skip-link,
   .ui-manual,
   .ui-manual-overlay {
