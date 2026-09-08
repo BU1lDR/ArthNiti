@@ -54,14 +54,14 @@ function LoginPage() {
         <div className="space-y-6 p-5 sm:p-8">
           <div>
             <label className="text-base font-extrabold" htmlFor="login-name">
-              {t('login.name')} <span className="ui-required" aria-hidden="true">*</span>
+              {t('login.name')}<span className="ui-required" aria-hidden="true">*</span>
             </label>
             <input id="login-name" name="name" value={details.name} onChange={handleChange} type="text" placeholder={t('login.namePh')} className={fieldClass} autoComplete="name" required />
           </div>
 
           <div>
             <label className="text-base font-extrabold" htmlFor="login-phone">
-              {t('login.phone')} <span className="ui-required" aria-hidden="true">*</span>
+              {t('login.phone')}<span className="ui-required" aria-hidden="true">*</span>
             </label>
             <span id="login-phone-hint" className="mt-1 block text-sm text-[var(--color-text-muted)]">{t('login.phoneHint')}</span>
             {/* `title` is what the browser appends to its own pattern-mismatch
@@ -73,7 +73,7 @@ function LoginPage() {
 
           <div>
             <label className="text-base font-extrabold" htmlFor="login-address">
-              {t('login.address')} <span className="ui-required" aria-hidden="true">*</span>
+              {t('login.address')}<span className="ui-required" aria-hidden="true">*</span>
             </label>
             <span id="login-address-hint" className="mt-1 block text-sm text-[var(--color-text-muted)]">{t('login.addressHint')}</span>
             <textarea id="login-address" name="address" value={details.address} onChange={handleChange} rows={3} placeholder="Khera, Lucknow, Uttar Pradesh" className={fieldClass} autoComplete="street-address" aria-describedby="login-address-hint" required />

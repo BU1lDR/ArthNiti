@@ -76,14 +76,14 @@ function BusinessPage() {
           <div className="ui-formsection-body space-y-6">
             <div>
               <label className="text-base font-extrabold" htmlFor="business-name">
-                {t('business.nameLabel')} <span className="ui-required" aria-hidden="true">*</span>
+                {t('business.nameLabel')}<span className="ui-required" aria-hidden="true">*</span>
               </label>
               <input id="business-name" name="businessName" value={business.businessName} onChange={handleChange} type="text" placeholder="e.g. Rahul General Store" className={fieldClass} required />
             </div>
 
             <fieldset ref={categoryRef} aria-describedby={categoryError ? 'category-error' : undefined}>
               <legend className="text-base font-extrabold">
-                {t('business.category')} <span className="ui-required" aria-hidden="true">*</span>
+                {t('business.category')}<span className="ui-required" aria-hidden="true">*</span>
               </legend>
               <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('business.tapOne')}</p>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -122,32 +122,35 @@ function BusinessPage() {
           <div className="ui-formsection-body">
             <p className="text-sm text-[var(--color-text-muted)]">{t('business.numbersHint')}</p>
 
+            {/* ui-field, not block: these three questions are different lengths in
+                every language, so the boxes only line up if each cell's spare height
+                is collected under its own question. See index.css. */}
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <label className="block">
-                <span className="font-bold">{t('business.investment')} <span className="font-normal text-[var(--color-text-muted)]">₹</span> <span className="ui-required" aria-hidden="true">*</span></span>
-                <input name="initialInvestment" value={business.initialInvestment} onChange={handleChange} type="number" min="0" placeholder="e.g. 100000" className={fieldClass} required />
+              <label className="ui-field">
+                <span className="font-bold">{t('business.investment')}<span className="ui-required" aria-hidden="true">*</span></span>
+                <MoneyField name="initialInvestment" value={business.initialInvestment} onChange={handleChange} placeholder="e.g. 100000" required />
               </label>
-              <label className="block">
-                <span className="font-bold">{t('business.revenue')} <span className="font-normal text-[var(--color-text-muted)]">₹</span> <span className="ui-required" aria-hidden="true">*</span></span>
-                <input name="monthlyRevenue" value={business.monthlyRevenue} onChange={handleChange} type="number" min="0" placeholder="e.g. 30000" className={fieldClass} required />
+              <label className="ui-field">
+                <span className="font-bold">{t('business.revenue')}<span className="ui-required" aria-hidden="true">*</span></span>
+                <MoneyField name="monthlyRevenue" value={business.monthlyRevenue} onChange={handleChange} placeholder="e.g. 30000" required />
               </label>
-              <label className="block">
-                <span className="font-bold">{t('business.opex')} <span className="font-normal text-[var(--color-text-muted)]">₹</span> <span className="ui-required" aria-hidden="true">*</span></span>
+              <label className="ui-field">
+                <span className="font-bold">{t('business.opex')}<span className="ui-required" aria-hidden="true">*</span></span>
                 <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{t('business.opexHint')}</span>
-                <input name="monthlyOperatingExpenses" value={business.monthlyOperatingExpenses} onChange={handleChange} type="number" min="0" placeholder="e.g. 18000" className={fieldClass} required />
+                <MoneyField name="monthlyOperatingExpenses" value={business.monthlyOperatingExpenses} onChange={handleChange} placeholder="e.g. 18000" required />
               </label>
             </div>
 
             <details className="ui-disclosure mt-6">
               <summary><span aria-hidden="true">⚙️</span> {t('business.moreDetails')}</summary>
               <div className="ui-disclosure-body grid gap-5 sm:grid-cols-2">
-                <label className="block">
+                <label className="ui-field">
                   <span className="font-bold">{t('business.employees')}</span>
                   <input name="employees" value={business.employees} onChange={handleChange} type="number" min="0" placeholder="e.g. 2" className={fieldClass} />
                 </label>
-                <label className="block">
-                  <span className="font-bold">{t('business.debt')} <span className="font-normal text-[var(--color-text-muted)]">(₹)</span></span>
-                  <input name="existingDebt" value={business.existingDebt} onChange={handleChange} type="number" min="0" placeholder="0" className={fieldClass} />
+                <label className="ui-field">
+                  <span className="font-bold">{t('business.debt')}</span>
+                  <MoneyField name="existingDebt" value={business.existingDebt} onChange={handleChange} placeholder="0" />
                 </label>
               </div>
             </details>
@@ -159,6 +162,33 @@ function BusinessPage() {
         </div>
       </form>
     </section>
+  )
+}
+
+// A money input with the ₹ set inside the box rather than trailing the question.
+// See .ui-money-field in index.css for why it moved: as an inline span at the end
+// of the label it dropped onto a line of its own whenever the question wrapped.
+//
+// The marker is aria-hidden because it is not the field's name. Every one of these
+// questions already says "money" in words — "How much money do you require?" — so a
+// screen reader reading the label has the unit, and announcing a bare "rupee sign"
+// after it would only add noise. Same call the codebase makes for the ₹ that
+// formatCurrency prints.
+function MoneyField({ name, value, onChange, placeholder, required = false }) {
+  return (
+    <span className="ui-money-field">
+      <span className="ui-money-prefix" aria-hidden="true">₹</span>
+      <input
+        name={name}
+        value={value}
+        onChange={onChange}
+        type="number"
+        min="0"
+        placeholder={placeholder}
+        required={required}
+        className={fieldClass}
+      />
+    </span>
   )
 }
 

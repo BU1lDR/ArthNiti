@@ -121,8 +121,8 @@ function LocationPage() {
           <div className="ui-formsection-body space-y-6">
             {/* State first, because the district list is filtered by it. */}
             <div className="grid gap-5 sm:grid-cols-2">
-              <label className="block">
-                <span className="font-extrabold">{t('location.state')} <span className="ui-required" aria-hidden="true">*</span></span>
+              <label className="ui-field">
+                <span className="font-extrabold">{t('location.state')}<span className="ui-required" aria-hidden="true">*</span></span>
                 <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{t('location.stateHint')}</span>
                 <select name="state" value={location.state} onChange={handleStateChange} className={fieldClass} required>
                   <option value="">{t('location.selectState')}</option>
@@ -138,8 +138,11 @@ function LocationPage() {
                 </select>
               </label>
 
-              <label className="block">
-                <span className="font-extrabold">{t('location.district')} <span className="ui-required" aria-hidden="true">*</span></span>
+              {/* ui-field, not block: the two hints are different lengths and the
+                  district one changes with the chosen state, so without it the two
+                  dropdowns sit at different heights. See index.css. */}
+              <label className="ui-field">
+                <span className="font-extrabold">{t('location.district')}<span className="ui-required" aria-hidden="true">*</span></span>
                 <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">
                   {location.state ? t('location.districtIn', { state: location.state }) : t('location.chooseStateFirst')}
                 </span>

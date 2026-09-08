@@ -64,7 +64,7 @@ function ProfilePage() {
           <div className="ui-formsection-body space-y-6">
             <div>
               <label className="text-base font-extrabold" htmlFor="profile-name">
-                {t('profile.name')} <span className="ui-required" aria-hidden="true">*</span>
+                {t('profile.name')}<span className="ui-required" aria-hidden="true">*</span>
               </label>
               <input id="profile-name" name="name" value={profile.name} onChange={handleChange} type="text" placeholder={t('profile.namePh')} className={fieldClass} autoComplete="name" required />
             </div>

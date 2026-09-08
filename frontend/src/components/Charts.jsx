@@ -1,8 +1,8 @@
 // Charts, hand-rolled on the .ui-bar-* / .ui-unit-chart CSS.
 //
 // Deliberately not a charting library. Three reasons that all matter here:
-// colours come from the theme tokens so dark mode and high contrast work with no
-// extra code; the bars survive `window.print()`, where a JS library has already
+// colours come from the theme tokens so dark mode and the print palette work
+// with no extra code; the bars survive `window.print()`, where a JS library has already
 // measured a screen-width container before the paper layout re-measures; and the
 // number is always printed as text next to the bar, so the chart is decoration
 // over a readable figure rather than the only place the value exists.

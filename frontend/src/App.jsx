@@ -4,7 +4,7 @@ import BrandMark from './components/BrandMark'
 import BrandWordmark from './components/BrandWordmark'
 import Button from './components/Button'
 import InstructionManual from './components/InstructionManual'
-import { useApp } from './context/AppContext'
+import { isStarted, useApp } from './context/AppContext'
 import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
 import BusinessPage from './pages/BusinessPage'
@@ -96,33 +96,12 @@ function TextSizeControl() {
   )
 }
 
-function ContrastToggle() {
-  const { t } = useI18n()
-  const [high, setHigh] = useState(() => localStorage.getItem('sih-contrast') === 'high')
-
-  useEffect(() => {
-    if (high) {
-      document.documentElement.dataset.contrast = 'high'
-    } else {
-      delete document.documentElement.dataset.contrast
-    }
-    localStorage.setItem('sih-contrast', high ? 'high' : 'normal')
-  }, [high])
-
-  return (
-    <button
-      type="button"
-      className="ui-utility-button"
-      onClick={() => setHigh((current) => !current)}
-      aria-pressed={high}
-      title={t('common.highContrast')}
-    >
-      <span aria-hidden="true">◐</span>
-      <span className="hidden sm:inline">{t('common.highContrast')}</span>
-    </button>
-  )
-}
-
+// A ContrastToggle sat here until 8 September 2026, writing
+// `data-contrast="high"` on <html> against a token block in index.css. Removed
+// at the owner's instruction, together with every rule that read the attribute.
+// A stale `sih-contrast` key may still be in a returning visitor's
+// localStorage; nothing reads it any more, so it is inert rather than a bug.
+//
 // The answers now survive a refresh, so a refresh no longer clears them. This is
 // the replacement: the only way back to an empty form without closing the tab.
 // It renders only once there is something to lose, which keeps it from being
@@ -132,17 +111,10 @@ function StartOverButton() {
   const { t } = useI18n()
   const navigate = useNavigate()
 
-  const { profile, business, location, finance, result } = applicationData
-  const started = Boolean(
-    result ||
-      profile.name ||
-      business.businessName ||
-      business.category ||
-      location.state ||
-      finance.availableCapital,
-  )
-
-  if (!started) return null
+  // isStarted lives in AppContext because it is derived from EMPTY. The list of
+  // fields that used to be spelled out here covered 6 of the 16 answers, so it
+  // went stale silently every time the form grew.
+  if (!isStarted(applicationData)) return null
 
   return (
     <button
@@ -193,8 +165,15 @@ function LanguagePicker() {
         </select>
       </label>
 
+      {/* Visible at every width. This was `hidden md:inline-flex` from the era
+          when .ui-utilitybar-tools was one unbreakable row, so anything droppable
+          got dropped to fit a phone. The row wraps now, and hiding this was the
+          worst possible choice of what to drop: the reader most likely to need a
+          dialect is the one on a phone, and the utility bar is the only place in
+          the app that offers one. .ui-utility-select already gets a 44px minimum
+          on a coarse pointer, so the tap target comes for free. */}
       {dialects.length > 1 && (
-        <label className="hidden items-center gap-2 md:inline-flex">
+        <label className="inline-flex items-center gap-2">
           <span className="sr-only">{t('common.dialect')}</span>
           <select
             value={dialect}
@@ -234,7 +213,6 @@ function AppShell({ children }) {
           <div className="ui-utilitybar-tools">
             <LanguagePicker />
             <TextSizeControl />
-            <ContrastToggle />
             <ThemeToggle />
             <StartOverButton />
           </div>
@@ -254,9 +232,17 @@ function AppShell({ children }) {
           </Link>
 
           <div className="ui-header-actions">
+            {/* The only link to /login anywhere in the app, so `hidden
+                sm:inline-flex` did not shorten the masthead on a phone — it made
+                the page unreachable on the device the target user actually holds.
+                .ui-masthead-inner wraps, so the button takes its own row rather
+                than squeezing the brand block. min-h-11 because these are
+                Tailwind utilities, not .ui-utility-button, so the 44px rule in
+                the coarse-pointer block does not reach them: py-2 on text-sm is a
+                36px target. Same pattern as the eight journey back links. */}
             <Link
               to="/login"
-              className="hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-bold text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] sm:inline-flex"
+              className="inline-flex min-h-11 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-bold text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)]"
             >
               {t('common.login')}
             </Link>
@@ -410,9 +396,45 @@ function LandingPage() {
           picture behind its text. */}
       <InstructionManual />
 
-      <section className="ui-hero grid min-h-[calc(100vh-320px)] items-center gap-10 py-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-14">
+      {/* px-* is as load-bearing as py-* here, and it was missing until 8 Sept 2026.
+          The artwork is a ::before pinned to `inset: 0`, and for an absolutely
+          positioned box `inset` resolves against the host's PADDING box — so this
+          padding insets the content while the artwork still covers the whole
+          section. Measured before the fix: every hero child sat 0px from the
+          artwork's left edge at every width, and below 800px the heading and
+          subtitle touched BOTH edges, so a full-width button's border landed
+          exactly on the photo's border. The vertical inset was already 56/32px,
+          which is why the imbalance read as a mis-crop.
+
+          Both paddings switch on `lg` on purpose. index.css's own breakpoints are
+          800px and 640px, and using one of those here would open a 800-1024px band
+          with a 56px vertical inset next to a 20px horizontal one.
+
+          Deliberate consequence: the heading no longer shares a vertical line with
+          the breadcrumb above or "What we offer" below. That is the panel reading,
+          not a misalignment — .ui-card insets its own content the same way — and it
+          is the only option that cannot overflow. Bleeding the artwork outward
+          instead keeps the line but needs a clamp against .ui-main's margin, which
+          is 16px at 1024px and 12px at 390px, so any fixed bleed puts the artwork
+          off-canvas and trips mobile-audit's OVERFLOW. */}
+      <section className="ui-hero grid min-h-[calc(100vh-320px)] items-center gap-10 px-5 py-8 lg:grid-cols-[1.1fr_0.9fr] lg:px-10 lg:py-14">
         <div>
-          <p className="ui-eyebrow">{APP_NAME}</p>
+          {/* The greeting, not the product name. `greeting.hello` was translated
+              into all 8 languages and overridden by 9 of the 9 dialect phrase
+              sets — and rendered nowhere in the app, so it was 8 translations and
+              9 overrides of dead weight.
+
+              That mattered beyond the waste: DIALECT_PHRASES overrides exactly
+              three keys, and for ta-madurai, te-telangana, ml-malabar and
+              bn-sylheti the other two are `landing.cta` (Hindi dialects only) and
+              `money.left` (a result page). So picking one of those four dialects
+              changed nothing a reader could see until they had filled in all four
+              forms. The greeting is the one string where a dialect is instantly
+              recognisable, which is the whole point of the feature.
+
+              The brand is not lost: the wordmark is in the utility bar and the
+              name is in the masthead, both directly above this line. */}
+          <p className="ui-eyebrow">{t('greeting.hello')}</p>
           <h1 className="ui-page-title max-w-3xl text-[clamp(2.1rem,5vw,3.9rem)]">
             {t('landing.title')}
           </h1>
@@ -431,10 +453,13 @@ function LandingPage() {
           </div>
 
           {/* Full-strength text, not the muted grey these would normally use.
-              This line sits lowest in the hero, which is where the street artwork
-              behind it is at its strongest — the softTop mask ramps to 1 at the
-              bottom edge — so it is the worst-case pairing on the page. At 14px
-              it is "normal text" for WCAG, so it needs the full 4.5:1. */}
+              This used to say the artwork is "at its strongest" here because the
+              SVG's softTop mask ramped to 1 at the bottom edge. That mask went with
+              the SVG on 8 Sept 2026 — the JPEG is opaque and `cover` fills the box,
+              so there is no weak end any more and every line in the hero sits on
+              full-strength artwork. The reason for the full-strength text is now
+              simply that at 14px this is "normal text" for WCAG and needs the whole
+              4.5:1 with no help from anywhere. */}
           <div className="mt-7 flex flex-wrap gap-3 text-sm font-semibold text-[var(--color-text)]">
             <span><span aria-hidden="true">✓</span> {t('landing.chip1')}</span>
             <span><span aria-hidden="true">✓</span> {t('landing.chip2')}</span>

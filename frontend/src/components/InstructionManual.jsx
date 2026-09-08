@@ -31,6 +31,14 @@ const RESULTS = [
   ['📄', 'nav.report', 'man.r4'],
 ]
 
+// What the focus trap treats as a stop. Deliberately not a library: this panel
+// holds one select, one close button and two footer buttons, and the general
+// case has edge cases (contenteditable, iframes, shadow roots) that none of them
+// can reach. `[tabindex="-1"]` is excluded so the panel itself — which is the
+// focus target on open — is not also a stop in the cycle.
+const FOCUSABLE =
+  'a[href], button:not([disabled]), select:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 function InstructionManual() {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
@@ -43,9 +51,63 @@ function InstructionManual() {
     // Escape closes it, and the page behind must not scroll under the panel —
     // on a phone the scrim covers the viewport and a stray swipe would otherwise
     // move the landing page while the guide sits still on top of it.
+    //
+    // Tab and Shift+Tab wrap inside the panel, because the panel claims
+    // aria-modal="true" and that has to be true. Without the wrap, a keyboard or
+    // screen-reader user tabs off the last control and walks the entire landing
+    // page behind an opaque scrim — announced, focusable, and invisible. The
+    // reader most likely to open this guide is the one least able to recover
+    // from that.
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') {
+        setOpen(false)
+        // Escape used to skip this and leave focus on a node that had just been
+        // unmounted, which drops a keyboard user back at the top of the document.
+        openerRef.current?.focus()
+        return
+      }
+
+      if (event.key !== 'Tab') return
+
+      const panel = panelRef.current
+      if (!panel) return
+
+      // Queried on every Tab rather than captured once on open: changing the
+      // language from the dropdown inside the panel re-renders its whole body,
+      // so a list taken at open time would hold detached nodes and the trap
+      // would send focus nowhere. getClientRects() rather than offsetParent —
+      // it is the more robust "is this actually laid out" test inside a
+      // position: fixed overlay.
+      const focusable = Array.from(panel.querySelectorAll(FOCUSABLE)).filter(
+        (element) => element.getClientRects().length > 0,
+      )
+
+      if (!focusable.length) {
+        event.preventDefault()
+        panel.focus()
+        return
+      }
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+
+      if (event.shiftKey) {
+        // The panel itself is the focus target on open, so backwards from there
+        // has to reach the end of the panel rather than the chrome behind it.
+        if (active === panel || active === first || !panel.contains(active)) {
+          event.preventDefault()
+          last.focus()
+        }
+        return
+      }
+
+      if (active === last || !panel.contains(active)) {
+        event.preventDefault()
+        first.focus()
+      }
     }
+
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     document.addEventListener('keydown', onKeyDown)
@@ -196,9 +258,9 @@ function LanguageSelect() {
 
 // The manual's icon: a bound book with a gold seal and a seedling coming out of
 // it. Inline SVG and every colour a --book-* token, for the same reasons as
-// BrandMark — one asset covers light, dark and both high-contrast modes, and in
-// high contrast it collapses to an ink silhouette with paper-coloured detail.
-// Never hardcode a hex here; the tokens are in index.css.
+// BrandMark — one asset covers light and dark mode, and it stays crisp at the
+// strip's size and in print. Never hardcode a hex here; the tokens are in
+// index.css.
 function BookIcon({ className = '' }) {
   return (
     <svg className={className} viewBox="0 0 120 112" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">

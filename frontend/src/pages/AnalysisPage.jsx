@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
 import { BarGroup, BarRow, UnitChart } from '../components/Charts'
+import { schemeFitItems } from '../components/chartData'
 import { useI18n } from '../i18n/LanguageContext'
 import { useBackendText } from '../i18n/backendText'
 
@@ -43,11 +44,25 @@ function AnalysisPage() {
   const schemes = Array.isArray(result.scheme_matches) ? result.scheme_matches : []
   const market = Array.isArray(result.market_context) ? result.market_context : []
 
-  // The backend returns null for ROI when there is no investment amount to
-  // divide by, so the card explains what to fill in instead of showing 0%.
+  // "We were not told" and "the answer is zero" are two different things, and two
+  // cards on this page used to print the first when it was the second.
+  //
+  // The investment field on /business is `required`, so a missing figure is close
+  // to unreachable — a null ROI almost always means the user typed a real 0, which
+  // is the ordinary case for someone already trading who plans no new spend. The
+  // health card then read "Add the money you will put in to see this" while this
+  // same page printed "Money put in  ₹0" and "Money still needed  ₹0" a few
+  // hundred pixels below it: instructed to fill in a field they had filled in,
+  // with no way to clear the instruction except by entering a figure that is not
+  // true. Both sections echo the same request field, so either will do.
+  const plannedInvestment = financial.initial_investment ?? business.initial_investment
+  const noInvestment = hasNumber(plannedInvestment) && Number(plannedInvestment) === 0
+
   const roiDescription = hasNumber(business.estimated_roi_percent)
     ? t('an.roiWith', { value: formatPercent(business.estimated_roi_percent, t) })
-    : t('an.roiMissing')
+    : noInvestment
+      ? t('an.roiNoInvestment')
+      : t('an.roiMissing')
 
   // The status enums stay English in the code because they decide which branch
   // runs; only the printed label goes through the translation table. The only
@@ -69,19 +84,36 @@ function AnalysisPage() {
   )
 
   const monthlyProfit = financial.monthly_profit
+  // The icon tracks the sign, the same way the tone already does. It was the
+  // literal '💚' whichever way the month went, so a shortfall rendered as
+  // "💚 Money left each month  ₹-10,000" — and for a low-literacy reader the icon
+  // is the fastest-read thing in the row, saying the opposite of the figure beside
+  // it. BarRow puts it in an aria-hidden span, so no accessible name changes.
+  const profitIsPositive = Number(monthlyProfit) > 0
+  // Strictly negative, and only on a figure we actually have: a missing value
+  // must not be captioned as a shortfall, and an exact ₹0 is break-even, not a
+  // shortfall. (The chart tone above treats 0 as bad, which is right there and
+  // matches risk_service short-circuiting a non-positive surplus to high risk.)
+  const isShortfall = hasNumber(monthlyProfit) && Number(monthlyProfit) < 0
   const inOutItems = [
     ...moneyBar(t('f.income'), '📥', financial.expected_monthly_revenue, 'neutral'),
     ...moneyBar(t('f.spending'), '📤', financial.monthly_expenses, 'warn'),
-    ...moneyBar(t('f.profit'), '💚', monthlyProfit, Number(monthlyProfit) > 0 ? 'good' : 'bad'),
+    ...moneyBar(t('f.profit'), profitIsPositive ? '💚' : '💔', monthlyProfit, profitIsPositive ? 'good' : 'bad'),
   ]
 
   // funding_gap is clamped at zero on the backend, so a zero is not a missing
   // number — it means the planned investment is already covered. "Extra money
   // you may need to arrange" printed next to ₹0 reads as a contradiction.
   const fundingGap = financial.funding_gap
-  const gapDescription = hasNumber(fundingGap) && Number(fundingGap) <= 0
-    ? t('money.enough')
-    : t('an.needDesc')
+  // And the same distinction on this card: "You have enough of your planned
+  // investment" is vacuous when the planned investment is zero, because there is
+  // nothing to have enough of.
+  const gapIsCovered = hasNumber(fundingGap) && Number(fundingGap) <= 0
+  const gapDescription = !gapIsCovered
+    ? t('an.needDesc')
+    : noInvestment
+      ? t('money.noneNeeded')
+      : t('money.enough')
 
   const fundItems = [
     ...moneyBar(t('ch.required'), '🎯', financial.initial_investment, 'neutral'),
@@ -101,13 +133,17 @@ function AnalysisPage() {
         ? 'warn'
         : 'good'
 
-  // profit_margin_percent comes back as 0, not null, when there is no revenue to
-  // divide by — financial_service falls back to 0 rather than dividing by zero.
-  // So a business with no sales yet would print a confident "0%" and draw ten
-  // empty coins, as though "nothing stays with you out of every ten rupees" had
-  // been measured. Nothing was measured, so with no revenue the margin is
-  // treated as missing everywhere it is shown. A real 0% margin on real revenue
-  // is a genuine finding and must still print 0% and draw the ten empty coins.
+  // profit_margin_percent is null when there is no revenue to divide by, which is
+  // financial_service saying "could not compute" rather than "zero" — it used to
+  // return a real 0 there, and this guard was written against that. It is kept
+  // now that the backend is honest, for two reasons: Number(null) is 0 and
+  // *passes* Number.isFinite, so the guard is what stops a null becoming a
+  // confident "0%" with ten empty coins beside it — as though "nothing stays with
+  // you out of every ten rupees" had been measured when nothing was measured at
+  // all. And it holds the line if an older cached response, or a second caller
+  // that still divides by zero itself, sends the 0 back. A real 0% margin on real
+  // revenue is a genuine finding and must still print 0% and draw the ten empty
+  // coins, which is why the test is on the revenue and not on the margin.
   const hasRevenue = hasNumber(financial.expected_monthly_revenue)
     && Number(financial.expected_monthly_revenue) > 0
   const margin = hasRevenue ? financial.profit_margin_percent : null
@@ -115,15 +151,13 @@ function AnalysisPage() {
     ? Math.min(10, Math.max(0, Math.round(Number(margin) / 10)))
     : 0
 
-  const schemeFitItems = schemes
-    .filter((scheme) => scheme && typeof scheme === 'object' && hasNumber(scheme.match_score))
-    .map((scheme) => ({
-      label: scheme.name || t('sc.name'),
-      icon: '🏛️',
-      value: Number(scheme.match_score),
-      valueText: t('sc.matchPct', { n: Number(scheme.match_score) }),
-      tone: 'good',
-    }))
+  // Grouped by score, and gated by the helper returning an empty list. This page
+  // used to draw one bar per scheme with no gate at all, while /schemes computed
+  // the same chart behind a gate written precisely to stop it — so the demo path
+  // rendered 16 bars of two lengths here, and a category where every match scores
+  // 90 rendered a dozen identical full-length bars reading as a perfect fit for
+  // every one of them. Both pages now call the one helper.
+  const fitItems = schemeFitItems(schemes, t)
 
   return (
     <>
@@ -161,9 +195,18 @@ function AnalysisPage() {
               {bt.nextStep(summary) || t('an.nextSub')}
             </p>
           </div>
+          {/* The largest figure on the page, and it can be negative. It used to
+              print a shortfall in the same weight and the same colour as a
+              profit, under the same "Money left each month" label — the exact
+              favourable misreading the BarGroup forty lines below refuses to
+              draw a bar for. Three cues now agree: the label names a shortfall,
+              the figure is red, and the sign leads (-₹10,000, not ₹-10,000).
+              Exactly ₹0 is not a shortfall and keeps the ordinary label. */}
           <div className="rounded-2xl bg-[var(--color-surface-soft)] p-5 text-center lg:min-w-52">
-            <p className="text-sm font-semibold text-[var(--color-text-muted)]">{t('money.left')}</p>
-            <p className="mt-1 text-3xl font-bold text-[var(--color-text)]">
+            <p className="text-sm font-semibold text-[var(--color-text-muted)]">
+              {isShortfall ? t('money.shortfall') : t('money.left')}
+            </p>
+            <p className={`mt-1 text-3xl font-bold ${isShortfall ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}>
               {formatCurrency(monthlyProfit, t)}
             </p>
             {/* monthly_profit is expected_monthly_revenue − monthly_expenses and
@@ -254,10 +297,22 @@ function AnalysisPage() {
           {/* Counting coins needs no numeracy. A real 0% margin still draws ten
               empty coins; a negative margin clamps to zero rather than going
               backwards. `margin` is already null when there was no revenue to
-              measure a margin against, so the whole chart drops out. */}
+              measure a margin against, so the whole chart drops out.
+
+              No <ChartTitle> here, unlike the three charts above, and that is
+              deliberate as of 8 Sept 2026 — `ch.coinTitle` ("Out of every 10
+              rupees you earn") was removed at the owner's request. It read as a
+              sentence fragment that the label below then completed, so the two
+              lines together said one thing twice. `ch.coinLabel` is a whole
+              sentence on its own and UnitChart renders it visibly, so the chart
+              is still labelled. /advisory dropped the same heading later that
+              day, so the two pages now agree and `ch.coinTitle` is referenced
+              nowhere — it stays in all 8 dictionaries as dead weight rather than
+              being deleted, so restoring it is a one-line change if the copy is
+              ever wanted back. Don't "restore" it for consistency with the other
+              charts on this page. */}
           {hasNumber(margin) && (
             <div className="mt-7 border-t border-[var(--color-border)] pt-6">
-              <ChartTitle title={t('ch.coinTitle')} />
               <UnitChart
                 filled={coins}
                 total={10}
@@ -353,10 +408,10 @@ function AnalysisPage() {
           </span>
         </div>
 
-        {schemeFitItems.length > 0 && (
+        {fitItems.length > 0 && (
           <div className="mt-6">
             <ChartTitle title={t('ch.schemeFit')} />
-            <BarGroup items={schemeFitItems} />
+            <BarGroup items={fitItems} caption={t('ch.fitCaption')} />
           </div>
         )}
 
@@ -593,7 +648,7 @@ function statusText(value, t) {
   if (value === undefined || value === null || String(value).trim() === '') return t('common.notAvailable')
   const key = STATUS_KEYS[String(value).toLowerCase()]
   if (key) return t(key)
-  return String(value).replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  return titleCaseEnum(value)
 }
 
 const RISK_KEYS = { low: 'risk.low', moderate: 'risk.moderate', high: 'risk.high' }
@@ -648,7 +703,14 @@ function formatCurrency(value, t) {
   // A missing amount must not print as ₹0 — that reads as a real, reassuring
   // figure. Only say ₹0 when the backend actually sent zero.
   if (!hasNumber(value)) return t('common.notAvailable')
-  return '₹' + Number(value).toLocaleString('en-IN')
+  // The sign goes before the symbol: -₹10,000, not ₹-10,000. Both are the same
+  // characters, but wedged between the symbol and the first digit the minus is
+  // the easiest thing on the page to miss, and this figure appears at text-3xl in
+  // the summary card. Leading, it is the first thing read. This is also how a
+  // negative amount is written in India. Kept identical in the other three pages
+  // that carry their own copy of this formatter.
+  const amount = Number(value)
+  return (amount < 0 ? '-₹' : '₹') + Math.abs(amount).toLocaleString('en-IN')
 }
 
 // The backend sends null for percentages it could not compute (no surplus to
@@ -665,7 +727,24 @@ function formatPercent(value, t) {
 
 function formatText(value, t) {
   if (value === undefined || value === null || String(value).trim() === '') return t('common.notAvailable')
-  return String(value).replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase())
+  return titleCaseEnum(value)
+}
+
+// The title-caser exists for ONE case: an enum or a picker value that no map
+// above recognises, so it prints legibly rather than vanishing. Every such value
+// is snake_case, so gate on that shape — the same helpers also receive district
+// names and whatever the user typed into "Other", and title-casing those does
+// visible damage. `\b` matches after an apostrophe, so "Meena's shop" became
+// "Meena'S Shop", and "Jammu and Kashmir" became "Jammu And Kashmir". Anything
+// not enum-shaped is printed as written. Kept identical in AdvisoryPage and
+// ReportPage: these formatters are duplicated per page by design, but two copies
+// that disagree would show one spelling on /analysis and another on /report.
+const ENUM_SHAPED = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/
+
+function titleCaseEnum(value) {
+  const text = String(value).trim()
+  if (!ENUM_SHAPED.test(text)) return text
+  return text.replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 }
 
 export default AnalysisPage

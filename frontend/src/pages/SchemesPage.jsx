@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import Button from '../components/Button'
 import { BarGroup } from '../components/Charts'
+import { schemeFitItems } from '../components/chartData'
 import { useApp } from '../context/AppContext'
 import { useI18n } from '../i18n/LanguageContext'
 import { LEVEL_ORDER, useBackendText } from '../i18n/backendText'
@@ -13,17 +14,15 @@ export default function SchemesPage() {
   const result = applicationData?.result
   const schemes = Array.isArray(result?.scheme_matches) ? result.scheme_matches : []
 
-  // The comparison chart only earns its space once there is something to
-  // compare, so it needs two or more schemes that actually carry a score. A
-  // string entry or a missing score is skipped rather than drawn as a zero bar.
-  const scored = schemes.filter((scheme) => typeof scheme !== 'string' && hasNumber(scheme?.match_score))
-  // Two or more scored schemes is not enough. The scorer only ever returns 90
-  // (open nationwide) or 100 (names your state), so a dozen matches draw a dozen
-  // bars of two lengths — a chart that says nothing while pushing every card
-  // below the fold. It has to show at least two *different* scores to be worth
-  // the space, and a run of more than six bars is a wall rather than a glance.
-  const distinctScores = new Set(scored.map((scheme) => Number(scheme.match_score))).size
-  const showFitChart = distinctScores > 1 && scored.length > 1 && scored.length <= 6
+  // One bar per distinct match score, with the number of schemes at that score as
+  // the length. The gate is the emptiness of the list, so it cannot drift from
+  // the data — see schemeFitItems in Charts.jsx for why the chart is grouped.
+  //
+  // This section used to be unreachable. It carried a `scored.length <= 6` cap on
+  // top of the distinct-score test, and no category in any state returns between
+  // 2 and 6 matches — it is 0 or 11 to 16 — so the cap could never be satisfied
+  // and the chart, plus its eight translated strings, was dead code.
+  const fitItems = schemeFitItems(schemes, t)
 
   // Grouped by the office that runs the scheme, outward from Delhi to the
   // reader's own panchayat. The backend already sorted by (score, level, name),
@@ -87,21 +86,13 @@ export default function SchemesPage() {
           </div>
 
           {/* One glance before committing to any single card: the bars are all
-              scaled against the same maximum, and the percentage is printed as
-              text beside each one so the chart is never the only place it is. */}
-          {showFitChart && (
+              scaled against the same maximum, and the count is printed as text
+              beside each one so the chart is never the only place it is. */}
+          {fitItems.length > 0 && (
             <section className="ui-card sm:p-8">
               <h2 className="text-lg font-bold text-[var(--color-text)]">{t('ch.schemeFit')}</h2>
               <div className="mt-5">
-                <BarGroup
-                  items={scored.map((scheme) => ({
-                    label: scheme.name || t('sc.name'),
-                    icon: '🏛️',
-                    value: Number(scheme.match_score),
-                    valueText: t('sc.matchPct', { n: scheme.match_score }),
-                    tone: 'good',
-                  }))}
-                />
+                <BarGroup items={fitItems} caption={t('ch.fitCaption')} />
               </div>
             </section>
           )}

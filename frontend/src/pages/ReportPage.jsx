@@ -43,8 +43,13 @@ function ReportPage() {
   const flowItems = [
     { label: t('f.income'), icon: '📥', value: financial?.expected_monthly_revenue, tone: 'neutral' },
     { label: t('f.spending'), icon: '📤', value: financial?.monthly_expenses, tone: 'warn' },
-    { label: t('f.profit'), icon: '💚', value: financial?.monthly_profit, tone: Number(financial?.monthly_profit) > 0 ? 'good' : 'bad' },
+    // The icon tracks the sign, not just the tone: a '💚' beside a red -₹10,000 is the fastest-read
+    // thing in the row saying the opposite of the figure. Same change on /analysis.
+    { label: t('f.profit'), icon: Number(financial?.monthly_profit) > 0 ? '💚' : '💔', value: financial?.monthly_profit, tone: Number(financial?.monthly_profit) > 0 ? 'good' : 'bad' },
   ].filter((item) => hasNumber(item.value)).map((item) => ({ ...item, value: Number(item.value), valueText: formatCurrency(item.value, t) }))
+  // Strictly negative and only on a figure we have — an exact ₹0 is break-even, not a shortfall. This is the
+  // sheet someone carries to a bank, so a shortfall must not print under "Money left each month" in body black.
+  const isShortfall = hasNumber(financial?.monthly_profit) && Number(financial.monthly_profit) < 0
   const fundItems = [
     { label: t('ch.required'), icon: '🎯', value: financial?.initial_investment, tone: 'neutral' },
     { label: t('ch.inHand'), icon: '👛', value: financial?.available_capital, tone: 'good' },
@@ -57,10 +62,18 @@ function ReportPage() {
         without this the PDF a user carries to a bank names no service at all. */}
     <header className="ui-card sm:p-8"><div className="mb-4 flex items-center gap-3 border-b border-[var(--color-border)] pb-4"><BrandMark size="sm" /><span className="text-lg font-extrabold text-[var(--color-text)]">{APP_NAME}</span></div><p className="ui-eyebrow"><span aria-hidden="true">📄</span> {t('rp.eyebrow')}</p><h1 className="ui-page-title mt-1">{t('rp.title')}</h1><p className="ui-page-subtitle">{t('rp.subtitle')}</p></header>
     <section className="ui-card mt-6 sm:p-8"><div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-surface-soft)] text-3xl" aria-hidden="true">{feasibility === 'feasible' ? '✅' : '📌'}</div><div><p className="ui-eyebrow">{t('rp.mainResult')}</p><h2 className="mt-1 text-2xl font-extrabold text-[var(--color-text)]">{statusText(feasibility, t)}</h2><p className="mt-2 leading-7 text-[var(--color-text-muted)]">{t('rp.mainResultText')}</p></div></div></section>
-    <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard icon="💰" label={t('money.left')} value={formatCurrency(financial?.monthly_profit, t)} /><MetricCard icon="🏦" label={t('money.fundingNeeded')} value={formatCurrency(fundingGap, t)} /><MetricCard icon="📈" label={t('money.margin')} value={formatPercent(financial?.profit_margin_percent) || t('common.notAvailable')} /><MetricCard icon="🛡️" label={t('money.risk')} value={riskText(riskLevel, t)} /></section>
+    <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard icon={isShortfall ? '📉' : '💰'} label={isShortfall ? t('money.shortfall') : t('money.left')} value={formatCurrency(financial?.monthly_profit, t)} tone={isShortfall ? 'bad' : undefined} /><MetricCard icon="🏦" label={t('money.fundingNeeded')} value={formatCurrency(fundingGap, t)} /><MetricCard icon="📈" label={t('money.margin')} value={formatPercent(financial?.profit_margin_percent) || t('common.notAvailable')} /><MetricCard icon="🛡️" label={t('money.risk')} value={riskText(riskLevel, t)} /></section>
     <ReportSection icon="👤" title={t('rp.profile')}><div className="ui-simple-grid mt-5"><InfoItem label={t('rp.name')} value={profile.name} t={t} /><InfoItem label={t('location.state')} value={location.state} t={t} /><InfoItem label={t('location.district')} value={location.district} t={t} /><InfoItem label={t('common.language')} value={languageLabel} t={t} />{dialectLabel && <InfoItem label={t('common.dialect')} value={dialectLabel} t={t} />}<InfoItem label={t('rp.businessName')} value={business.businessName} t={t} /><InfoItem label={t('f.workType')} value={choiceText(businessAnalysis?.business_type || business.category, t)} t={t} /></div></ReportSection>
     <ReportSection icon="📍" title={t('an.marketHeading')}><div className="ui-simple-grid mt-5"><InfoItem label={t('rp.villageTown')} value={location.village} t={t} /><InfoItem label={t('rp.marketPlace')} value={choiceList(location.marketType, t)} t={t} /><InfoItem label={t('rp.customers')} value={location.customers} t={t} /><InfoItem label={t('rp.areaType')} value={choiceText(location.locationType, t)} t={t} /></div>{market.length > 0 ? <div className="mt-5 space-y-3">{market.map((row, index) => <MarketRow key={index} row={row} t={t} bt={bt} />)}</div> : <p className="mt-5 text-sm leading-6 text-[var(--color-text-muted)]">{t('mk.noData')}</p>}</ReportSection>
-    <ReportSection icon="💵" title={t('rp.moneySummary')}><div className="ui-simple-grid mt-5"><InfoItem label={t('f.investment')} value={formatCurrency(business.initialInvestment, t)} t={t} /><InfoItem label={t('f.haveMoney')} value={formatCurrency(finance.availableCapital, t)} t={t} /><InfoItem label={t('rp.gap')} value={formatCurrency(fundingGap, t)} t={t} /><InfoItem label={t('f.sales')} value={formatCurrency(business.monthlyRevenue, t)} t={t} /><InfoItem label={t('f.spending')} value={formatCurrency(finance.monthlyExpenses, t)} t={t} /><InfoItem label={t('f.profit')} value={formatCurrency(financial?.monthly_profit, t)} t={t} /></div>
+    {/* Every figure here reads the response first and the form only as a fallback, the same rule the funding gap
+        above already follows. These four used to read the form outright, so the money-summary grid and the charts
+        directly below it drew the same label from two different sources: nothing guards journey order, so a judge
+        asking "what if expenses were 30,000?" could edit /finance, come back through the nav without re-submitting,
+        and read "Money going out each month ₹30,000" in the grid above "Money going out each month ₹15,000" in the
+        chart. Editing an answer now clears the result outright (see AppContext), so this is the second line of
+        defence rather than the only one — but a label must not be able to carry two numbers on one page.
+        f.emi and f.debt in the disclosure below stay client-only: the response does not echo them at all. */}
+    <ReportSection icon="💵" title={t('rp.moneySummary')}><div className="ui-simple-grid mt-5"><InfoItem label={t('f.investment')} value={formatCurrency(financial?.initial_investment ?? business.initialInvestment, t)} t={t} /><InfoItem label={t('f.haveMoney')} value={formatCurrency(financial?.available_capital ?? finance.availableCapital, t)} t={t} /><InfoItem label={t('rp.gap')} value={formatCurrency(fundingGap, t)} t={t} /><InfoItem label={t('f.sales')} value={formatCurrency(financial?.expected_monthly_revenue ?? business.monthlyRevenue, t)} t={t} /><InfoItem label={t('f.spending')} value={formatCurrency(financial?.monthly_expenses ?? finance.monthlyExpenses, t)} t={t} /><InfoItem label={t('f.profit')} value={formatCurrency(financial?.monthly_profit, t)} t={t} /></div>
       {hasNumber(financial?.expected_monthly_revenue) && flowItems.length > 0 && <div className="ui-card-soft mt-5 p-4 sm:p-5"><h3 className="font-bold text-[var(--color-text)]">{t('ch.inOut')}</h3><div className="mt-4"><BarGroup items={flowItems} caption={t('ch.inOutCaption')} /></div></div>}
       {hasNumber(financial?.initial_investment) && fundItems.length > 0 && <div className="ui-card-soft mt-4 p-4 sm:p-5"><h3 className="font-bold text-[var(--color-text)]">{t('ch.fundTitle')}</h3><div className="mt-4"><BarGroup items={fundItems} caption={t('ch.fundCaption')} /></div></div>}
       <details className="ui-disclosure mt-5"><summary>{t('rp.detailedFigures')}</summary><div className="ui-disclosure-body ui-simple-grid"><InfoItem label={t('f.margin')} value={formatPercent(financial?.profit_margin_percent)} t={t} /><InfoItem label={t('f.yearReturn')} value={formatPercent(businessAnalysis?.estimated_roi_percent)} t={t} /><InfoItem label={t('f.emi')} value={formatCurrency(finance.monthlyEmi, t)} t={t} /><InfoItem label={t('f.debt')} value={formatCurrency(business.existingDebt, t)} t={t} /><InfoItem label={t('f.emiPressure')} value={formatPercent(risk?.pressure_ratio_percent)} t={t} /></div></details></ReportSection>
@@ -72,7 +85,8 @@ function ReportPage() {
 }
 
 function ReportSection({ icon, title, children }) { return <section className="ui-card mt-6 sm:p-8"><div className="flex min-w-0 items-center gap-3"><div className="ui-feature-icon shrink-0" aria-hidden="true">{icon}</div><h2 className="text-xl font-bold text-[var(--color-text)]">{title}</h2></div>{children}</section> }
-function MetricCard({ icon, label, value }) { return <article className="ui-card"><div className="text-2xl" aria-hidden="true">{icon}</div><p className="mt-3 text-sm text-[var(--color-text-muted)]">{label}</p><p className="mt-1 text-xl font-extrabold text-[var(--color-text)]">{value}</p></article> }
+// `tone` is optional and only 'bad' does anything: --color-danger, which the @media print token block resets to its light value so a shortfall prints red on white rather than in a dark-mode colour.
+function MetricCard({ icon, label, value, tone }) { return <article className="ui-card"><div className="text-2xl" aria-hidden="true">{icon}</div><p className="mt-3 text-sm text-[var(--color-text-muted)]">{label}</p><p className={`mt-1 text-xl font-extrabold ${tone === 'bad' ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}>{value}</p></article> }
 function InfoItem({ label, value, t }) { return <div className="ui-card-soft p-4"><p className="text-sm text-[var(--color-text-muted)]">{label}</p><p className="mt-1 font-bold text-[var(--color-text)]">{statusText(value, t)}</p></div> }
 // match_level says whether the row is the entrepreneur's own district or a same-state fallback, and the report must not blur the two.
 function MarketRow({ row, t, bt }) { return <div className="ui-card-soft p-4"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold text-[var(--color-text)]">{choiceText(row.business_category, t)} · {statusText(row.district, t)}</h3>{row.demand_indicator && <span className="rounded-full bg-[var(--color-accent)] px-3 py-1 text-sm font-bold text-[var(--color-text)]">{demandText(row.demand_indicator, t)}</span>}</div><p className="mt-2 text-sm text-[var(--color-text-muted)]">{t('mk.price')}: <span className="font-bold text-[var(--color-text)]">{formatCurrency(row.indicative_price, t)}</span></p>{row.seasonality && <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{bt.seasonality(row)}</p>}<p className="mt-2 text-xs leading-5 text-[var(--color-text-muted)]">{row.match_level === 'district' ? t('mk.fromDistrict', { district: statusText(row.district, t) }) : t('mk.fromState', { district: statusText(row.district, t) })} {row.source ? t('mk.source', { source: bt.marketSource(row) }) : ''} {row.last_verified ? t('mk.checked', { date: row.last_verified }) : ''}</p></div> }
@@ -80,7 +94,8 @@ function ActionItem({ number, text }) { return <div className="flex items-start 
 // Guard the raw value, not Number(value): the backend sends null for anything it could not
 // compute, and Number(null) is 0, which passes Number.isFinite and prints a confident '₹0'.
 function hasNumber(value) { return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) }
-function formatCurrency(value, t) { if (!hasNumber(value)) return t('common.notAvailable'); return '₹' + Number(value).toLocaleString('en-IN') }
+// Sign before the symbol — see the note in AnalysisPage. Byte-identical logic on all four pages that carry a copy.
+function formatCurrency(value, t) { if (!hasNumber(value)) return t('common.notAvailable'); const amount = Number(value); return (amount < 0 ? '-₹' : '₹') + Math.abs(amount).toLocaleString('en-IN') }
 // Backend enums stay English because they are load-bearing; they are turned into plain
 // language only at render, and an unknown value (a free-typed category) still prints.
 const STATUS_KEYS = {
@@ -99,8 +114,18 @@ function statusText(value, t) {
   if (value === notAvailable) return notAvailable
   const key = STATUS_KEYS[String(value).toLowerCase()]
   if (key) return t(key)
-  return String(value).replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  return titleCaseEnum(value)
 }
+// The title-caser exists for ONE case: a backend enum the map above does not
+// recognise, so it prints legibly instead of vanishing. Every such value is
+// snake_case, so gate on that shape — because InfoItem funnels the user's own
+// words through this same function, and title-casing those does visible damage.
+// "Meena's tailoring shop" came out "Meena'S Tailoring Shop" (\b matches after
+// the apostrophe), "Jammu and Kashmir" came out "Jammu And Kashmir", and a typed
+// customer description was rewritten word by word. Anything not enum-shaped is
+// printed as the person wrote it.
+const ENUM_SHAPED = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/
+function titleCaseEnum(value) { const text = String(value).trim(); return ENUM_SHAPED.test(text) ? text.replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : text }
 // The picker values (`rural`, `weekly`, `tailoring`) are English on purpose — they are what goes
 // to the backend and what the scheme matcher keys off. The report has to print the label the user
 // actually tapped, so it maps the value back to the same key the picker used; a free-typed "other"

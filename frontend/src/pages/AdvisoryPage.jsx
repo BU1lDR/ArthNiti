@@ -89,24 +89,27 @@ function AdvisoryPage() {
               value={statusText(feasibility, t)}
               description={businessDescription(feasibility, t)}
             />
+            {/* No heading above the coins, matching /analysis as of 8 Sept 2026
+                — `ch.coinTitle` ("Out of every 10 rupees you earn") read as a
+                sentence fragment that `ch.coinLabel` below it then completed, so
+                the two lines said one thing twice. UnitChart renders `label`
+                visibly and takes its accessible name from `ariaLabel`, so the
+                chart is still labelled without it. */}
             <AdvisoryCard
               icon="💰"
               title={t('ad.money')}
               value={statusText(financialStatus, t)}
               description={financialDescription(monthlyProfit, profitMargin, t)}
               chart={marginCoins === null ? null : (
-                <>
-                  <p className="text-sm font-bold text-[var(--color-text)]">{t('ch.coinTitle')}</p>
-                  <div className="mt-2">
-                    <UnitChart
-                      filled={marginCoins}
-                      total={10}
-                      icon="🪙"
-                      label={t('ch.coinLabel', { n: marginCoins })}
-                      ariaLabel={t('ch.coinLabel', { n: marginCoins })}
-                    />
-                  </div>
-                </>
+                <div className="mt-2">
+                  <UnitChart
+                    filled={marginCoins}
+                    total={10}
+                    icon="🪙"
+                    label={t('ch.coinLabel', { n: marginCoins })}
+                    ariaLabel={t('ch.coinLabel', { n: marginCoins })}
+                  />
+                </div>
               )}
             />
             <AdvisoryCard
@@ -262,14 +265,22 @@ function DetailBlock({ title, children }) {
 // The advice sentences. These are our own copy, not backend prose, so every
 // branch resolves to a key and the numbers are composed into the templates
 // rather than concatenated into an English sentence.
+// feasibility_status has THREE documented values, and break_even used to fall
+// through to the unknown arm — so a business the backend had analysed perfectly
+// well was told "we do not have enough information for a clear answer". It is
+// also the most common shape for a real micro-enterprise and the one where advice
+// is worth the most, since it is a few hundred rupees either side of a profit.
+// The unknown arm is now reserved for a value we genuinely do not recognise.
 function businessRecommendation(feasibility, t) {
   if (feasibility === 'feasible') return t('ad.feasibleTitle')
+  if (feasibility === 'break_even') return t('ad.breakEvenTitle')
   if (feasibility === 'not_feasible') return t('ad.notFeasibleTitle')
   return t('ad.unknownTitle')
 }
 
 function businessDescription(feasibility, t) {
   if (feasibility === 'feasible') return t('ad.feasibleDesc')
+  if (feasibility === 'break_even') return t('ad.breakEvenDesc')
   if (feasibility === 'not_feasible') return t('ad.notFeasibleDesc')
   return t('ad.unknownDesc')
 }
@@ -315,7 +326,18 @@ function statusText(value, t) {
   if (value === undefined || value === null || String(value).trim() === '') return t('common.notAvailable')
   const key = STATUS_KEYS[String(value).toLowerCase()]
   if (key) return t(key)
-  return String(value).replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  return titleCaseEnum(value)
+}
+
+// Only an enum-shaped value gets title-cased — see the longer note in
+// AnalysisPage. Kept byte-identical across the three pages so the same value
+// cannot print two ways on two screens.
+const ENUM_SHAPED = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/
+
+function titleCaseEnum(value) {
+  const text = String(value).trim()
+  if (!ENUM_SHAPED.test(text)) return text
+  return text.replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 const RISK_KEYS = { low: 'risk.low', moderate: 'risk.moderate', high: 'risk.high' }
@@ -329,7 +351,10 @@ function riskText(value, t) {
 // the digits stay Latin even when the interface is Tamil or Telugu.
 function formatCurrency(value, t) {
   if (!hasNumber(value)) return t('common.notAvailable')
-  return '₹' + Number(value).toLocaleString('en-IN')
+  // Sign before the symbol — see the note in AnalysisPage. Byte-identical there,
+  // on /report and on /finance, so one amount cannot print two ways.
+  const amount = Number(value)
+  return (amount < 0 ? '-₹' : '₹') + Math.abs(amount).toLocaleString('en-IN')
 }
 
 function formatPercent(value, t) {

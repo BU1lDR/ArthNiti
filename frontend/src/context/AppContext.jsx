@@ -49,6 +49,51 @@ const EMPTY = {
   result: null,
 }
 
+// Has the reader entered anything worth clearing?
+//
+// Derived from EMPTY rather than from a hand-listed set of fields, and it lives
+// here rather than in the button because this is the file that knows the shape.
+// StartOverButton used to test 6 of the 16 answers, so someone who had typed
+// their expected monthly revenue and nothing else — a perfectly ordinary way to
+// start — had their figures sitting in sessionStorage with no control anywhere in
+// the app to clear them short of closing the tab. On a shared demo laptop that is
+// the whole reason the storage is per-session in the first place.
+//
+// Note the defaults that are not blank: locationType 'rural', language 'Hindi',
+// literacyLevel 'low', employees 0. That is why this is a difference from EMPTY
+// and not a truthiness test — half these fields are truthy before anyone types.
+export function isStarted(data) {
+  if (!data) return false
+  if (data.result) return true
+
+  return ['profile', 'business', 'location', 'finance'].some((section) =>
+    Object.keys(EMPTY[section]).some((field) => {
+      const value = data[section]?.[field]
+      const blank = EMPTY[section][field]
+      // marketType is the one list, and [] !== [] for every pair of arrays.
+      if (Array.isArray(blank)) return Array.isArray(value) && value.length > 0
+      return value !== undefined && value !== blank
+    }),
+  )
+}
+
+// Which sections the analysis is actually computed from, and therefore which
+// ones invalidate a result already on screen.
+//
+// A stale result is worse than no result. Nothing guards the journey order — the
+// nav bar links straight to any page — so someone who has seen /analysis can go
+// back to /business, change Tailoring to Retail, then click "Schemes" and read
+// the tailoring schemes as though they had matched retail. Every figure and every
+// card is internally consistent, which is exactly why nothing on the page gives
+// it away.
+//
+// `profile` is deliberately absent. Name, language, dialect and literacy level
+// are echoed back by the backend rather than computed from, so changing one
+// cannot make a number wrong — and clearing on them would mean that switching
+// language on /profile silently threw the results away, which is the single
+// thing this demo does on purpose.
+const ANSWER_SECTIONS = new Set(['business', 'location', 'finance'])
+
 // Merge over the defaults section by section rather than trusting the stored
 // object wholesale. A field added after a payload was written would otherwise
 // arrive as `undefined`, and React silently turns a controlled input with an
@@ -110,13 +155,23 @@ export function AppProvider({ children }) {
   }, [applicationData])
 
   const updateSection = (section, data) => {
-    setApplicationData((current) => ({
-      ...current,
-      [section]: {
-        ...current[section],
-        ...data,
-      },
-    }))
+    setApplicationData((current) => {
+      // Nothing actually moved. Returning the same object skips the re-render
+      // and the sessionStorage write, and — the reason this check is here rather
+      // than being an optimisation — it stops an idempotent call from discarding
+      // a result that is still perfectly valid.
+      const changed = Object.keys(data).some((key) => current[section][key] !== data[key])
+      if (!changed) return current
+
+      return {
+        ...current,
+        [section]: {
+          ...current[section],
+          ...data,
+        },
+        result: ANSWER_SECTIONS.has(section) ? null : current.result,
+      }
+    })
   }
 
   const setResult = (result) => {

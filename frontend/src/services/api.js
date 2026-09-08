@@ -25,15 +25,26 @@ const ERROR_CODES = {
 // error reads as something the user can act on instead of Pydantic's wording.
 // `key` is what the page renders; `en` is the fallback baked into the thrown
 // message so a bare `error.message` is still a readable English sentence.
+//
+// Each phrase deliberately echoes the wording of the question that collects the
+// field, because the reader's next action is to walk back through the steps and
+// find it. "the money you already have" is findable on /finance; "available
+// capital" is not on the page at all.
 const FIELD_LABELS = {
-  business_category: { key: 'errf.category', en: 'the kind of business' },
+  business_category: { key: 'errf.category', en: 'the kind of work you do' },
   state: { key: 'errf.state', en: 'your state' },
   available_capital: { key: 'errf.capital', en: 'the money you already have' },
   monthly_expenses: { key: 'errf.expenses', en: 'how much you spend each month' },
-  expected_monthly_revenue: { key: 'errf.revenue', en: 'your expected monthly income' },
-  monthly_emi: { key: 'errf.emi', en: 'your monthly EMI' },
-  initial_investment: { key: 'errf.investment', en: 'the money you will invest' },
-  monthly_operating_expenses: { key: 'errf.opExpenses', en: 'your monthly business expenses' },
+  expected_monthly_revenue: {
+    key: 'errf.revenue',
+    en: 'the money you expect to earn each month',
+  },
+  monthly_emi: { key: 'errf.emi', en: 'your monthly EMI or loan payment' },
+  initial_investment: { key: 'errf.investment', en: 'how much money you require' },
+  monthly_operating_expenses: {
+    key: 'errf.opExpenses',
+    en: 'how much the business itself will cost each month',
+  },
 }
 
 // One place that builds the thrown Error, so no call site can forget the code.
@@ -131,7 +142,7 @@ function readError(data) {
     if (fields.length) {
       return analysisError(
         ERROR_CODES.validation,
-        `Please check ${fields.map((field) => field.en).join(', ')}. Go back, fill in the missing details, then try again.`,
+        `Please check ${fields.map((field) => field.en).join(', ')}. Go back and fill in what is missing, then try again.`,
         fields,
       )
     }

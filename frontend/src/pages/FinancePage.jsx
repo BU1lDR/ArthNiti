@@ -14,9 +14,13 @@ const fieldClass = 'mt-2 w-full rounded-xl border border-[var(--color-border)] b
 // this codebase has shipped before. One text utility per tone: two competing
 // text-* classes would land in the same cascade layer and be resolved by
 // generated-stylesheet order, not by the class attribute.
+// `neutral` is the body-text colour, and it exists because a shortfall to raise
+// is neither. --color-accent is the app's warning amber and is unusable as text
+// on a pale surface, so the honest third option is no colour claim at all.
 const TONE_CLASS = {
   good: 'text-[var(--color-primary-strong)]',
   bad: 'text-[var(--color-danger)]',
+  neutral: 'text-[var(--color-text)]',
   muted: 'text-[var(--color-text-muted)]',
 }
 
@@ -32,7 +36,12 @@ function FinancePage() {
   const { t, apiLanguage, apiDialect } = useI18n()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  // The whole Error, not a finished sentence. api.js throws a translation code
+  // plus the fields it names, and the banner is resolved at render time — so a
+  // reader who switches language with the banner already on screen sees it
+  // change with everything else instead of being left with the sentence that
+  // happened to be current when the request failed.
+  const [error, setError] = useState(null)
 
   const finance = applicationData.finance
   const business = applicationData.business
@@ -50,7 +59,14 @@ function FinancePage() {
   const investment = Number(business.initialInvestment) || 0
   const monthlyRevenue = Number(business.monthlyRevenue) || 0
   const fundingGap = Math.max(investment - availableCapital, 0)
-  const monthlySurplus = Math.max(monthlyRevenue - monthlyExpenses - monthlyEmi, 0)
+  // NOT clamped at zero, unlike the funding gap above. The two look symmetrical
+  // and are not: a clamped gap reads as "you need nothing more", which is true
+  // when you have surplus capital, so clamping loses nothing. A clamped
+  // shortfall reads as "nothing left over", which is a different and much
+  // better month than "you are ₹5,000 short every month" — and it is the
+  // favourable misreading, on the figure the whole page is about. /analysis
+  // prints the backend's negative monthly_profit as-is for the same reason.
+  const monthlySurplus = monthlyRevenue - monthlyExpenses - monthlyEmi
 
   // What the user has actually told us, as opposed to what `|| 0` above coerced
   // an empty field into. The coercion is right for the payload — the backend
@@ -71,9 +87,12 @@ function FinancePage() {
   const knowsGap = knowsInvestment && hasNumber(finance.availableCapital)
   const knowsSurplus = knowsRevenue && hasNumber(finance.monthlyExpenses)
 
-  // Clamped at zero, so 'bad' has to fire on the boundary: nothing left is not a
-  // good month. The bar and the card below it read the same flag, so the chart
-  // cannot show red while the card three lines down shows green.
+  // Strictly greater than zero, so 'bad' fires on the boundary as well as below
+  // it: nothing left is not a good month either. The bar and the card below it
+  // read the same flag, so the chart cannot show red while the card three lines
+  // down shows green. BarGroup gives a negative value no bar at all and colours
+  // the figure instead, so an empty track beside a red −₹5,000 is the shortfall
+  // rendering — deliberately not a long bar that reads as "plenty".
   const surplusIsHealthy = knowsSurplus && monthlySurplus > 0
   // An unknown must not be alarming either, so the warning mark is reserved for a
   // surplus we have actually worked out and found to be nothing.
@@ -89,7 +108,7 @@ function FinancePage() {
   const handleContinue = async (event) => {
     event.preventDefault()
     setLoading(true)
-    setError('')
+    setError(null)
 
     const payload = {
       business_category: businessCategory,
@@ -119,13 +138,36 @@ function FinancePage() {
       setResult(result)
       navigate('/analysis')
     } catch (err) {
-      setError(err.message || 'Unable to connect to the analysis service. Please try again.')
+      setError(err)
     } finally {
       setLoading(false)
     }
   }
 
-  const rupees = (value) => `₹${value.toLocaleString('en-IN')}`
+  // Sign before the symbol — see the note in AnalysisPage's formatCurrency. This
+  // page needs it as much as that one: the monthly surplus preview below is no
+  // longer clamped at zero, so it prints a real shortfall.
+  const rupees = (value) => `${value < 0 ? '-₹' : '₹'}${Math.abs(value).toLocaleString('en-IN')}`
+
+  // Opposite fallback contract to t(), and the same one tBackend() uses: never
+  // print a dotted code here. There is always a real English sentence on the
+  // Error to fall back to, and the one path with no code at all — a hand-written
+  // `detail` string from the backend — has nothing else to show.
+  const errorText = (err) => {
+    if (!err.code) return err.message
+
+    if (!err.fields) return t(err.code)
+
+    // The field names are translated individually and rejoined, rather than the
+    // sentence being built from a translated stem plus English fragments. Same
+    // reason the scheme match reasons carry a `categories` list instead of a
+    // finished sentence.
+    const fields = err.fields
+      .map((field) => (field.key ? t(field.key) : field.en))
+      .join(', ')
+
+    return t(err.code, { fields })
+  }
 
   return (
     <section className="mx-auto max-w-4xl">
@@ -222,14 +264,20 @@ function FinancePage() {
         )}
 
         {/* Until a figure is known the card names the question that fills it,
-            rather than printing a number nobody has answered for. */}
+            rather than printing a number nobody has answered for.
+
+            The gap card's tone follows the figure, not merely whether we know
+            it. A ₹50,000 shortfall printed in the brand green sat directly above
+            the sentence "this is the amount you may need to arrange", so the
+            colour said "fine" while the words said "raise this". Green is kept
+            for the zero-gap case, the only one that is actually good news. */}
         <div className="grid gap-4 sm:grid-cols-2">
           <SummaryCard
             icon="📌"
             title={t('money.needed')}
             value={knowsGap ? rupees(fundingGap) : t('common.notAvailable')}
             description={knowsGap ? (fundingGap > 0 ? t('money.needArrange') : t('money.enough')) : t('finance.capital')}
-            tone={knowsGap ? 'good' : 'muted'}
+            tone={knowsGap ? (fundingGap > 0 ? 'neutral' : 'good') : 'muted'}
           />
           <SummaryCard
             icon={surplusIcon}
@@ -240,7 +288,7 @@ function FinancePage() {
           />
         </div>
 
-        {error && <div role="alert" className="ui-notice ui-notice-danger font-semibold text-[var(--color-danger)]">{error}</div>}
+        {error && <div role="alert" className="ui-notice ui-notice-danger font-semibold text-[var(--color-danger)]">{errorText(error)}</div>}
 
         {/* The arrow is decoration. Concatenated into the label it became part of
             the button's accessible name, which a screen reader reads out as
@@ -254,12 +302,17 @@ function FinancePage() {
   )
 }
 
+// ui-field, not block: each of these shares a grid row with a preview card that
+// stretches to the row's full height, so without it the box floats above the card's
+// bottom edge with dead space beneath it. See index.css.
 function InputField({ label, name, value, onChange, placeholder, hint, required = false }) {
   return (
-    <label className="block">
+    <label className="ui-field">
       <span className="font-extrabold">
         {label}
-        {required && <> <span className="ui-required" aria-hidden="true">*</span></>}
+        {/* No space before the asterisk — it would be a place to break the line, and
+            the marker would end up alone under a question that wrapped. */}
+        {required && <span className="ui-required" aria-hidden="true">*</span>}
       </span>
       {hint && <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{hint}</span>}
       <input name={name} value={value} onChange={onChange} type="number" min="0" placeholder={placeholder} required={required} className={fieldClass} />
