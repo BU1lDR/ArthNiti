@@ -64,7 +64,6 @@ const en = {
   'common.decreaseText': 'Smaller text',
   'common.normalText': 'Normal text',
   'common.increaseText': 'Larger text',
-  'common.highContrast': 'High contrast',
   'common.darkMode': 'Dark mode',
   'common.lightMode': 'Light mode',
   'common.skipToMain': 'Skip to main content',
@@ -138,7 +137,7 @@ const en = {
   'man.needTitle': 'What you should have ready',
   'man.needText': 'Rough numbers are fine. Think of what you spend in a month, what you expect to earn, and any loan you are repaying. Nothing is saved after you close this tab.',
   'man.tipTitle': 'If reading is hard',
-  'man.tipText': 'Change the language above, make the text bigger with A+ at the top of the page, or turn on high contrast. Every screen has pictures and a back link.',
+  'man.tipText': 'Change the language above, make the text bigger with A+ at the top of the page, or switch to the dark look. Every screen has pictures and a back link.',
 
   'profile.eyebrow': 'Let us get to know you',
   'profile.title': 'Tell us about yourself',
@@ -215,9 +214,11 @@ const en = {
   // then divided BY that figure to get the repayment pressure and so must not
   // already be taken out of it. Both are worth showing; they need separate names.
   'money.leftAfterEmi': 'Money left after the loan payment',
+  'money.shortfall': 'Money short each month',
   'money.needed': 'Money still needed',
   'money.needArrange': 'This is the amount you may need to arrange.',
   'money.enough': 'You have enough of your planned investment.',
+  'money.noneNeeded': 'You are not putting in new money, so nothing needs arranging.',
   'money.afterExpenses': 'Estimated after expenses and EMI.',
   'money.margin': 'Profit margin',
   'money.risk': 'Risk',
@@ -249,6 +250,37 @@ const en = {
   'area.rural': 'Village / Rural',
   'area.semi': 'Semi-Urban',
   'area.urban': 'City / Urban',
+
+  // The error banner on /finance. services/api.js throws one of these codes
+  // rather than a finished sentence, so the banner is the reader's own language
+  // like everything else — it used to be the one place in the app that printed
+  // English regardless, and it is the sentence a reader is most likely to meet,
+  // since a backend that is not running is the commonest failure on a laptop.
+  //
+  // err.checkFields takes the field names as a single {fields} placeholder,
+  // already translated and joined, so no sentence is assembled from a
+  // translated stem plus English fragments. It also carries no plural
+  // agreement: "fill in what is missing" reads correctly whether one field is
+  // named or three, which matters far more in the Indic languages than in
+  // English.
+  'err.timeout': 'This is taking longer than usual. Please try again.',
+  'err.offline': 'We could not reach our service. Please check your internet connection and try again.',
+  'err.badResponse': 'We received a reply we could not read. Please try again.',
+  'err.checkFields': 'Please check {fields}. Go back and fill in what is missing, then try again.',
+  'err.generic': 'We could not check your business right now. Please try again.',
+
+  // Noun phrases naming a field the reader has to go back and fill in. Each one
+  // echoes the wording of the question that collects it, because their next
+  // action is to hunt for it: "the money you already have" is findable on
+  // /finance, "available capital" appears nowhere on the page.
+  'errf.category': 'the kind of work you do',
+  'errf.state': 'your state',
+  'errf.capital': 'the money you already have',
+  'errf.expenses': 'how much you spend each month',
+  'errf.revenue': 'the money you expect to earn each month',
+  'errf.emi': 'your monthly EMI or loan payment',
+  'errf.investment': 'how much money you require',
+  'errf.opExpenses': 'how much the business itself will cost each month',
 }
 
 const hi = {
@@ -269,7 +301,6 @@ const hi = {
   'common.decreaseText': 'छोटे अक्षर',
   'common.normalText': 'सामान्य अक्षर',
   'common.increaseText': 'बड़े अक्षर',
-  'common.highContrast': 'ज़्यादा स्पष्ट रंग',
   'common.darkMode': 'गहरा रंग',
   'common.lightMode': 'हल्का रंग',
   'common.skipToMain': 'मुख्य सामग्री पर जाएँ',
@@ -337,7 +368,7 @@ const hi = {
   'man.needTitle': 'क्या तैयार रखें',
   'man.needText': 'अंदाज़े के आँकड़े भी ठीक हैं। सोचिए महीने में कितना खर्च होता है, कितनी कमाई की उम्मीद है, और कोई किस्त चल रही है। यह टैब बंद करने पर कुछ भी सहेजा नहीं जाता।',
   'man.tipTitle': 'पढ़ने में दिक्कत हो तो',
-  'man.tipText': 'ऊपर भाषा बदल लें, पन्ने के ऊपर A+ से अक्षर बड़े करें, या ज़्यादा कंट्रास्ट चालू करें। हर पन्ने पर तस्वीरें और पीछे जाने की कड़ी है।',
+  'man.tipText': 'ऊपर भाषा बदल लें, पन्ने के ऊपर A+ से अक्षर बड़े करें, या गहरे रंग में बदल लें। हर पन्ने पर तस्वीरें और पीछे जाने की कड़ी है।',
 
   'profile.eyebrow': 'आइए आपको जानें',
   'profile.title': 'अपने बारे में बताइए',
@@ -408,9 +439,11 @@ const hi = {
 
   'money.left': 'हर महीने बचने वाला पैसा',
   'money.leftAfterEmi': 'क़र्ज़ की किस्त चुकाने के बाद बचने वाला पैसा',
+  'money.shortfall': 'हर महीने पड़ने वाली कमी',
   'money.needed': 'अभी और चाहिए',
   'money.needArrange': 'इतना पैसा आपको जुटाना पड़ सकता है।',
   'money.enough': 'आपके नियोजित निवेश के लिए पैसा पूरा है।',
+  'money.noneNeeded': 'आप नया पैसा नहीं लगा रहे, इसलिए कुछ जुटाने की ज़रूरत नहीं।',
   'money.afterExpenses': 'खर्च और EMI के बाद का अंदाज़ा।',
   'money.margin': 'मुनाफ़े का प्रतिशत',
   'money.risk': 'जोखिम',
@@ -439,6 +472,23 @@ const hi = {
   'area.rural': 'गाँव / ग्रामीण',
   'area.semi': 'अर्ध-शहरी',
   'area.urban': 'शहर / शहरी',
+
+  // See the note in the en dict. err.checkFields must keep its single
+  // {fields} placeholder and must not acquire number agreement.
+  'err.timeout': 'इसमें उम्मीद से ज़्यादा समय लग रहा है। कृपया दोबारा कोशिश करें।',
+  'err.offline': 'हम अपनी सेवा से जुड़ नहीं पाए। कृपया अपना इंटरनेट कनेक्शन जाँच लें और दोबारा कोशिश करें।',
+  'err.badResponse': 'जवाब तो आया, लेकिन हम उसे पढ़ नहीं पाए। कृपया दोबारा कोशिश करें।',
+  'err.checkFields': 'कृपया {fields} को जाँच लें। पीछे जाकर जो कुछ छूट गया है उसे भर दें, फिर दोबारा कोशिश करें।',
+  'err.generic': 'हम अभी आपका काम जाँच नहीं पाए। कृपया दोबारा कोशिश करें।',
+
+  'errf.category': 'अपने काम की किस्म',
+  'errf.state': 'अपने राज्य',
+  'errf.capital': 'अपने पास पहले से मौजूद पैसे',
+  'errf.expenses': 'अपने हर महीने के खर्च',
+  'errf.revenue': 'हर महीने की उम्मीद की कमाई',
+  'errf.emi': 'हर महीने की EMI या क़र्ज़ की किस्त',
+  'errf.investment': 'शुरू करने के लिए ज़रूरी पैसे',
+  'errf.opExpenses': 'हर महीने काम पर होने वाले खर्च',
 }
 
 const ta = {
@@ -459,7 +509,6 @@ const ta = {
   'common.decreaseText': 'சிறிய எழுத்து',
   'common.normalText': 'சாதாரண எழுத்து',
   'common.increaseText': 'பெரிய எழுத்து',
-  'common.highContrast': 'தெளிவான நிறம்',
   'common.darkMode': 'இருண்ட தோற்றம்',
   'common.lightMode': 'வெளிர் தோற்றம்',
   'common.skipToMain': 'முக்கிய பகுதிக்குச் செல்',
@@ -527,7 +576,7 @@ const ta = {
   'man.needTitle': 'என்ன தயாராக வைத்திருக்க வேண்டும்',
   'man.needText': 'தோராயமான எண்கள் போதும். மாதம் எவ்வளவு செலவாகிறது, எவ்வளவு வரும் என எதிர்பார்க்கிறீர்கள், ஏதேனும் தவணை கட்டுகிறீர்களா என்று நினைத்துப் பாருங்கள். இந்தத் தாவலை மூடியதும் எதுவும் சேமிக்கப்படுவதில்லை.',
   'man.tipTitle': 'படிக்கக் கடினமாக இருந்தால்',
-  'man.tipText': 'மேலே மொழியை மாற்றுங்கள், பக்கத்தின் மேலுள்ள A+ ஆல் எழுத்தைப் பெரிதாக்குங்கள், அல்லது அதிக மாறுபாட்டை இயக்குங்கள். எல்லாத் திரையிலும் படங்களும் பின்செல்லும் இணைப்பும் உள்ளன.',
+  'man.tipText': 'மேலே மொழியை மாற்றுங்கள், பக்கத்தின் மேலுள்ள A+ ஆல் எழுத்தைப் பெரிதாக்குங்கள், அல்லது இருண்ட தோற்றத்திற்கு மாறுங்கள். எல்லாத் திரையிலும் படங்களும் பின்செல்லும் இணைப்பும் உள்ளன.',
 
   'profile.eyebrow': 'உங்களை அறிந்துகொள்வோம்',
   'profile.title': 'உங்களைப் பற்றிச் சொல்லுங்கள்',
@@ -601,9 +650,11 @@ const ta = {
   // one on the metric card and one on the bar, and disagreed before this.
   'money.left': 'மாதம் மிச்சமாகும் பணம்',
   'money.leftAfterEmi': 'கடன் தவணை கட்டிய பிறகு மிச்சமாகும் பணம்',
+  'money.shortfall': 'மாதம் ஏற்படும் பணப் பற்றாக்குறை',
   'money.needed': 'இன்னும் தேவையான பணம்',
   'money.needArrange': 'இந்தத் தொகையை நீங்கள் ஏற்பாடு செய்ய வேண்டியிருக்கும்.',
   'money.enough': 'உங்கள் திட்டமிட்ட முதலீட்டுக்குப் பணம் போதுமானது.',
+  'money.noneNeeded': 'நீங்கள் புதிதாகப் பணம் போடவில்லை, எனவே எதையும் திரட்ட வேண்டியதில்லை.',
   'money.afterExpenses': 'செலவு மற்றும் EMI கழித்த மதிப்பு.',
   'money.margin': 'லாப விழுக்காடு',
   'money.risk': 'இடர்',
@@ -632,6 +683,23 @@ const ta = {
   'area.rural': 'ஊர் / கிராமம்',
   'area.semi': 'அரை நகரம்',
   'area.urban': 'நகரம்',
+
+  // See the note in the en dict. err.checkFields must keep its single
+  // {fields} placeholder and must not acquire number agreement.
+  'err.timeout': 'இதற்கு வழக்கத்தை விட அதிக நேரம் ஆகிறது. மீண்டும் முயற்சி செய்யுங்கள்.',
+  'err.offline': 'எங்கள் சேவையுடன் தொடர்பு கிடைக்கவில்லை. உங்கள் இணைய இணைப்பு உள்ளதா என்று பாருங்கள், பிறகு மீண்டும் முயற்சி செய்யுங்கள்.',
+  'err.badResponse': 'எங்களுக்கு வந்த பதில் சரியாகப் புரியவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.',
+  'err.checkFields': '{fields} சரியாக இருக்கிறதா என்று பாருங்கள். திரும்பிச் சென்று விட்டுப்போனதை நிரப்பி, பிறகு மீண்டும் முயற்சி செய்யுங்கள்.',
+  'err.generic': 'இப்போது உங்கள் தொழிலை எங்களால் சரிபார்க்க முடியவில்லை. மீண்டும் முயற்சி செய்யுங்கள்.',
+
+  'errf.category': 'நீங்கள் செய்யும் வேலை',
+  'errf.state': 'உங்கள் மாநிலம்',
+  'errf.capital': 'உங்களிடம் ஏற்கனவே உள்ள பணம்',
+  'errf.expenses': 'மாதம் நீங்கள் செய்யும் செலவு',
+  'errf.revenue': 'மாதம் நீங்கள் எதிர்பார்க்கும் வருமானம்',
+  'errf.emi': 'உங்கள் மாதத் EMI அல்லது கடன் தவணை',
+  'errf.investment': 'உங்களுக்குத் தேவையான பணம்',
+  'errf.opExpenses': 'மாதம் தொழிலுக்கே ஆகும் செலவு',
 }
 
 const te = {
@@ -652,7 +720,6 @@ const te = {
   'common.decreaseText': 'చిన్న అక్షరాలు',
   'common.normalText': 'సాధారణ అక్షరాలు',
   'common.increaseText': 'పెద్ద అక్షరాలు',
-  'common.highContrast': 'స్పష్టమైన రంగులు',
   'common.darkMode': 'ముదురు రూపం',
   'common.lightMode': 'లేత రూపం',
   'common.skipToMain': 'ముఖ్య భాగానికి వెళ్లు',
@@ -720,7 +787,7 @@ const te = {
   'man.needTitle': 'ఏమి సిద్ధంగా ఉంచుకోవాలి',
   'man.needText': 'సుమారు లెక్కలు చాలు. నెలకు ఎంత ఖర్చవుతుంది, ఎంత రావచ్చు, ఏదైనా వాయిదా కడుతున్నారా అని ఆలోచించండి. ఈ ట్యాబ్ మూసిన తర్వాత ఏదీ నిల్వ ఉండదు.',
   'man.tipTitle': 'చదవడం కష్టమైతే',
-  'man.tipText': 'పైన భాష మార్చుకోండి, పేజీ పైన ఉన్న A+ తో అక్షరాలు పెద్దవి చేసుకోండి, లేదా ఎక్కువ కాంట్రాస్ట్ ఆన్ చేయండి. ప్రతి తెరలో బొమ్మలు, వెనక్కి వెళ్లే లింక్ ఉన్నాయి.',
+  'man.tipText': 'పైన భాష మార్చుకోండి, పేజీ పైన ఉన్న A+ తో అక్షరాలు పెద్దవి చేసుకోండి, లేదా ముదురు రూపానికి మారండి. ప్రతి తెరలో బొమ్మలు, వెనక్కి వెళ్లే లింక్ ఉన్నాయి.',
 
   'profile.eyebrow': 'మీ గురించి తెలుసుకుందాం',
   'profile.title': 'మీ గురించి చెప్పండి',
@@ -791,9 +858,11 @@ const te = {
 
   'money.left': 'నెలకు మిగిలే డబ్బు',
   'money.leftAfterEmi': 'అప్పు వాయిదా కట్టిన తర్వాత మిగిలే డబ్బు',
+  'money.shortfall': 'నెలనెలా ఏర్పడే డబ్బు కొరత',
   'money.needed': 'ఇంకా కావలసిన డబ్బు',
   'money.needArrange': 'ఈ మొత్తాన్ని మీరు సమకూర్చుకోవాల్సి రావచ్చు.',
   'money.enough': 'మీ ప్రణాళిక పెట్టుబడికి డబ్బు సరిపోతుంది.',
+  'money.noneNeeded': 'మీరు కొత్తగా డబ్బు పెట్టడం లేదు, అందుకే ఏదీ సమకూర్చుకోవాల్సిన అవసరం లేదు.',
   'money.afterExpenses': 'ఖర్చులు, EMI తీసిన తర్వాత అంచనా.',
   'money.margin': 'లాభ శాతం',
   'money.risk': 'ప్రమాదం',
@@ -822,6 +891,23 @@ const te = {
   'area.rural': 'ఊరు / గ్రామీణం',
   'area.semi': 'సెమీ-అర్బన్',
   'area.urban': 'నగరం',
+
+  // See the note in the en dict. err.checkFields must keep its single
+  // {fields} placeholder and must not acquire number agreement.
+  'err.timeout': 'మామూలు కంటే ఎక్కువ సేపు పడుతోంది. మళ్లీ ప్రయత్నించండి.',
+  'err.offline': 'మా సేవకు కనెక్షన్ కుదరలేదు. మీ ఇంటర్నెట్ ఒకసారి చూసుకుని మళ్లీ ప్రయత్నించండి.',
+  'err.badResponse': 'వచ్చిన జవాబు మాకు అర్థం కాలేదు. మళ్లీ ప్రయత్నించండి.',
+  'err.checkFields': '{fields} ఒకసారి చూడండి. వెనక్కి వెళ్లి ఖాళీగా ఉన్నది నింపండి, తర్వాత మళ్లీ ప్రయత్నించండి.',
+  'err.generic': 'మీ వ్యాపారాన్ని ఇప్పుడు పరిశీలించలేకపోయాం. మళ్లీ ప్రయత్నించండి.',
+
+  'errf.category': 'మీరు చేసే పని రకం',
+  'errf.state': 'మీ రాష్ట్రం',
+  'errf.capital': 'మీ దగ్గర ఇప్పటికే ఉన్న డబ్బు',
+  'errf.expenses': 'నెలకు మీరు చేసే ఖర్చు',
+  'errf.revenue': 'నెలకు మీరు ఆశించే ఆదాయం',
+  'errf.emi': 'మీ నెల EMI / రుణ వాయిదా',
+  'errf.investment': 'మీకు అవసరమైన డబ్బు',
+  'errf.opExpenses': 'నెలకు వ్యాపారానికే అయ్యే ఖర్చు',
 }
 
 const ml = {
@@ -842,7 +928,6 @@ const ml = {
   'common.decreaseText': 'ചെറിയ അക്ഷരം',
   'common.normalText': 'സാധാരണ അക്ഷരം',
   'common.increaseText': 'വലിയ അക്ഷരം',
-  'common.highContrast': 'വ്യക്തമായ നിറങ്ങൾ',
   'common.darkMode': 'ഇരുണ്ട രൂപം',
   'common.lightMode': 'വെളുത്ത രൂപം',
   'common.skipToMain': 'പ്രധാന ഭാഗത്തേക്ക് പോകുക',
@@ -910,7 +995,7 @@ const ml = {
   'man.needTitle': 'എന്ത് തയ്യാറാക്കി വെക്കണം',
   'man.needText': 'ഏകദേശ കണക്കുകൾ മതി. മാസം എത്ര ചെലവാകുന്നു, എത്ര കിട്ടുമെന്ന് പ്രതീക്ഷിക്കുന്നു, തവണ അടയ്ക്കുന്നുണ്ടോ എന്ന് ആലോചിക്കുക. ഈ ടാബ് അടച്ചാൽ ഒന്നും സൂക്ഷിക്കപ്പെടുന്നില്ല.',
   'man.tipTitle': 'വായിക്കാൻ പ്രയാസമാണെങ്കിൽ',
-  'man.tipText': 'മുകളിൽ ഭാഷ മാറ്റുക, പേജിന്റെ മുകളിലുള്ള A+ ഉപയോഗിച്ച് അക്ഷരം വലുതാക്കുക, അല്ലെങ്കിൽ ഉയർന്ന കോൺട്രാസ്റ്റ് ഓണാക്കുക. എല്ലാ സ്ക്രീനിലും ചിത്രങ്ങളും തിരികെ പോകാനുള്ള ലിങ്കും ഉണ്ട്.',
+  'man.tipText': 'മുകളിൽ ഭാഷ മാറ്റുക, പേജിന്റെ മുകളിലുള്ള A+ ഉപയോഗിച്ച് അക്ഷരം വലുതാക്കുക, അല്ലെങ്കിൽ ഇരുണ്ട രൂപത്തിലേക്ക് മാറുക. എല്ലാ സ്ക്രീനിലും ചിത്രങ്ങളും തിരികെ പോകാനുള്ള ലിങ്കും ഉണ്ട്.',
 
   'profile.eyebrow': 'നിങ്ങളെ അറിയാം',
   'profile.title': 'നിങ്ങളെക്കുറിച്ച് പറയുക',
@@ -981,9 +1066,11 @@ const ml = {
 
   'money.left': 'മാസം ബാക്കിയാകുന്ന പണം',
   'money.leftAfterEmi': 'വായ്പ അടവ് കഴിഞ്ഞ് ബാക്കിയാകുന്ന പണം',
+  'money.shortfall': 'എല്ലാ മാസവും വരുന്ന പണക്കുറവ്',
   'money.needed': 'ഇനിയും വേണ്ട പണം',
   'money.needArrange': 'ഈ തുക നിങ്ങൾ കണ്ടെത്തേണ്ടി വരും.',
   'money.enough': 'നിങ്ങളുടെ നിക്ഷേപത്തിന് പണം മതിയാകും.',
+  'money.noneNeeded': 'നിങ്ങൾ പുതിയ പണം ഇടുന്നില്ല, അതിനാൽ ഒന്നും കണ്ടെത്തേണ്ട ആവശ്യമില്ല.',
   'money.afterExpenses': 'ചെലവും EMI യും കഴിഞ്ഞ കണക്ക്.',
   'money.margin': 'ലാഭ ശതമാനം',
   'money.risk': 'അപകടസാധ്യത',
@@ -1012,6 +1099,23 @@ const ml = {
   'area.rural': 'ഗ്രാമം',
   'area.semi': 'അർദ്ധ നഗരം',
   'area.urban': 'നഗരം',
+
+  // See the note in the en dict. err.checkFields must keep its single
+  // {fields} placeholder and must not acquire number agreement.
+  'err.timeout': 'ഇത് പതിവിലും കൂടുതൽ സമയം എടുക്കുന്നുണ്ട്. വീണ്ടും ശ്രമിക്കുക.',
+  'err.offline': 'ഞങ്ങളുടെ സേവനവുമായി ബന്ധപ്പെടാൻ കഴിഞ്ഞില്ല. നിങ്ങളുടെ ഇന്റർനെറ്റ് കണക്ഷൻ ഒന്ന് നോക്കി വീണ്ടും ശ്രമിക്കുക.',
+  'err.badResponse': 'ഞങ്ങൾക്ക് കിട്ടിയ മറുപടി മനസ്സിലാക്കാൻ കഴിഞ്ഞില്ല. വീണ്ടും ശ്രമിക്കുക.',
+  'err.checkFields': '{fields} ഒന്ന് നോക്കുക. പിന്നോട്ട് പോയി വിട്ടുപോയ ഉത്തരം നൽകി വീണ്ടും ശ്രമിക്കുക.',
+  'err.generic': 'നിങ്ങളുടെ സംരംഭം ഇപ്പോൾ പരിശോധിക്കാൻ കഴിഞ്ഞില്ല. വീണ്ടും ശ്രമിക്കുക.',
+
+  'errf.category': 'നിങ്ങൾ ചെയ്യുന്ന ജോലിയുടെ തരം',
+  'errf.state': 'നിങ്ങളുടെ സംസ്ഥാനം',
+  'errf.capital': 'നിങ്ങളുടെ കൈയിൽ ഇപ്പോഴുള്ള പണം',
+  'errf.expenses': 'മാസം നിങ്ങൾ ചെലവാക്കുന്ന തുക',
+  'errf.revenue': 'മാസം നിങ്ങൾ പ്രതീക്ഷിക്കുന്ന വരുമാനം',
+  'errf.emi': 'നിങ്ങളുടെ മാസ EMI അല്ലെങ്കിൽ വായ്പ തവണ',
+  'errf.investment': 'നിങ്ങൾക്ക് വേണ്ട പണം',
+  'errf.opExpenses': 'മാസം സംരംഭത്തിനു തന്നെ വരുന്ന ചെലവ്',
 }
 
 const kn = {
@@ -1032,7 +1136,6 @@ const kn = {
   'common.decreaseText': 'ಸಣ್ಣ ಅಕ್ಷರ',
   'common.normalText': 'ಸಾಮಾನ್ಯ ಅಕ್ಷರ',
   'common.increaseText': 'ದೊಡ್ಡ ಅಕ್ಷರ',
-  'common.highContrast': 'ಸ್ಪಷ್ಟ ಬಣ್ಣಗಳು',
   'common.darkMode': 'ಗಾಢ ನೋಟ',
   'common.lightMode': 'ತಿಳಿ ನೋಟ',
   'common.skipToMain': 'ಮುಖ್ಯ ಭಾಗಕ್ಕೆ ಹೋಗಿ',
@@ -1100,7 +1203,7 @@ const kn = {
   'man.needTitle': 'ಏನನ್ನು ಸಿದ್ಧವಾಗಿ ಇಟ್ಟುಕೊಳ್ಳಬೇಕು',
   'man.needText': 'ಸುಮಾರು ಲೆಕ್ಕ ಸಾಕು. ತಿಂಗಳಿಗೆ ಎಷ್ಟು ಖರ್ಚಾಗುತ್ತದೆ, ಎಷ್ಟು ಬರಬಹುದು, ಯಾವುದೇ ಕಂತು ಕಟ್ಟುತ್ತಿದ್ದೀರಾ ಎಂದು ಯೋಚಿಸಿ. ಈ ಟ್ಯಾಬ್ ಮುಚ್ಚಿದ ಮೇಲೆ ಏನೂ ಉಳಿಯುವುದಿಲ್ಲ.',
   'man.tipTitle': 'ಓದಲು ಕಷ್ಟವಾದರೆ',
-  'man.tipText': 'ಮೇಲೆ ಭಾಷೆ ಬದಲಿಸಿ, ಪುಟದ ಮೇಲಿನ A+ ಬಳಸಿ ಅಕ್ಷರ ದೊಡ್ಡದು ಮಾಡಿ, ಅಥವಾ ಹೆಚ್ಚಿನ ಕಾಂಟ್ರಾಸ್ಟ್ ಆನ್ ಮಾಡಿ. ಎಲ್ಲ ಪರದೆಯಲ್ಲೂ ಚಿತ್ರಗಳು ಮತ್ತು ಹಿಂದೆ ಹೋಗುವ ಕೊಂಡಿ ಇವೆ.',
+  'man.tipText': 'ಮೇಲೆ ಭಾಷೆ ಬದಲಿಸಿ, ಪುಟದ ಮೇಲಿನ A+ ಬಳಸಿ ಅಕ್ಷರ ದೊಡ್ಡದು ಮಾಡಿ, ಅಥವಾ ಗಾಢ ನೋಟಕ್ಕೆ ಬದಲಿಸಿ. ಎಲ್ಲ ಪರದೆಯಲ್ಲೂ ಚಿತ್ರಗಳು ಮತ್ತು ಹಿಂದೆ ಹೋಗುವ ಕೊಂಡಿ ಇವೆ.',
 
   'profile.eyebrow': 'ನಿಮ್ಮನ್ನು ತಿಳಿಯೋಣ',
   'profile.title': 'ನಿಮ್ಮ ಬಗ್ಗೆ ತಿಳಿಸಿ',
@@ -1171,9 +1274,11 @@ const kn = {
 
   'money.left': 'ತಿಂಗಳಿಗೆ ಉಳಿಯುವ ಹಣ',
   'money.leftAfterEmi': 'ಸಾಲದ ಕಂತು ಕಟ್ಟಿದ ನಂತರ ಉಳಿಯುವ ಹಣ',
+  'money.shortfall': 'ಪ್ರತಿ ತಿಂಗಳು ಉಂಟಾಗುವ ಹಣದ ಕೊರತೆ',
   'money.needed': 'ಇನ್ನೂ ಬೇಕಾದ ಹಣ',
   'money.needArrange': 'ಈ ಮೊತ್ತವನ್ನು ನೀವು ಹೊಂದಿಸಬೇಕಾಗಬಹುದು.',
   'money.enough': 'ನಿಮ್ಮ ಯೋಜಿತ ಬಂಡವಾಳಕ್ಕೆ ಹಣ ಸಾಕು.',
+  'money.noneNeeded': 'ನೀವು ಹೊಸ ಹಣ ಹಾಕುತ್ತಿಲ್ಲ, ಆದ್ದರಿಂದ ಏನನ್ನೂ ಹೊಂದಿಸಬೇಕಾಗಿಲ್ಲ.',
   'money.afterExpenses': 'ಖರ್ಚು ಮತ್ತು EMI ಕಳೆದ ಅಂದಾಜು.',
   'money.margin': 'ಲಾಭ ಶೇಕಡಾ',
   'money.risk': 'ಅಪಾಯ',
@@ -1202,6 +1307,23 @@ const kn = {
   'area.rural': 'ಹಳ್ಳಿ / ಗ್ರಾಮೀಣ',
   'area.semi': 'ಅರೆ ನಗರ',
   'area.urban': 'ನಗರ',
+
+  // See the note in the en dict. err.checkFields must keep its single
+  // {fields} placeholder and must not acquire number agreement.
+  'err.timeout': 'ಇದಕ್ಕೆ ಸಾಮಾನ್ಯಕ್ಕಿಂತ ಹೆಚ್ಚು ಸಮಯ ಆಗುತ್ತಿದೆ. ಮತ್ತೊಮ್ಮೆ ಪ್ರಯತ್ನಿಸಿ.',
+  'err.offline': 'ನಮ್ಮ ಸೇವೆಗೆ ಸಂಪರ್ಕ ಸಿಗಲಿಲ್ಲ. ನಿಮ್ಮ ಇಂಟರ್ನೆಟ್ ಇದೆಯೇ ನೋಡಿ, ಆಮೇಲೆ ಮತ್ತೊಮ್ಮೆ ಪ್ರಯತ್ನಿಸಿ.',
+  'err.badResponse': 'ಬಂದ ಉತ್ತರ ನಮಗೆ ಅರ್ಥವಾಗಲಿಲ್ಲ. ಮತ್ತೊಮ್ಮೆ ಪ್ರಯತ್ನಿಸಿ.',
+  'err.checkFields': '{fields} — ಈ ಮಾಹಿತಿಯನ್ನು ಒಮ್ಮೆ ಪರಿಶೀಲಿಸಿ. ಹಿಂದೆ ಹೋಗಿ ಖಾಲಿ ಇರುವುದನ್ನು ತುಂಬಿ, ಆಮೇಲೆ ಮತ್ತೊಮ್ಮೆ ಪ್ರಯತ್ನಿಸಿ.',
+  'err.generic': 'ಸದ್ಯಕ್ಕೆ ನಿಮ್ಮ ಉದ್ಯಮ ಪರಿಶೀಲಿಸಲು ಆಗಲಿಲ್ಲ. ಮತ್ತೊಮ್ಮೆ ಪ್ರಯತ್ನಿಸಿ.',
+
+  'errf.category': 'ನೀವು ಮಾಡುವ ಕೆಲಸ',
+  'errf.state': 'ನಿಮ್ಮ ರಾಜ್ಯ',
+  'errf.capital': 'ನಿಮ್ಮ ಬಳಿ ಈಗಾಗಲೇ ಇರುವ ಹಣ',
+  'errf.expenses': 'ತಿಂಗಳಿಗೆ ನೀವು ಮಾಡುವ ಖರ್ಚು',
+  'errf.revenue': 'ತಿಂಗಳಿಗೆ ನೀವು ನಿರೀಕ್ಷಿಸುವ ಆದಾಯ',
+  'errf.emi': 'ತಿಂಗಳ EMI ಅಥವಾ ಸಾಲದ ಕಂತು',
+  'errf.investment': 'ನಿಮಗೆ ಬೇಕಾದ ಹಣ',
+  'errf.opExpenses': 'ತಿಂಗಳಿಗೆ ಉದ್ಯಮಕ್ಕೇ ಆಗುವ ಖರ್ಚು',
 }
 
 const mr = {
@@ -1222,7 +1344,6 @@ const mr = {
   'common.decreaseText': 'लहान अक्षर',
   'common.normalText': 'सामान्य अक्षर',
   'common.increaseText': 'मोठे अक्षर',
-  'common.highContrast': 'स्पष्ट रंग',
   'common.darkMode': 'गडद रूप',
   'common.lightMode': 'फिकट रूप',
   'common.skipToMain': 'मुख्य भागाकडे जा',
@@ -1290,7 +1411,7 @@ const mr = {
   'man.needTitle': 'काय तयार ठेवावे',
   'man.needText': 'अंदाजे आकडे पुरेसे आहेत. महिन्याला किती खर्च होतो, किती मिळण्याची अपेक्षा आहे, आणि कोणता हप्ता चालू आहे याचा विचार करा. हा टॅब बंद केल्यावर काहीही साठवले जात नाही.',
   'man.tipTitle': 'वाचायला अडचण येत असेल तर',
-  'man.tipText': 'वर भाषा बदला, पानाच्या वरच्या A+ ने अक्षरे मोठी करा, किंवा जास्त कॉन्ट्रास्ट सुरू करा. प्रत्येक पानावर चित्रे आणि मागे जाण्याची कडी आहे.',
+  'man.tipText': 'वर भाषा बदला, पानाच्या वरच्या A+ ने अक्षरे मोठी करा, किंवा गडद रूपात बदला. प्रत्येक पानावर चित्रे आणि मागे जाण्याची कडी आहे.',
 
   'profile.eyebrow': 'तुम्हाला ओळखू',
   'profile.title': 'तुमच्याबद्दल सांगा',
@@ -1361,9 +1482,11 @@ const mr = {
 
   'money.left': 'दर महिन्याला उरणारे पैसे',
   'money.leftAfterEmi': 'कर्जाचा हप्ता भरल्यावर उरणारे पैसे',
+  'money.shortfall': 'दर महिन्याला पडणारी तूट',
   'money.needed': 'अजून लागणारे पैसे',
   'money.needArrange': 'ही रक्कम तुम्हाला जमवावी लागू शकते.',
   'money.enough': 'तुमच्या नियोजित गुंतवणुकीसाठी पैसे पुरेसे आहेत.',
+  'money.noneNeeded': 'तुम्ही नवीन पैसे घालत नाही, म्हणून काही जमवण्याची गरज नाही.',
   'money.afterExpenses': 'खर्च आणि EMI वजा केल्यानंतरचा अंदाज.',
   'money.margin': 'नफ्याची टक्केवारी',
   'money.risk': 'धोका',
@@ -1392,6 +1515,23 @@ const mr = {
   'area.rural': 'गाव / ग्रामीण',
   'area.semi': 'निम-शहरी',
   'area.urban': 'शहर',
+
+  // See the note in the en dict. err.checkFields must keep its single
+  // {fields} placeholder and must not acquire number agreement.
+  'err.timeout': 'याला नेहमीपेक्षा जास्त वेळ लागत आहे. कृपया पुन्हा प्रयत्न करा.',
+  'err.offline': 'आमच्या सेवेशी संपर्क झाला नाही. कृपया तुमचे इंटरनेट कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.',
+  'err.badResponse': 'आलेले उत्तर आम्हाला वाचता आले नाही. कृपया पुन्हा प्रयत्न करा.',
+  'err.checkFields': 'कृपया {fields} तपासा. मागे जाऊन राहिलेली माहिती भरा, मग पुन्हा प्रयत्न करा.',
+  'err.generic': 'आम्ही आत्ता तुमचा व्यवसाय तपासू शकलो नाही. कृपया पुन्हा प्रयत्न करा.',
+
+  'errf.category': 'तुमच्या कामाचा प्रकार',
+  'errf.state': 'तुमचे राज्य',
+  'errf.capital': 'तुमच्याकडे आधीच असलेले पैसे',
+  'errf.expenses': 'तुमचा महिन्याचा खर्च',
+  'errf.revenue': 'दर महिन्याला अपेक्षित कमाई',
+  'errf.emi': 'तुमचा महिन्याचा EMI किंवा कर्जाचा हप्ता',
+  'errf.investment': 'तुम्हाला लागणारे पैसे',
+  'errf.opExpenses': 'दर महिन्याला व्यवसायावरच होणारा खर्च',
 }
 
 const bn = {
@@ -1412,7 +1552,6 @@ const bn = {
   'common.decreaseText': 'ছোট লেখা',
   'common.normalText': 'সাধারণ লেখা',
   'common.increaseText': 'বড় লেখা',
-  'common.highContrast': 'স্পষ্ট রঙ',
   'common.darkMode': 'গাঢ় রূপ',
   'common.lightMode': 'হালকা রূপ',
   'common.skipToMain': 'মূল অংশে যান',
@@ -1480,7 +1619,7 @@ const bn = {
   'man.needTitle': 'কী তৈরি রাখবেন',
   'man.needText': 'মোটামুটি হিসাব হলেই চলবে। মাসে কত খরচ হয়, কত আসতে পারে, কোনো কিস্তি দিচ্ছেন কি না ভেবে নিন। এই ট্যাব বন্ধ করলে কিছুই জমা থাকে না।',
   'man.tipTitle': 'পড়তে অসুবিধা হলে',
-  'man.tipText': 'উপরে ভাষা বদলান, পাতার উপরের A+ দিয়ে লেখা বড় করুন, বা বেশি কনট্রাস্ট চালু করুন। প্রতিটি পাতায় ছবি আর পিছনে যাওয়ার লিঙ্ক আছে।',
+  'man.tipText': 'উপরে ভাষা বদলান, পাতার উপরের A+ দিয়ে লেখা বড় করুন, বা গাঢ় রূপে বদলে নিন। প্রতিটি পাতায় ছবি আর পিছনে যাওয়ার লিঙ্ক আছে।',
 
   'profile.eyebrow': 'আপনাকে জানি',
   'profile.title': 'আপনার সম্পর্কে বলুন',
@@ -1551,9 +1690,11 @@ const bn = {
 
   'money.left': 'প্রতি মাসে বাকি থাকা টাকা',
   'money.leftAfterEmi': 'ঋণের কিস্তি দেওয়ার পরে বাকি থাকা টাকা',
+  'money.shortfall': 'প্রতি মাসে টাকার ঘাটতি',
   'money.needed': 'আরও দরকারি টাকা',
   'money.needArrange': 'এই টাকা আপনাকে জোগাড় করতে হতে পারে।',
   'money.enough': 'আপনার পরিকল্পিত বিনিয়োগের জন্য টাকা যথেষ্ট।',
+  'money.noneNeeded': 'আপনি নতুন টাকা লাগাচ্ছেন না, তাই কিছু জোগাড় করার দরকার নেই।',
   'money.afterExpenses': 'খরচ ও EMI বাদ দিয়ে অনুমান।',
   'money.margin': 'লাভের শতাংশ',
   'money.risk': 'ঝুঁকি',
@@ -1582,6 +1723,23 @@ const bn = {
   'area.rural': 'গ্রাম / গ্রামীণ',
   'area.semi': 'আধা-শহর',
   'area.urban': 'শহর',
+
+  // See the note in the en dict. err.checkFields must keep its single
+  // {fields} placeholder and must not acquire number agreement.
+  'err.timeout': 'এতে একটু বেশি সময় লাগছে। আবার চেষ্টা করুন।',
+  'err.offline': 'আমাদের সেবার সঙ্গে যোগাযোগ করা যায়নি। আপনার ইন্টারনেট চলছে কি না দেখুন, তারপর আবার চেষ্টা করুন।',
+  'err.badResponse': 'যে উত্তর এসেছে, তা আমরা পড়তে পারিনি। আবার চেষ্টা করুন।',
+  'err.checkFields': '{fields} একবার দেখে নিন। পিছনে ফিরে গিয়ে যা বাদ পড়েছে তা পূরণ করুন, তারপর আবার চেষ্টা করুন।',
+  'err.generic': 'এখন আপনার ব্যবসা যাচাই করা যাচ্ছে না। আবার চেষ্টা করুন।',
+
+  'errf.category': 'আপনার কাজের ধরন',
+  'errf.state': 'আপনার রাজ্য',
+  'errf.capital': 'আপনার কাছে এখন থাকা টাকা',
+  'errf.expenses': 'প্রতি মাসে আপনার পুরো খরচ',
+  'errf.revenue': 'প্রতি মাসে আপনার আশা করা আয়',
+  'errf.emi': 'আপনার মাসের EMI বা ঋণের কিস্তি',
+  'errf.investment': 'ব্যবসা শুরু করতে দরকারি টাকা',
+  'errf.opExpenses': 'প্রতি মাসে শুধু ব্যবসার খরচ',
 }
 
 // The other three parts of the dictionary live in their own files purely for file
