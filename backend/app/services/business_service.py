@@ -15,13 +15,20 @@ def calculate_business_analysis(
         expected_monthly_revenue - monthly_operating_expenses
     )
 
-    # Operating margin
+    # Operating margin. None, not 0, when there is no revenue — a margin is a
+    # share OF revenue, so with no revenue there is no margin to report. Returning
+    # 0 was the same defect financial_service.profit_margin_percent had: this
+    # branch is reached exactly when someone has entered costs but no expected
+    # income, which is the worst case, and "0%" reads on the page as break-even.
+    # Matches estimated_roi_percent below, which already returned None for the
+    # equivalent reason. The frontend's hasNumber() renders None as
+    # "Not available" and a real 0 as "0%", so the two stay distinguishable.
     if expected_monthly_revenue > 0:
         operating_margin_percent = (
             monthly_operating_surplus / expected_monthly_revenue
         ) * 100
     else:
-        operating_margin_percent = 0
+        operating_margin_percent = None
 
     # Annual operating surplus
     annual_operating_surplus = monthly_operating_surplus * 12
@@ -66,7 +73,15 @@ def calculate_business_analysis(
         )
         observation_codes.append("obs.positiveSurplus")
 
-    if operating_margin_percent < 10:
+    # Guard before comparing, the same way advisory_service does: `None < 10` is a
+    # TypeError in Python 3, and there is nothing honest to say about the margin of
+    # a business with no expected revenue. Saying "the operating margin is low"
+    # would assert a margin exists; the surplus observation above has already named
+    # the real problem.
+    if operating_margin_percent is None:
+        pass
+
+    elif operating_margin_percent < 10:
         observations.append(
             "The operating margin is low. Consider reducing costs or increasing revenue."
         )
@@ -94,8 +109,10 @@ def calculate_business_analysis(
         "monthly_operating_surplus": round(
             monthly_operating_surplus, 2
         ),
-        "operating_margin_percent": round(
-            operating_margin_percent, 2
+        "operating_margin_percent": (
+            round(operating_margin_percent, 2)
+            if operating_margin_percent is not None
+            else None
         ),
         "annual_operating_surplus": round(
             annual_operating_surplus, 2

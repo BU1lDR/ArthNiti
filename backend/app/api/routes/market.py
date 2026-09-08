@@ -6,7 +6,7 @@ from app.services.market_service import get_market_context
 
 router = APIRouter(
     prefix="/api/market",
-    tags=["market"],
+    tags=["Market"],
 )
 
 

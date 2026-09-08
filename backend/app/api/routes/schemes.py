@@ -14,7 +14,8 @@ router = APIRouter(
 def match_scheme_endpoint(data: SchemeMatchRequest):
     matches = match_schemes(
         business_category=data.business_category,
-        state=data.state
+        state=data.state,
+        location_type=data.location_type
     )
 
     return {

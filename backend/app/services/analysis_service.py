@@ -80,6 +80,11 @@ def run_unified_analysis(
     scheme_matches = match_schemes(
         business_category=business_category,
         state=state,
+        # /location has always asked whether the work is rural, semi-urban or
+        # urban, and this was the only consumer that could act on the answer.
+        # Passing it drops the handful of schemes whose own eligibility text
+        # rules the entrepreneur's kind of place out.
+        location_type=location_type,
     )
 
     # 6. Advisory generation

@@ -12,6 +12,9 @@
     "states": [
       "ALL"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "central",
     "eligibility_rules": [
       "Applicant should be involved in an eligible micro food processing activity.",
@@ -54,6 +57,9 @@
       "trading"
     ],
     "states": [
+      "ALL"
+    ],
+    "location_types": [
       "ALL"
     ],
     "level": "central",
@@ -105,6 +111,9 @@
     "states": [
       "ALL"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "central",
     "eligibility_rules": [
       "Loans are intended for eligible non-agricultural income-generating micro enterprise activities, including specified allied agricultural activities.",
@@ -152,6 +161,9 @@
     "states": [
       "ALL"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "central",
     "eligibility_rules": [
       "The applicant must work in a traditional trade using hand tools.",
@@ -196,9 +208,13 @@
       "manufacturing",
       "services",
       "trading",
-      "agriculture"
+      "dairy",
+      "food processing"
     ],
     "states": [
+      "ALL"
+    ],
+    "location_types": [
       "ALL"
     ],
     "level": "central",
@@ -244,6 +260,9 @@
       "agriculture"
     ],
     "states": [
+      "ALL"
+    ],
+    "location_types": [
       "ALL"
     ],
     "level": "central",
@@ -294,6 +313,9 @@
     "states": [
       "ALL"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "central",
     "eligibility_rules": [
       "Covers milk chilling and dairy product units, meat processing units, and animal feed plants.",
@@ -338,6 +360,9 @@
     "states": [
       "ALL"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "central",
     "eligibility_rules": [
       "Covers post-harvest work such as storage, cold rooms, grading and packing houses, and primary processing units.",
@@ -380,6 +405,9 @@
       "poultry"
     ],
     "states": [
+      "ALL"
+    ],
+    "location_types": [
       "ALL"
     ],
     "level": "central",
@@ -429,6 +457,9 @@
     "states": [
       "Uttar Pradesh"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "state",
     "eligibility_rules": [
       "The applicant must generally be between 21 and 40 years of age.",
@@ -477,6 +508,9 @@
     ],
     "states": [
       "Uttar Pradesh"
+    ],
+    "location_types": [
+      "ALL"
     ],
     "level": "state",
     "eligibility_rules": [
@@ -529,6 +563,9 @@
     "states": [
       "Maharashtra"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "state",
     "eligibility_rules": [
       "The applicant must generally be between 18 and 45 years of age.",
@@ -579,6 +616,9 @@
     "states": [
       "Tamil Nadu"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "state",
     "eligibility_rules": [
       "The applicant must be at least 21 years old and hold a degree, diploma or ITI qualification.",
@@ -627,6 +667,9 @@
     ],
     "states": [
       "Kerala"
+    ],
+    "location_types": [
+      "ALL"
     ],
     "level": "state",
     "eligibility_rules": [
@@ -677,6 +720,9 @@
     "states": [
       "West Bengal"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "state",
     "eligibility_rules": [
       "The applicant must generally be between 18 and 45 years of age.",
@@ -725,6 +771,9 @@
     ],
     "states": [
       "Karnataka"
+    ],
+    "location_types": [
+      "ALL"
     ],
     "level": "state",
     "eligibility_rules": [
@@ -785,6 +834,9 @@
       "Sikkim",
       "Tripura"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "regional",
     "eligibility_rules": [
       "The unit must be located in one of the eight North Eastern states.",
@@ -838,6 +890,9 @@
       "Ladakh",
       "Jammu and Kashmir"
     ],
+    "location_types": [
+      "rural"
+    ],
     "level": "regional",
     "eligibility_rules": [
       "Only villages in the border blocks notified under the programme are covered.",
@@ -881,6 +936,9 @@
       "tailoring"
     ],
     "states": [
+      "ALL"
+    ],
+    "location_types": [
       "ALL"
     ],
     "level": "district",
@@ -932,6 +990,9 @@
     "states": [
       "ALL"
     ],
+    "location_types": [
+      "rural"
+    ],
     "level": "district",
     "eligibility_rules": [
       "The applicant must generally be between 18 and 45 years of age.",
@@ -978,6 +1039,9 @@
     "states": [
       "ALL"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "district",
     "eligibility_rules": [
       "Farmers, farm labourers and farm groups of the area are eligible.",
@@ -1018,6 +1082,9 @@
     ],
     "states": [
       "Uttar Pradesh"
+    ],
+    "location_types": [
+      "ALL"
     ],
     "level": "district",
     "eligibility_rules": [
@@ -1072,6 +1139,9 @@
     "states": [
       "ALL"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "sub_district",
     "eligibility_rules": [
       "The office issues income, caste, residence and land-related certificates.",
@@ -1114,6 +1184,9 @@
       "beekeeping"
     ],
     "states": [
+      "ALL"
+    ],
+    "location_types": [
       "ALL"
     ],
     "level": "sub_district",
@@ -1164,6 +1237,9 @@
     ],
     "states": [
       "ALL"
+    ],
+    "location_types": [
+      "rural"
     ],
     "level": "block",
     "eligibility_rules": [
@@ -1216,6 +1292,9 @@
     "states": [
       "ALL"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "block",
     "eligibility_rules": [
       "Anyone carrying on or planning work in the area may approach the office.",
@@ -1256,6 +1335,9 @@
       "food processing"
     ],
     "states": [
+      "ALL"
+    ],
+    "location_types": [
       "ALL"
     ],
     "level": "block",
@@ -1303,6 +1385,9 @@
     ],
     "states": [
       "ALL"
+    ],
+    "location_types": [
+      "rural"
     ],
     "level": "local_body",
     "eligibility_rules": [
@@ -1353,6 +1438,9 @@
     "states": [
       "ALL"
     ],
+    "location_types": [
+      "ALL"
+    ],
     "level": "local_body",
     "eligibility_rules": [
       "Anyone carrying on or planning work in the area may approach the office.",
@@ -1396,6 +1484,10 @@
     ],
     "states": [
       "ALL"
+    ],
+    "location_types": [
+      "semi-urban",
+      "urban"
     ],
     "level": "local_body",
     "eligibility_rules": [
