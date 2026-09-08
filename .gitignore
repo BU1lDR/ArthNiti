@@ -1,24 +1,14 @@
 # ArthNiti — SIH 2026
-#
-# Two rules before adding a pattern:
-#   1. Never ignore anything a teammate needs to receive. Six people share this
-#      repo; an over-broad pattern silently hides someone's work.
-#   2. Adding a pattern does NOT untrack an already-tracked file. That needs a
-#      deliberate `git rm --cached <path>`.
 
 # ---- Python ----
 __pycache__/
 *.py[cod]
 
-# Virtual environments. The live one is ./.venv (Python 3.14.6); ./backend/venv
-# is an older second one. "venv/" alone does NOT match ".venv/" — the leading dot
-# defeats it — which is why both forms are listed. Until now .venv escaped git
-# only because the venv module writes its own .gitignore containing "*" inside it.
+# Virtual environments.
 .venv/
 venv/
 
-# Test and lint caches. Same story as .venv: .pytest_cache was self-ignoring via
-# a generated file rather than by our rules.
+# Test and lint caches.
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
@@ -26,8 +16,6 @@ venv/
 htmlcov/
 
 # ---- Node and frontend build ----
-# frontend/.gitignore covers the Vite defaults. These repeat the important ones
-# so an install or build run from the repo root is covered too.
 node_modules/
 dist/
 dist-ssr/
@@ -35,9 +23,6 @@ dist-ssr/
 *.local
 
 # ---- Secrets ----
-# The MVP has no API keys and no .env today: there is no LLM and no database.
-# This stays so the first key anyone adds is ignored by default instead of
-# pushed to a repo six people pull from. .env.example stays shareable.
 .env
 .env.*
 !.env.example
@@ -50,10 +35,6 @@ yarn-debug.log*
 pnpm-debug.log*
 
 # ---- Editors and OS ----
-# .vscode/settings.json is already tracked and shared with the team, so the
-# star form is deliberate: ".vscode/*" excludes the folder's CONTENTS, which
-# leaves the negations below able to rescue individual files. A bare
-# ".vscode/" would exclude the directory itself and the negations would fail.
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
@@ -67,16 +48,10 @@ desktop.ini
 .claude/
 
 # ---- Heavy demo artefacts, kept local ----
-# 27 full-page PNGs at 2880px, regenerated on demand. Hand them to teammates as
-# a zip rather than through the repo.
 screenshots/
 
 # ---- Local data and model files ----
-# None exist today. Keeps stray binaries out by default.
 *.sqlite
 *.sqlite3
 *.db
 *.pkl
-
-# NOTE: presentation/ is deliberately NOT ignored. Saad and Tripti need the deck
-# to reach the whole team through the repo.
