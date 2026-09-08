@@ -1,8 +1,35 @@
+from functools import lru_cache
+
 from app.core.data_loader import load_json
 
 
 def load_market_data() -> list[dict]:
     return load_json("market_data.json")
+
+
+@lru_cache(maxsize=None)
+def _market_index():
+    """
+    market_data.json with the three fields the lookup compares on lowercased once,
+    in file order.
+
+    Same reasoning as `_scheme_index`: the normalization depends only on the file,
+    so doing it per request repeated identical work — and it happened twice per
+    request, because the old two-pass search re-scanned and re-lowercased every row
+    when no district row was found.
+
+    The row itself is carried rather than copied, and stays exactly the shape of
+    the file. `get_market_context` copies it with {**row} before adding anything.
+    """
+    return tuple(
+        (
+            row,
+            row["state"].strip().lower(),
+            row["district"].strip().lower(),
+            row["business_category"].strip().lower(),
+        )
+        for row in load_market_data()
+    )
 
 
 def get_market_context(
@@ -13,8 +40,6 @@ def get_market_context(
     market_type: str = "",
     customers: str = "",
 ) -> list[dict]:
-    data = load_market_data()
-
     state = state.strip().lower()
     district = district.strip().lower()
     business_category = business_category.strip().lower()
@@ -25,35 +50,29 @@ def get_market_context(
         "customers": customers.strip(),
     }
 
-    def rows(same_district: bool) -> list[dict]:
-        found = []
+    # One pass, two buckets. The entrepreneur's own district is the most useful
+    # answer; requiring it meant every district we have no row for got an empty
+    # section, so we fall back to the same state and let each row say which it is.
+    #
+    # This used to be two passes over the whole file, the second one running only
+    # when the first found nothing — which is the case that needed it least, since
+    # a district with no row is the common one. Collecting both buckets as we go
+    # gives the same rows in the same order for one scan instead of two.
+    same_district = []
+    same_state = []
 
-        for item in data:
-            if item["state"].strip().lower() != state:
-                continue
+    for row, row_state, row_district, row_category in _market_index():
+        if row_state != state or row_category != business_category:
+            continue
 
-            if item["business_category"].strip().lower() != business_category:
-                continue
+        bucket = same_district if row_district == district else same_state
 
-            if same_district != (item["district"].strip().lower() == district):
-                continue
+        bucket.append(
+            {
+                **row,
+                "match_level": "district" if bucket is same_district else "state",
+                "local_context": local_context,
+            }
+        )
 
-            found.append(
-                {
-                    **item,
-                    "match_level": "district" if same_district else "state",
-                    "local_context": local_context,
-                }
-            )
-
-        return found
-
-    # The entrepreneur's own district is the most useful answer. Requiring it
-    # meant that every district we have no row for got an empty section, so fall
-    # back to the same state and let each row say which it is.
-    exact = rows(same_district=True)
-
-    if exact:
-        return exact
-
-    return rows(same_district=False)
+    return same_district or same_state

@@ -74,3 +74,20 @@ def test_market_context_includes_local_context():
         "market_type": "weekly",
         "customers": "Local families",
     }
+
+def test_a_response_cannot_poison_the_cached_market_rows():
+    """market_data.json is parsed once per process now, so the rows are shared
+    across every request. get_market_context copies each row with {**row} before
+    adding match_level and local_context; without that, a consumer editing a
+    returned row would rewrite the dataset for the rest of the process.
+    """
+    first = get_market_context("Uttar Pradesh", "Lucknow", "dairy")
+    assert first, "expected a district row to test against"
+
+    first[0]["source"] = "POISON"
+    first[0]["indicative_price"] = -1
+
+    second = get_market_context("Uttar Pradesh", "Lucknow", "dairy")
+
+    assert second[0]["source"] != "POISON"
+    assert second[0]["indicative_price"] != -1
