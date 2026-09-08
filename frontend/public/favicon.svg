@@ -1,7 +1,16 @@
 <!--
   The अर्थNiti mark as a favicon. This is the one copy that hardcodes its colours:
-  a favicon is fetched as an image, so it cannot see the page's --mark-* tokens.
-  Keep it in step with the :root values in frontend/src/index.css.
+  a favicon is fetched as an image, so it cannot see the page's mark colour
+  tokens. Keep it in step with the :root values in frontend/src/index.css.
+
+  NEVER put a double hyphen in a comment in this file. An XML comment may not
+  contain one and an SVG is XML, so a single stray pair makes the whole file
+  undecodable — and it fails SILENTLY: the browser drops the icon and shows its
+  own default, while lint, build, parity, keycheck and drive.mjs all still pass,
+  because none of them parses an image. That is exactly what happened here. This
+  comment named the tokens the way index.css writes them, with the leading pair
+  of hyphens, and the favicon did not render at all from 8 Sept 2026 until it was
+  caught on 9 Sept. `node screenshots/svgcheck.mjs` is the check that sees it.
 
   Two differences from components/BrandMark.jsx, both because a favicon renders
   at 16-32px in a tab strip: the rupee glyph is dropped (it would be two or three

@@ -4,8 +4,9 @@ import { APP_NAME } from '../i18n/brand'
 // contrasting weights and warm tones, over a gold swoosh.
 //
 // Set as live text rather than as an image, for the reasons that decide most
-// things in this app: it recolours itself for high contrast, it scales with
-// --ui-scale, a screen reader reads it, and it does not blur on a projector.
+// things in this app: it takes its colours from the --wordmark-* tokens, it
+// scales with --ui-scale, a screen reader reads it, and it does not blur on a
+// projector.
 //
 // The name is split on the Devanagari/Latin boundary rather than being hardcoded
 // twice, so `i18n/brand.js` stays the one place the product is spelled. The two

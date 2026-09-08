@@ -6,18 +6,15 @@ import { useId } from 'react'
 // Drawn as inline SVG rather than dropped in as a raster, for three reasons that
 // all matter in this app:
 //
-//   * every colour is a `--mark-*` token, so the same element serves light mode,
-//     dark mode and BOTH high-contrast modes with no second asset. In high
-//     contrast the tokens collapse to `--color-btn` over `--color-bg`, which
-//     turns the whole thing into a two-colour silhouette — including the petal
-//     gradient, whose three stops all resolve to the same ink. That is why the
-//     petals keep a hairline edge in `--mark-edge`: at ink-on-ink the outlines
-//     are the only thing separating one petal from the next.
+//   * every colour is a `--mark-*` token, so the same element serves light and
+//     dark mode with no second asset. The petals keep a hairline edge in
+//     `--mark-edge` because they overlap: where two petals meet, the outline is
+//     the only thing separating one from the next.
 //   * the masthead renders it at 46px and phones at 40px. A gradient PNG blurs
 //     at that size; strokes and curves stay crisp.
 //   * it prints. `@media print` resets `--mark-*` back to the full-colour
-//     palette, so a laptop in dark high-contrast mode still puts a legible mark
-//     on the /report PDF instead of a yellow-on-white ghost.
+//     palette, so a laptop in dark mode still puts a legible mark on the /report
+//     PDF rather than one drawn with a dark-mode hairline.
 //
 // Colours live in index.css, not here. Never hardcode a hex in this file —
 // public/favicon.svg is the one place that has to, because a favicon is loaded
@@ -98,8 +95,8 @@ function BrandMark({ size = 'md', className = '' }) {
         ))}
       </g>
 
-      {/* The coin. Ring first, then face, then a highlight that vanishes in high
-          contrast because shine and face resolve to the same paper colour. */}
+      {/* The coin. Ring first, then face, then a highlight — all three from
+          --mark-coin-* tokens, so the stack recolours per theme in one place. */}
       <circle cx="60" cy="46" r="17.5" style={{ fill: 'var(--mark-coin-ring)' }} />
       <circle cx="60" cy="46" r="13" style={{ fill: 'var(--mark-coin-face)' }} />
       <ellipse cx="55" cy="40.8" rx="4.4" ry="2.3" transform="rotate(-32 55 40.8)" style={{ fill: 'var(--mark-coin-shine)', opacity: 0.72 }} />
