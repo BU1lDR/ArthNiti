@@ -28,7 +28,23 @@ The blueprint it replaced claimed several things that never existed, and those c
 
 `docs/frontend_integration.md` is still stale in two specific ways: it says CORS allows only `localhost:3000` and `localhost:5173` (the real config is a loopback regex — see below), and it says the response has **five** top-level sections (it has **seven**).
 
-`frontend/README.md` is unmodified Vite boilerplate. `docs/requirements.txt` is unrelated to `backend/requirements.txt`. `README.md` is team onboarding notes, not project documentation.
+`frontend/README.md` is unmodified Vite boilerplate. `docs/requirements.txt` is unrelated to `backend/requirements.txt`.
+
+### `README.md` is now the repo's front door, and keeping it current is a standing instruction
+
+It was 32 lines of ChatGPT-plugin onboarding — "add GitHub as a plugin", a prompt template to paste into a chat — with **nothing in it about the project**. Rewritten on 9 Sept 2026 to be the actual front door: what the thing is, how to run it from a cold clone, the repo map, the demo path, the honest scope, and pointers to this file and `OUR_MVP.md`.
+
+> **The owner's standing instruction: update `README.md` every time the MVP changes.** Not "when convenient" — every time. So a change that adds a route, a language, a scheme tier, an endpoint, a verifier script or a dependency is not finished until the README reflects it.
+
+Three docs now have to move together, and they have different jobs — do not merge them:
+
+| File | Job | Audience |
+|---|---|---|
+| `README.md` | front door: what it is, how to run it, where things live | a teammate with a fresh clone, or anyone opening the repo |
+| `CLAUDE.md` (this file) | code view: every trap, every reason, every measured figure | whoever is editing the code next |
+| `OUR_MVP.md` | product/team view: demo script, judge answers, team split | the team, and the round itself |
+
+**The README states numbers, and a stale number there is worse than none**, because it is the first thing anyone reads and nothing verifies it. The counts it carries — languages, dictionary keys, schemes, tiers, routes, endpoints, tests, verifier scripts, states/districts — are exactly the ones this file has already had stale **twice** (see the "344 keys / 186 keys" note and the response-table note). So when a count changes, grep for it: `grep -rn "<the number>" README.md CLAUDE.md OUR_MVP.md`. The measured commands are `node tools/parity4.mjs` (key count), `cd backend && ../.venv/Scripts/python.exe -m pytest tests -q` (test count), and `ls tools/*.mjs tools/verify/*.mjs | wc -l` (script count).
 
 ### The "AI" is currently 100% deterministic rules
 
