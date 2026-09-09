@@ -58,6 +58,36 @@
   --gov-white: #ffffff;
   --gov-green: #138808;
   --shadow-card: 0 1px 2px rgba(11, 60, 123, 0.06), 0 8px 24px rgba(11, 60, 123, 0.07);
+
+  /* Motion. Two durations and one curve, because a control that eases at a
+     different speed from the one beside it reads as a bug rather than as polish,
+     and the six hover rules in this file were each free to pick their own.
+
+     The curve is Tailwind's own default ease, deliberately. Eleven JSX call sites
+     already carry the bare `transition` utility, which uses it; a different
+     cubic-bezier here would have chrome and content easing visibly differently on
+     the same page with nothing naming the discrepancy.
+
+     THESE ARE NOT OPTIONAL TO DEFINE. Every use below is
+     `transition: <prop> var(--motion…) var(--motion-ease)`, and an undefined
+     custom property makes the whole declaration invalid at computed-value time —
+     so the transition does not degrade to a default duration, it disappears
+     entirely and every control silently snaps again. That is exactly what
+     happened once here, and nothing reported it: lint passed, the build passed,
+     and the var() survived into the stylesheet looking correct.
+
+     EVERY USE IS INTERACTION-TRIGGERED, AND THAT IS THE CONSTRAINT, NOT A STYLE
+     CHOICE. The fifteen CDP verifiers navigate, sleep a fixed interval, then
+     measure geometry against tolerances as tight as 1.5px (field-align) and
+     dx = 0 (lang-layout). Anything that runs on load makes every one of those
+     measurements a race against its own sleep. None of the scripts dispatches a
+     hover or a press, so a transition that can only fire from one is invisible to
+     all of them by construction rather than by luck. Keep it that way: no
+     @keyframes on load, nothing that animates on first paint. */
+  --motion-fast: 120ms;
+  --motion: 180ms;
+  --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
   --radius-card: 0.85rem;
   /* The landing backdrop needs its own radius rather than reusing --radius-card,
      because a corner radius reads relative to the box it is cutting. 13.6px is
@@ -344,6 +374,12 @@ summary:focus-visible {
   cursor: pointer;
   font-weight: 800;
   line-height: 1.4;
+  /* background-color, never the `background` shorthand: the shorthand includes
+     background-image, whose interpolation is discrete, so naming it would ask the
+     engine to ease a property that can only snap. The hover sets the colour via
+     the shorthand, which is fine — what is transitioned is the computed longhand.
+     Same reasoning at every other call site in this file. */
+  transition: background-color var(--motion-fast) var(--motion-ease);
 }
 
 .ui-textsize button + button {
@@ -367,10 +403,18 @@ summary:focus-visible {
   cursor: pointer;
   font-size: 0.78rem;
   font-weight: 700;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease);
 }
 
+/* The border brightens with the fill. This strip is #08243F in BOTH themes — it
+   is not themed — so the value is a literal white alpha rather than a token; a
+   colour read off the palette would be right in one theme and wrong in the
+   other. */
 .ui-utility-button:hover {
   background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 /* The language and dialect pickers. The closed control sits on the dark utility
@@ -501,6 +545,17 @@ summary:focus-visible {
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
+  /* border-bottom-COLOR, never border-bottom-width. The width is a constant 3px
+     in every state — transparent when idle, --color-accent when active — so this
+     cannot move a pixel of layout. Easing the width instead would grow the link
+     as it animates, and .ui-navbar-inner wraps on desktop and scrolls on phones,
+     so a few animating pixels there can retrigger a wrap or trip mobile-audit's
+     OVERFLOW. The active colour is what changes on navigation: react-router keeps
+     the same element and swaps the class, so the underline fades in rather than
+     snapping as the route changes. */
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-bottom-color var(--motion-fast) var(--motion-ease);
 }
 
 .ui-navbar-link:hover {
@@ -510,6 +565,20 @@ summary:focus-visible {
 .ui-navbar-link.is-active {
   border-bottom-color: var(--color-accent);
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* The active link needs its own hover, because the rule above beats the plain
+   :hover on SOURCE ORDER rather than on specificity — both are (0,2,0) and this one
+   is written second. So hovering the page you are already on changed nothing at
+   all, while the eight links beside it lit up: the current item read as the one
+   dead thing in the bar, which is the opposite of what an active state is for.
+   Found by motion-audit.mjs, and only after its listener was scoped to the element
+   under test — before that it was counting a neighbour's transition and reporting
+   this as working. 0.2 rather than 0.14 so the hovered active link is still
+   distinguishable from a hovered inactive one; the accent underline stays either
+   way. */
+.ui-navbar-link.is-active:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .ui-brand {
@@ -597,13 +666,32 @@ summary:focus-visible {
   background: var(--color-surface);
   color: var(--color-text);
   cursor: pointer;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  /* Was a one-off `160ms ease` triple — the only transition in the file, and so
+     the only control whose timing nothing else agreed with. Now on the tokens.
+     `background` became `background-color` for the reason given on
+     .ui-textsize button. */
+  transition:
+    transform var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
 }
 
 .ui-icon-button:hover {
   transform: translateY(-1px);
   border-color: var(--color-primary-strong);
   background: var(--color-surface-soft);
+}
+
+/* The press cancels the hover lift, so the button meets the finger instead of
+   staying raised under it. Explicitly translateY(0) rather than `transform: none`
+   because :hover is still matched while the pointer is down and would otherwise
+   keep winning on source order. Only reachable with a pointer held down, which
+   no verifier does — worth knowing that it WOULD be visible to one that did,
+   since getBoundingClientRect reports the transformed box and a translated
+   button measures 1px off its resting position. Never put a transform on a
+   RESTING state here: this control is exactly 44px, mobile-audit's TAP floor. */
+.ui-icon-button:active {
+  transform: translateY(0);
 }
 
 .ui-main {
@@ -625,13 +713,28 @@ summary:focus-visible {
   font-weight: 600;
 }
 
+/* The underline is ALWAYS painted and merely transparent when idle, which is why
+   this fades instead of snapping: text-decoration-line is a discrete property —
+   none and underline have nothing to interpolate between — while
+   text-decoration-COLOR is a colour and eases like any other. Going from
+   `text-decoration: none` to `underline` can only pop, however long a duration it
+   is given.
+
+   Layout-neutral, which is the other reason it is safe here: a text decoration
+   is painted inside the line box it belongs to and occupies no space of its own,
+   so the crumb cannot reflow and the row cannot grow. An eased border-bottom
+   would have moved the whole breadcrumb row. text-underline-offset keeps the rule
+   clear of Devanagari and Bengali descenders, which sit lower than Latin ones. */
 .ui-breadcrumb a {
   color: var(--color-primary-strong);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.2em;
+  transition: text-decoration-color var(--motion-fast) var(--motion-ease);
 }
 
 .ui-breadcrumb a:hover {
-  text-decoration: underline;
+  text-decoration-color: currentColor;
 }
 
 .ui-breadcrumb-sep {
@@ -882,6 +985,7 @@ summary:focus-visible {
   font-size: 0.98rem;
   font-weight: 800;
   cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
 }
 
 .ui-manual-open:hover {
@@ -1086,6 +1190,18 @@ summary:focus-visible {
   font-size: 0.96rem;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease);
+}
+
+/* This had no hover state at all, which is the actual defect here rather than the
+   missing easing: it is the manual dialog's own dismiss control, so a reader who
+   cannot read the current language is hovering the one button that gets them out
+   and receiving no confirmation that it is a button. */
+.ui-manual-secondary:hover {
+  background: var(--color-surface-soft);
+  border-color: var(--color-primary-strong);
 }
 
 .ui-card {
@@ -1344,10 +1460,25 @@ summary:focus-visible {
   background: var(--color-surface);
 }
 
+/* The <details> OPENING is deliberately not animated. A native details cannot
+   have its height eased without either JS measuring the panel or
+   `interpolate-size: allow-keywords`, and both are a poor trade here: the print
+   block force-opens .ui-disclosure-body to get the detailed figures onto the
+   sheet, so anything that animates height has to be undone there as well, and a
+   half-open panel is what would reach the paper if the timing lost that race.
+   The summary's own hover is the affordance; the reveal itself stays instant. */
 .ui-disclosure > summary {
   cursor: pointer;
   padding: 14px 16px;
   font-weight: 750;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+/* Also had no hover state. "Show detailed figures" is the one control on the
+   result pages a reader has to discover for themselves — it is not on the
+   journey — so it needs to answer a pointer. */
+.ui-disclosure > summary:hover {
+  background: var(--color-surface-soft);
 }
 
 .ui-disclosure-body {
@@ -1429,6 +1560,21 @@ summary:focus-visible {
      browser not to drop it in the "economical" print path. */
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
+  /* The bar grows to its new length instead of teleporting. It does NOT animate
+     on load, and that is what makes it safe rather than a tolerance risk: the
+     width arrives inline from Charts.jsx:43 at mount, and a transition needs a
+     previous computed value to interpolate from — on an element's first style
+     computation there is none, so nothing runs. It fires only when the value
+     CHANGES, i.e. when the reader re-submits /finance and the figures move, which
+     is precisely the moment the change is worth showing.
+
+     `width` is layout-triggering, which is normally the reason to reach for
+     transform instead. Here it is the correct property anyway and cannot escape:
+     .ui-bar-track is a fixed 26px box with `overflow: hidden`, so the animating
+     child is clipped to a parent whose own geometry never moves. A scaleX would
+     also have stretched the border-radius. Nothing outside the track can be
+     pushed, so this cannot reach mobile-audit's OVERFLOW or field-align's 1.5px. */
+  transition: width var(--motion) var(--motion-ease);
 }
 
 /* Colour alone never carries meaning — each state also gets a distinct
@@ -1483,6 +1629,19 @@ summary:focus-visible {
   height: 1.6rem;
   border: 2px solid transparent;
   border-radius: 50%;
+  /* A coin fills and empties in colour only. FONT-SIZE IS DELIBERATELY EXCLUDED,
+     and this is the one exclusion in the file that matters: `font-size: 0` on the
+     rule below is what hides the emoji glyph, so easing it would sweep the coin
+     through every intermediate size — and an emoji's advance width is ~1.28em
+     against a box fixed at 1.6rem, which is the documented reason
+     mobile-audit exempts .ui-unit-chart from CLIP. That exemption covers a static
+     ~2px overhang at the largest text scale; animating font-size would put a
+     MOVING overhang inside it, so a check that is currently exempt on a known
+     constant would be exempt on a moving target instead. Colour is free of all
+     of that: it repaints without touching a single box. */
+  transition:
+    background-color var(--motion) var(--motion-ease),
+    border-color var(--motion) var(--motion-ease);
 }
 
 /* An empty slot is an outlined disc with the glyph suppressed, not a faded copy
