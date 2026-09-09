@@ -1,0 +1,567 @@
+// The instruction manual and the अर्थNiti wordmark, measured in both
+// presentation modes — light and dark — plus a narrow stress viewport.
+//
+// It covered four modes until 8 September 2026; light and dark high-contrast
+// went with the high-contrast feature itself. The measurements that were written
+// FOR that mode all stay, because each one also catches a plain-theme failure —
+// see the notes on the wordmark strip, the bead and the book's region count.
+//
+// Neither piece is reachable by the other drivers, and both have a failure mode
+// that lint, build and parity all pass through:
+//
+//   * drive.mjs and mobile-audit.mjs only LOAD routes. The manual's panel opens
+//     on a click, so everything inside it — twenty strings, a language select,
+//     eight step rows, two buttons — is unmeasured by every existing script.
+//   * The wordmark and the book icon resolve their colours through tokens, and
+//     the surfaces they sit on do not track the theme the way the rest of the
+//     page does — the utility strip is the same near-black in both themes while
+//     the book sits on a themed card. So the pairing of ink and ground differs
+//     per mode even where the ink does not, and reading the CSS cannot tell you
+//     which way round it landed. Only the painted result can.
+//
+// So this measures the painted result. Per mode:
+//
+//   WORDMARK  contrast of each half of the name, and of the swoosh, against the
+//             utility strip it sits on. The strip is #08243F in BOTH themes — it
+//             is NOT themed, so a colour read off the palette here would be
+//             right half the time.
+//   PILL      that the prototype disclaimer is ABSENT. This check used to require
+//             it. The owner asked for it off the page outright on 8 Sept 2026 and
+//             restated that after the trade-off was put to them, so the check was
+//             inverted rather than deleted: a stray re-add now fails the audit.
+//   BOOK      the icon rasterised over the surface behind it, the same technique
+//             brand-mark.mjs uses: an <img> from a data: URL is a separate
+//             document and cannot see the page's custom properties, so the
+//             computed --book-* values have to be inlined onto the clone first.
+//   PANEL     opened, then every leaf text node checked for size and contrast,
+//             every interactive element for a 44px box, and the document for
+//             sideways scroll.
+//
+// Run the Vite dev server first, then: node screenshots/verify/manual-audit.mjs
+import { spawn } from 'node:child_process'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+const DEBUG_PORT = 9341
+const APP = 'http://localhost:5173'
+const OUT = resolve('screenshots/verify/manual')
+const PROFILE_DIR = resolve('screenshots/verify/edge-profile-manual')
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+class CDP {
+  constructor(url) {
+    this.ws = new WebSocket(url)
+    this.next = 1
+    this.pending = new Map()
+    this.sessionId = null
+    this.ready = new Promise((res, rej) => {
+      this.ws.addEventListener('open', () => res())
+      this.ws.addEventListener('error', () => rej(new Error('CDP socket error')))
+    })
+    this.ws.addEventListener('message', (event) => {
+      const msg = JSON.parse(event.data)
+      const slot = this.pending.get(msg.id)
+      if (!slot) return
+      this.pending.delete(msg.id)
+      if (msg.error) slot.reject(new Error(slot.method + ': ' + msg.error.message))
+      else slot.resolve(msg.result)
+    })
+  }
+
+  send(method, params = {}, useSession = true) {
+    const id = this.next++
+    const envelope = { id, method, params }
+    if (useSession && this.sessionId) envelope.sessionId = this.sessionId
+    return new Promise((res, rej) => {
+      this.pending.set(id, { resolve: res, reject: rej, method })
+      this.ws.send(JSON.stringify(envelope))
+    })
+  }
+
+  async evaluate(expression) {
+    const r = await this.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })
+    if (r.exceptionDetails) {
+      throw new Error('page threw: ' + (r.exceptionDetails.exception?.description || r.exceptionDetails.text))
+    }
+    return r.result.value
+  }
+}
+
+async function browserWsUrl() {
+  for (let i = 0; i < 80; i++) {
+    try {
+      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`)).json()
+      if (info.webSocketDebuggerUrl) return info.webSocketDebuggerUrl
+    } catch { /* not listening yet */ }
+    await sleep(250)
+  }
+  throw new Error('Edge never opened the DevTools endpoint on port ' + DEBUG_PORT)
+}
+
+// Plain joined strings, not template literals: these probes carry regex and
+// escapes, and a template literal is where those quietly stop being what they
+// look like.
+const COLOUR_HELPERS = [
+  '  const lin = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }',
+  '  const lum = c => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2])',
+  '  const Ls = c => { const y = lum(c); return y <= 216 / 24389 ? y * (24389 / 27) : Math.cbrt(y) * 116 - 16 }',
+  '  const ratio = (a, b) => { const x = lum(a), y = lum(b); return Math.round(((Math.max(x,y) + 0.05) / (Math.min(x,y) + 0.05)) * 100) / 100 }',
+  '  const parse = s => { const m = String(s).match(/[-0-9.]+/g); return m ? m.slice(0, 3).map(Number) : null }',
+  '  const alpha = s => { const m = String(s).match(/[-0-9.]+/g); return m && m.length > 3 ? Number(m[3]) : 1 }',
+  // The colour actually behind an element: walk up until something opaque turns
+  // up, because most wrappers in this app are transparent.
+  '  const backdrop = el => {',
+  '    let node = el',
+  '    while (node) {',
+  '      const bg = getComputedStyle(node).backgroundColor',
+  '      if (alpha(bg) > 0.5) { const c = parse(bg); if (c) return c }',
+  '      node = node.parentElement',
+  '    }',
+  '    return [255, 255, 255]',
+  '  }',
+]
+
+// The chrome probe: the wordmark and the relocated prototype pill.
+const CHROME_PROBE = [
+  '(() => {',
+  ...COLOUR_HELPERS,
+  '  const out = {}',
+  '  const arth = document.querySelector(".ui-wordmark-arth")',
+  '  const niti = document.querySelector(".ui-wordmark-niti")',
+  '  const swoosh = document.querySelector(".ui-wordmark-swoosh path")',
+  '  const bead = document.querySelector(".ui-wordmark-swoosh circle")',
+  '  if (!arth || !niti) return { missing: "wordmark" }',
+  '  const strip = backdrop(arth)',
+  '  out.stripColour = "rgb(" + strip.join(",") + ")"',
+  '  out.arthText = arth.textContent',
+  '  out.nitiText = niti.textContent',
+  '  out.arthRatio = ratio(parse(getComputedStyle(arth).color), strip)',
+  '  out.nitiRatio = ratio(parse(getComputedStyle(niti).color), strip)',
+  // The swoosh is decoration, so it is reported rather than gated on 4.5 — but a
+  // stroke that resolved to the strip colour would mean the token indirection
+  // broke, and dL* 0 with a non-transparent stroke says exactly that.
+  '  const sc = swoosh ? getComputedStyle(swoosh).stroke : "none"',
+  '  out.swooshStroke = sc',
+  '  out.swooshDeltaL = (sc === "none" || alpha(sc) === 0) ? null : Math.round(Math.abs(Ls(parse(sc)) - Ls(strip)) * 10) / 10',
+  // The bead is the tip of the stroke. If the stroke is switched off for a mode
+  // and the bead is not, it floats past the last letter with no line running
+  // into it and reads as a full stop after the product name — which is how it
+  // shipped into the first capture of the since-removed high-contrast mode.
+  '  const bc = bead ? getComputedStyle(bead).fill : "none"',
+  '  out.beadOrphaned = (sc === "none" || alpha(sc) === 0) && !(bc === "none" || alpha(bc) === 0)',
+  '  const wm = document.querySelector(".ui-wordmark-text")',
+  '  out.wordmarkPx = Math.round(parseFloat(getComputedStyle(wm).fontSize) * 10) / 10',
+  // A one-line name that wrapped to two lines is a broken wordmark; count line
+  // boxes with a Range, since getClientRects on a non-inline box returns one
+  // rect however many lines the text took.
+  '  const rng = document.createRange(); rng.selectNodeContents(wm)',
+  '  out.wordmarkLines = new Set([...rng.getClientRects()].map(r => Math.round(r.top))).size',
+  '',
+  // Inverted on 8 Sept 2026. This used to REQUIRE the prototype disclaimer in the
+  // masthead; the owner asked for it off the page outright, restated after the
+  // trade-off was put to them, so the check now guards the decision instead of the
+  // old rule — a stray re-add of the element fails the audit rather than passing it.
+  // See the note in CLAUDE.md before touching this.
+  '  out.pillPresent = !!document.querySelector(".ui-prototype-pill")',
+  '  return out',
+  '})()',
+].join('\n')
+
+// The book icon, rasterised over the surface it sits on. Same approach as
+// brand-mark.mjs: serialise the live SVG with its computed --book-* values
+// inlined, because an <img> from a data: URL cannot see the host page's custom
+// properties and every var() would fall back to nothing.
+const BOOK_PROBE = [
+  '(async () => {',
+  ...COLOUR_HELPERS,
+  '  const icon = document.querySelector(".ui-manual-icon")',
+  '  if (!icon) throw new Error("no .ui-manual-icon on this page")',
+  '  const surface = backdrop(icon.parentElement)',
+  '  const cs = getComputedStyle(document.documentElement)',
+  '  const NAMES = ["--book-cover","--book-spine","--book-band","--book-seal","--book-seal-rim","--book-pages","--book-pageline","--book-sprout"]',
+  '  const vars = NAMES.map(n => n + ":" + cs.getPropertyValue(n).trim()).join(";")',
+  '  const clone = icon.cloneNode(true)',
+  '  clone.setAttribute("style", vars)',
+  '  clone.setAttribute("width", "360")',
+  '  clone.setAttribute("height", "336")',
+  '  const img = new Image()',
+  '  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(clone))',
+  '  await img.decode()',
+  '',
+  '  const W = 360, H = 336',
+  '  const cv = document.createElement("canvas")',
+  '  cv.width = W; cv.height = H',
+  '  const ctx = cv.getContext("2d")',
+  '  ctx.fillStyle = "rgb(" + surface.join(",") + ")"',
+  '  ctx.fillRect(0, 0, W, H)',
+  '  ctx.drawImage(img, 0, 0, W, H)',
+  '  const px = ctx.getImageData(0, 0, W, H).data',
+  '  const at = (x, y) => { const i = (y * W + x) * 4; return [px[i], px[i+1], px[i+2]] }',
+  '',
+  '  const surfL = Ls(surface)',
+  '  let ink = 0, total = 0, sum = [0,0,0], n = 0',
+  '  for (let y = 0; y < H; y += 2) {',
+  '    for (let x = 0; x < W; x += 2) {',
+  '      total++',
+  '      const c = at(x, y)',
+  '      if (Math.abs(Ls(c) - surfL) > 4) { ink++; sum[0] += c[0]; sum[1] += c[1]; sum[2] += c[2]; n++ }',
+  '    }',
+  '  }',
+  '  const mean = n ? sum.map(v => Math.round(v / n)) : surface',
+  '',
+  // Distinct painted runs across the cover's middle, and the smallest step
+  // between two adjacent ones. If the cover, band and seal ever resolve to the
+  // same fill, pctInk stays perfect while the three merge into one rectangle —
+  // this is the check that sees that. It was written for the high-contrast mode,
+  // where every shape WAS the same ink; it outlives it because a token typo
+  // produces the same collapse in a plain theme.
+  '  const rowY = Math.round(H * 0.60)',
+  '  const runs = []',
+  '  for (let x = 0; x < W; x++) {',
+  '    const c = at(x, rowY)',
+  '    const key = c.map(v => Math.round(v / 8)).join(",")',
+  '    if (!runs.length || runs[runs.length - 1].key !== key) runs.push({ key, c, len: 1 })',
+  '    else runs[runs.length - 1].len++',
+  '  }',
+  '  const solid = runs.filter(r => r.len >= 3)',
+  '  let worstEdge = null',
+  '  for (let i = 1; i < solid.length; i++) {',
+  '    const d = Math.abs(Ls(solid[i].c) - Ls(solid[i - 1].c))',
+  '    if (worstEdge === null || d < worstEdge) worstEdge = d',
+  '  }',
+  '  return {',
+  '    surface: "rgb(" + surface.join(",") + ")",',
+  '    pctInk: Math.round((ink / total) * 100),',
+  '    meanInk: "rgb(" + mean.join(",") + ")",',
+  '    iconVsPage: Math.round(Math.abs(Ls(mean) - surfL) * 10) / 10,',
+  '    regions: solid.length,',
+  '    worstEdge: worstEdge === null ? null : Math.round(worstEdge * 10) / 10,',
+  '    png: cv.toDataURL("image/png"),',
+  '  }',
+  '})()',
+].join('\n')
+
+// The opened panel: every leaf text node and every interactive control inside
+// it. Deliberately scoped to the panel — the rest of the page is already covered
+// by mobile-audit.mjs, and this is the part nothing else can reach.
+const PANEL_PROBE = [
+  '(() => {',
+  ...COLOUR_HELPERS,
+  '  const panel = document.querySelector(".ui-manual-panel")',
+  '  if (!panel) return { missing: "panel" }',
+  '  const findings = []',
+  '  const strings = []',
+  '',
+  '  for (const el of panel.querySelectorAll("*")) {',
+  '    const st = getComputedStyle(el)',
+  '    if (st.display === "none" || st.visibility === "hidden") continue',
+  '    const r = el.getBoundingClientRect()',
+  '    if (r.width < 1 || r.height < 1) continue',
+  '',
+  // Leaf text only: an ancestor would report its child's text twice and its own
+  // inherited colour, which is not what the reader sees.
+  '    const own = [...el.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim()).map(n => n.textContent.trim()).join(" ")',
+  '    if (own) {',
+  '      strings.push(own)',
+  '      const px = parseFloat(st.fontSize)',
+  '      if (px < 12) findings.push({ kind: "TINY", px: Math.round(px * 10) / 10, text: own.slice(0, 40) })',
+  '      const fg = parse(st.color)',
+  '      const bg = backdrop(el)',
+  '      const rr = ratio(fg, bg)',
+  // 3.0 for large/bold text, 4.5 otherwise — the WCAG AA split. Bold at >=18.66px
+  // or plain at >=24px counts as large.
+  '      const large = px >= 24 || (px >= 18.66 && Number(st.fontWeight) >= 700)',
+  '      const floor = large ? 3 : 4.5',
+  '      if (rr < floor) findings.push({ kind: "CONTRAST", ratio: rr, floor, px: Math.round(px * 10) / 10, text: own.slice(0, 40) })',
+  '    }',
+  '',
+  '    if (el.matches("button, select, a[href], input")) {',
+  '      if (r.width < 44 || r.height < 44) {',
+  '        findings.push({ kind: "TAP", w: Math.round(r.width), h: Math.round(r.height), text: (el.textContent || el.getAttribute("aria-label") || el.tagName).trim().slice(0, 40) })',
+  '      }',
+  '    }',
+  '  }',
+  '',
+  '  const doc = document.documentElement',
+  '  if (doc.scrollWidth > doc.clientWidth + 1) findings.push({ kind: "OVERFLOW", by: doc.scrollWidth - doc.clientWidth })',
+  '  if (panel.scrollWidth > panel.clientWidth + 1) findings.push({ kind: "CLIP", by: panel.scrollWidth - panel.clientWidth })',
+  // A leaked t() key renders as its own dotted name. The panel is 20 fresh keys
+  // in 8 languages, which is exactly where one gets typo\'d.
+  '  const leaked = strings.filter(s => /^(man|nav|landing|common)\\.[a-zA-Z0-9.]+$/.test(s))',
+  '  for (const k of leaked) findings.push({ kind: "LEAKED-KEY", text: k })',
+  '',
+  '  return {',
+  '    findings,',
+  '    strings: strings.length,',
+  '    dialogRole: panel.getAttribute("role"),',
+  '    modal: panel.getAttribute("aria-modal"),',
+  '    focused: document.activeElement === panel || panel.contains(document.activeElement),',
+  '    panelW: Math.round(panel.getBoundingClientRect().width),',
+  '    panelH: Math.round(panel.getBoundingClientRect().height),',
+  '    fitsViewport: panel.getBoundingClientRect().height <= window.innerHeight + 1,',
+  '  }',
+  '})()',
+].join('\n')
+
+// The panel claims aria-modal="true", and that claim has to be true. Without a
+// focus trap a keyboard or screen-reader user tabs off the last control and walks
+// the whole landing page behind an opaque scrim — every link announced, focusable
+// and invisible. The reader most likely to open a guide called "how this works"
+// is the one least able to work out what just happened.
+//
+// Nothing about that is visible in a screenshot, which is why it needed its own
+// probe rather than an eye over the PNGs.
+const TRAP_LIST = [
+  '(() => {',
+  '  const panel = document.querySelector(".ui-manual-panel")',
+  '  if (!panel) return { missing: true }',
+  // Deliberately NOT the component's own FOCUSABLE constant. A probe that reuses
+  // the implementation's selector agrees with it by construction and would keep
+  // passing if that selector were wrong.
+  '  const sel = "a[href], button, select, input, textarea, [tabindex]"',
+  '  const items = [...panel.querySelectorAll(sel)]',
+  '    .filter(el => !el.disabled && el.getAttribute("tabindex") !== "-1")',
+  '    .filter(el => el.getClientRects().length > 0)',
+  '  return { count: items.length }',
+  '})()',
+].join('\n')
+
+// Where focus actually is, and — the part that matters — whether it is still
+// inside the panel.
+const ACTIVE_DESC = [
+  '(() => {',
+  '  const panel = document.querySelector(".ui-manual-panel")',
+  '  const el = document.activeElement',
+  '  if (!el) return { desc: "<none>", inPanel: false }',
+  '  const label = (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\\s+/g, " ")',
+  '  return {',
+  '    desc: el.tagName.toLowerCase() + (el.className && typeof el.className === "string" ? "." + el.className.split(" ")[0] : "") + (label ? " " + label.slice(0, 24) : ""),',
+  '    inPanel: !!panel && (el === panel || panel.contains(el)),',
+  '  }',
+  '})()',
+].join('\n')
+
+// rawKeyDown, not keyDown: Tab carries no character, and rawKeyDown is the type
+// that produces the browser's own focus-navigation default action while still
+// firing the page's keydown listener. That default action is the whole point —
+// the component only calls preventDefault at the two ends of the cycle and lets
+// the browser do the moves in between, so a probe that suppressed it would be
+// testing nothing.
+async function pressTab(cdp, shift) {
+  for (const type of ['rawKeyDown', 'keyUp']) {
+    await cdp.send('Input.dispatchKeyEvent', {
+      type,
+      key: 'Tab',
+      code: 'Tab',
+      windowsVirtualKeyCode: 9,
+      nativeVirtualKeyCode: 9,
+      modifiers: shift ? 8 : 0,
+    })
+  }
+  await sleep(70)
+}
+
+const MODES = [
+  { name: 'light', theme: 'light', lang: 'en', size: 'md', w: 1440, h: 900, mobile: false },
+  { name: 'dark', theme: 'dark', lang: 'en', size: 'md', w: 1440, h: 900, mobile: false },
+  // The one that earns its keep: narrowest phone, largest text, dark and Hindi
+  // all at once. The switches multiply, and a fixed box that survives each alone
+  // overflows here. It carried high contrast as a fourth arm until 8 September
+  // 2026 — the remaining three are still enough to have found four defects the
+  // plain widths could not.
+  { name: '360-stress', theme: 'dark', lang: 'hi', size: 'lg', w: 360, h: 740, mobile: true },
+]
+
+// The book must be clearly present and must not collapse into one rectangle.
+const MIN_INK = 10
+const MIN_VS_PAGE = 10
+const MIN_REGIONS = 4
+const MIN_EDGE = 3
+// Body text on the strip; the two halves of the name are bold display text but
+// still held to the plain-text floor, because a wordmark nobody can read is not
+// a wordmark.
+const MIN_TEXT_RATIO = 4.5
+
+async function main() {
+  mkdirSync(OUT, { recursive: true })
+  mkdirSync(PROFILE_DIR, { recursive: true })
+
+  const edge = spawn(EDGE, [
+    '--headless=new',
+    `--remote-debugging-port=${DEBUG_PORT}`,
+    `--user-data-dir=${PROFILE_DIR}`,
+    '--remote-allow-origins=*',
+    '--disable-gpu', '--disable-sync', '--no-first-run',
+    '--no-default-browser-check', '--disable-extensions',
+    '--disable-features=Translate,MediaRouter',
+  ], { stdio: 'ignore' })
+
+  let failures = 0
+  const report = []
+  try {
+    const cdp = new CDP(await browserWsUrl())
+    await cdp.ready
+    const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' }, false)
+    const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true }, false)
+    cdp.sessionId = sessionId
+    await cdp.send('Page.enable')
+    await cdp.send('Runtime.enable')
+
+    for (const mode of MODES) {
+      // mobile: true is load-bearing on the narrow pass — without it the viewport
+      // meta tag never applies and every measurement is a desktop measurement in
+      // a narrow window.
+      await cdp.send('Emulation.setDeviceMetricsOverride', {
+        width: mode.w, height: mode.h, deviceScaleFactor: mode.mobile ? 2 : 1, mobile: mode.mobile,
+      })
+
+      await cdp.send('Page.navigate', { url: APP + '/' })
+      await sleep(900)
+      await cdp.evaluate([
+        `localStorage.setItem('sih-theme', '${mode.theme}');`,
+        `localStorage.setItem('sih-language', '${mode.lang}');`,
+        `localStorage.setItem('sih-textsize', '${mode.size}');`,
+        `localStorage.removeItem('sih-dialect');`,
+        'true',
+      ].join(''))
+      await cdp.send('Page.navigate', { url: APP + '/' })
+      await sleep(1300)
+
+      console.log(`\n=== ${mode.name}`)
+      const notes = []
+
+      // --- the wordmark and the relocated pill
+      const chrome = await cdp.evaluate(CHROME_PROBE)
+      if (chrome.missing) {
+        notes.push(`${chrome.missing} is not on the page at all`)
+      } else {
+        for (const [k, v] of Object.entries(chrome)) console.log(`    ${k.padEnd(14)} ${v}`)
+        if (chrome.arthRatio < MIN_TEXT_RATIO) notes.push(`wordmark "${chrome.arthText}" is only ${chrome.arthRatio}:1 on the strip`)
+        if (chrome.nitiRatio < MIN_TEXT_RATIO) notes.push(`wordmark "${chrome.nitiText}" is only ${chrome.nitiRatio}:1 on the strip`)
+        if (chrome.swooshDeltaL !== null && chrome.swooshDeltaL < 3) notes.push(`the swoosh is painted but only dL* ${chrome.swooshDeltaL} from the strip — the token indirection is wrong`)
+        if (chrome.beadOrphaned) notes.push('the swoosh is switched off but its bead is still painted — it reads as a full stop after the name')
+        if (chrome.wordmarkLines > 1) notes.push(`the wordmark wrapped onto ${chrome.wordmarkLines} lines`)
+        if (chrome.pillPresent) notes.push('the prototype disclaimer pill is back on the page — it was removed on the owner\'s instruction')
+      }
+
+      // --- the book icon
+      const book = await cdp.evaluate(BOOK_PROBE)
+      const { png, ...bookReport } = book
+      for (const [k, v] of Object.entries(bookReport)) console.log(`    ${k.padEnd(14)} ${v}`)
+      writeFileSync(`${OUT}/book-${mode.name}.png`, Buffer.from(png.split(',')[1], 'base64'))
+      if (book.pctInk < MIN_INK) notes.push(`only ${book.pctInk}% of the book icon is painted — it may be background-on-background`)
+      if (book.iconVsPage < MIN_VS_PAGE) notes.push(`the book icon averages dL* ${book.iconVsPage} from the card behind it`)
+      if (book.regions < MIN_REGIONS) notes.push(`the cover's centre line crosses only ${book.regions} regions — the seal and band have merged into it`)
+      if (book.worstEdge !== null && book.worstEdge < MIN_EDGE) notes.push(`adjacent regions of the book differ by only dL* ${book.worstEdge}`)
+
+      const strip = await cdp.send('Page.captureScreenshot', {
+        format: 'png', clip: { x: 0, y: 0, width: mode.w, height: Math.min(mode.h, 520), scale: 1 },
+      })
+      writeFileSync(`${OUT}/strip-${mode.name}.png`, Buffer.from(strip.data, 'base64'))
+
+      // --- open it and measure the panel
+      await cdp.evaluate('document.querySelector(".ui-manual-open").click(); true')
+      await sleep(700)
+      const panel = await cdp.evaluate(PANEL_PROBE)
+      if (panel.missing) {
+        notes.push('clicking the open button did not render the panel')
+      } else {
+        console.log(`    panel          ${panel.panelW}x${panel.panelH}  role=${panel.dialogRole} modal=${panel.modal} focused=${panel.focused} strings=${panel.strings}`)
+        if (panel.dialogRole !== 'dialog' || panel.modal !== 'true') notes.push('the panel is not announced as a modal dialog')
+        if (!panel.focused) notes.push('focus did not move into the panel when it opened')
+        if (!panel.fitsViewport) notes.push(`the panel is ${panel.panelH}px tall in a ${mode.h}px viewport — its top will be unreachable`)
+        for (const f of panel.findings) {
+          notes.push(`${f.kind}  ` + Object.entries(f).filter(([k]) => k !== 'kind').map(([k, v]) => `${k}=${v}`).join(' '))
+        }
+      }
+
+      const open = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })
+      writeFileSync(`${OUT}/panel-${mode.name}.png`, Buffer.from(open.data, 'base64'))
+
+      // --- the focus trap: Tab and Shift+Tab must both stay inside the panel
+      let trapReport = null
+      const trap = await cdp.evaluate(TRAP_LIST)
+      if (trap.missing) {
+        notes.push('the panel was gone before the focus trap could be measured')
+      } else if (trap.count < 2) {
+        notes.push(`only ${trap.count} focusable control in the panel — the trap has nothing to cycle`)
+      } else {
+        // Two full laps plus a couple of extra presses, so the wrap at each end is
+        // crossed rather than merely approached.
+        const steps = trap.count + 2
+        const forward = []
+        for (let i = 0; i < steps; i++) {
+          await pressTab(cdp, false)
+          forward.push(await cdp.evaluate(ACTIVE_DESC))
+        }
+        const back = []
+        for (let i = 0; i < steps; i++) {
+          await pressTab(cdp, true)
+          back.push(await cdp.evaluate(ACTIVE_DESC))
+        }
+
+        const escaped = [...forward, ...back].filter((step) => !step.inPanel)
+        // The instrument check. If Tab moved nothing at all, every step reports
+        // "still in the panel" and the trap looks perfect while being untested —
+        // the same false zero this repo has hit twice with getClientRects() and
+        // with the font shorthand. So require that focus actually travelled.
+        const distinct = new Set(forward.map((step) => step.desc)).size
+
+        trapReport = { count: trap.count, distinct, forward, back }
+
+        if (distinct < 2) {
+          notes.push(
+            `Tab never moved focus (${distinct} distinct target over ${steps} presses) — the trap is untested, not passing`,
+          )
+        }
+        if (escaped.length) {
+          notes.push(
+            `focus left the modal ${escaped.length}x: ${escaped.map((step) => step.desc).slice(0, 4).join(' | ')}`,
+          )
+        }
+        if (!escaped.length && distinct >= 2) {
+          console.log(`    trap           ${trap.count} stops, ${distinct} visited, focus never left the panel`)
+        }
+      }
+
+      // Escape has to close it, or a keyboard user is stuck behind the scrim.
+      await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+      await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+      await sleep(400)
+      const closed = await cdp.evaluate('!document.querySelector(".ui-manual-panel") && getComputedStyle(document.body).overflow !== "hidden"')
+      if (!closed) notes.push('Escape did not close the panel, or the body scroll lock was left on')
+
+      // Closing must hand focus back to the button that opened it. Escape used to
+      // skip this and leave focus on a node it had just unmounted, which drops a
+      // keyboard user at the top of the document to walk the whole chrome again.
+      const restored = await cdp.evaluate(
+        'document.activeElement === document.querySelector(".ui-manual-open")',
+      )
+      if (closed && !restored) {
+        notes.push('closing with Escape did not return focus to the button that opened the guide')
+      }
+
+      if (notes.length) {
+        failures++
+        for (const n of notes) console.log(`    FAIL  ${n}`)
+      } else {
+        console.log('    ok    wordmark, icon and panel hold up; no disclaimer pill')
+      }
+      report.push({ mode: mode.name, chrome, book: bookReport, panel, trap: trapReport, notes })
+    }
+  } finally {
+    edge.kill()
+  }
+
+  writeFileSync(`${OUT}/report.json`, JSON.stringify(report, null, 2))
+  console.log(`\n${MODES.length} modes checked, ${failures} with problems.`)
+  console.log(`Captures and report.json in ${OUT}`)
+  process.exit(failures ? 1 : 0)
+}
+
+main().catch((error) => {
+  console.error(error)
+  process.exit(1)
+})

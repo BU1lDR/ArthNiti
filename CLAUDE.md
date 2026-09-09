@@ -176,7 +176,7 @@ Strings live in **four** files, split purely by size and by who wrote the senten
 
 It was 584 until 8 Sept 2026. `common.appName` and `landing.eyebrow` were **deleted**, not retranslated — see "The product name is not a translatable string" below. `common.highContrast` went the same way when high contrast was removed later that day; `man.tipText` was **rewritten** in all 8 languages rather than deleted, because its third tip named that control and the string itself is live manual copy.
 
-**All 8 dicts are at full parity in all four files — verified by script, not by self-report.** `node screenshots/parity4.mjs` from the repo root checks five things nothing else can see, in order of how badly each bites: every language carries every `en` key per file; no duplicate key inside one dict; **no key defined in two different files**; no non-English value byte-identical to English (the per-key fallback never fires, so the reader just sees English and nothing reports it); and placeholder sets matching English. It is zero-dependency and exits 1 on failure. Run it after touching any dictionary.
+**All 8 dicts are at full parity in all four files — verified by script, not by self-report.** `node tools/parity4.mjs` from the repo root checks five things nothing else can see, in order of how badly each bites: every language carries every `en` key per file; no duplicate key inside one dict; **no key defined in two different files**; no non-English value byte-identical to English (the per-key fallback never fires, so the reader just sees English and nothing reports it); and placeholder sets matching English. It is zero-dependency and exits 1 on failure. Run it after touching any dictionary.
 
 Two figures in this file used to read "344 keys" and "186 keys". They were stale by a wide margin in both directions; the table above is measured.
 
@@ -194,7 +194,7 @@ Two mechanical consequences:
 **The English fallback is per key, not per language.** `lookup()` tries the dialect override, then the chosen language, then `en`, then returns the key itself ([LanguageContext.jsx:16-28](frontend/src/i18n/LanguageContext.jsx#L16-L28)). Two consequences worth knowing:
 
 - You can add an English key and use it immediately; the other 7 languages show English for that one string and stay correct everywhere else.
-- A **typo'd or missing key renders as the literal dotted name** (`money.left`) on the page. Lint and build cannot catch this — nothing imports the key names. `screenshots/verify/drive.mjs` greps rendered text for the known key prefixes precisely because this is the one failure class only a browser can see.
+- A **typo'd or missing key renders as the literal dotted name** (`money.left`) on the page. Lint and build cannot catch this — nothing imports the key names. `tools/verify/drive.mjs` greps rendered text for the known key prefixes precisely because this is the one failure class only a browser can see.
 
 `t(key, values)` fills `{name}` placeholders by plain string replacement. **No plural rules and no number formatting** — Indic plurals and grammatical case are real problems, so the strings are written to avoid needing them. Corollary: **never compose a sentence from parts in JSX.** `t('label') + ' ' + value + '.'` puts English word order and a Latin full stop into a Devanagari sentence (which ends in `।`). Give the whole phrase its own key with a placeholder. This is also why `mk.demandHigh` / `mk.demandMedium` / `mk.demandLow` are three keys rather than one `'{level} demand'` template — that template produced the literal "Medium मांग".
 
@@ -333,7 +333,7 @@ Ranked by demo impact, all confirmed against the code. **Numbers are stable** �
 
 **Agriculture is no longer a dead end** — it matches 12 schemes across 5 tiers. This is *not* the forbidden widening: the eligibility warning under Formulas is about `CATEGORY_SYNONYMS` bridging *wording*, and these are real schemes that genuinely serve crop farmers (KCC, the Agriculture Infrastructure Fund, the district Krishi Vigyan Kendra, the block ATMA unit, the Sub-Divisional agriculture office). No synonym was loosened to get there.
 
-**The `sch.noneCovered` empty state is still reachable, but only through a typed-in "Other".** It was rewritten in all 8 languages to name every kind of work the 30 schemes between them cover. Note the knock-on for verification: `screenshots/verify/drive.mjs`'s `empty` case used to be agriculture-in-Delhi and silently stopped testing the empty state once it started matching 12 — it is now a typed "Photography", which is the only input that reaches it.
+**The `sch.noneCovered` empty state is still reachable, but only through a typed-in "Other".** It was rewritten in all 8 languages to name every kind of work the 30 schemes between them cover. Note the knock-on for verification: `tools/verify/drive.mjs`'s `empty` case used to be agriculture-in-Delhi and silently stopped testing the empty state once it started matching 12 — it is now a typed "Photography", which is the only input that reaches it.
 
 **3. FIXED — `market_context` was computed and then silently discarded.** No frontend file read it, so the hyperlocal data never reached the UI even though "Hyperlocal" is the first differentiator in `OUR_MVP.md` §2. Now rendered on `/analysis` (a "Your local market" section with `MarketCard`) and inside `/report`'s local-market section (`MarketRow`). The exact-district requirement was also relaxed to the tier described under Formulas, and `market_data.json` grew from 5 rows to 9 (added Lucknow × {handicrafts, tailoring}, Varanasi × {handicrafts, food processing}). Every row is labelled `"source": "Prototype estimate / illustrative data"` — keep it that way; the data is illustrative and the UI says so.
 
@@ -363,27 +363,27 @@ Ranked by demo impact, all confirmed against the code. **Numbers are stable** �
 
 ### Verifying in a real browser
 
-Lint, build and pytest cannot see a leaked `t()` key, a `null%`, or a page that renders as an empty shell. [screenshots/verify/drive.mjs](screenshots/verify/drive.mjs) drives Edge over CDP with **zero dependencies** (Node 24 has a global `WebSocket`), seeds `sessionStorage` so result pages can be loaded directly, walks **7 passes → 36 page loads**, and writes text dumps, full-page PNGs and a `report.json`. It fails on: an unrendered page, a page exception, a leaked dotted i18n key, the bad tokens `null%` / `NaN` / `undefined` / `[object Object]` / `₹null`, and raw enum names.
+Lint, build and pytest cannot see a leaked `t()` key, a `null%`, or a page that renders as an empty shell. [tools/verify/drive.mjs](tools/verify/drive.mjs) drives Edge over CDP with **zero dependencies** (Node 24 has a global `WebSocket`), seeds `sessionStorage` so result pages can be loaded directly, walks **7 passes → 36 page loads**, and writes text dumps, full-page PNGs and a `report.json`. It fails on: an unrendered page, a page exception, a leaked dotted i18n key, the bad tokens `null%` / `NaN` / `undefined` / `[object Object]` / `₹null`, and raw enum names.
 
 ```bash
-node screenshots/parity4.mjs              # i18n key parity, 4 files × 8 languages, no server
-node screenshots/keycheck.mjs             # key USE vs key definition, no server
-node screenshots/verify/refresh-cases.mjs  # regenerate the fixtures; needs the BACKEND up
-node screenshots/verify/print-audit.mjs    # what reaches the paper; needs Vite up; 3 cases
-node screenshots/verify/drive.mjs          # needs the Vite dev server up; 36 page loads
-node screenshots/verify/glyph-audit.mjs    # bare decorative glyphs, no server needed
-node screenshots/verify/mobile-audit.mjs   # phone widths; needs Vite up; 40 page loads
-node screenshots/verify/hero-art.mjs       # landing backdrop visibility + hero copy AA; 3 modes
-node screenshots/verify/brand-mark.mjs     # the lotus mark in both themes; needs Vite up
-node screenshots/verify/manual-audit.mjs   # wordmark + book icon + manual dialog; 3 modes
-node screenshots/verify/lang-layout.mjs    # layout vs language, 8 langs × 6 routes × 2 widths
-node screenshots/verify/error-banner.mjs   # the /finance error banner in 8 languages
-node screenshots/verify/field-align.mjs    # form controls lining up in a grid row; 96 loads
-node screenshots/verify/hero-geom.mjs      # where the backdrop's edge sits vs the content on it
-node screenshots/verify/load-perf.mjs      # startup cost; needs `npm run preview` on 4173
-node screenshots/verify/motion-audit.mjs   # transitions actually run + reduced-motion; needs Vite; `--broken` must fail
-node screenshots/verify/hero-vibrance.mjs  # NOT a gate — sweeps filter candidates for chroma
-node screenshots/verify/art-contrast.mjs   # RETIRED — exits 2; modelled the old SVG backdrop
+node tools/parity4.mjs              # i18n key parity, 4 files × 8 languages, no server
+node tools/keycheck.mjs             # key USE vs key definition, no server
+node tools/verify/refresh-cases.mjs  # regenerate the fixtures; needs the BACKEND up
+node tools/verify/print-audit.mjs    # what reaches the paper; needs Vite up; 3 cases
+node tools/verify/drive.mjs          # needs the Vite dev server up; 36 page loads
+node tools/verify/glyph-audit.mjs    # bare decorative glyphs, no server needed
+node tools/verify/mobile-audit.mjs   # phone widths; needs Vite up; 40 page loads
+node tools/verify/hero-art.mjs       # landing backdrop visibility + hero copy AA; 3 modes
+node tools/verify/brand-mark.mjs     # the lotus mark in both themes; needs Vite up
+node tools/verify/manual-audit.mjs   # wordmark + book icon + manual dialog; 3 modes
+node tools/verify/lang-layout.mjs    # layout vs language, 8 langs × 6 routes × 2 widths
+node tools/verify/error-banner.mjs   # the /finance error banner in 8 languages
+node tools/verify/field-align.mjs    # form controls lining up in a grid row; 96 loads
+node tools/verify/hero-geom.mjs      # where the backdrop's edge sits vs the content on it
+node tools/verify/load-perf.mjs      # startup cost; needs `npm run preview` on 4173
+node tools/verify/motion-audit.mjs   # transitions actually run + reduced-motion; needs Vite; `--broken` must fail
+node tools/verify/hero-vibrance.mjs  # NOT a gate — sweeps filter candidates for chroma
+node tools/verify/art-contrast.mjs   # RETIRED — exits 2; modelled the old SVG backdrop
 ```
 
 **Each of these thirteen browser scripts owns a different failure class, and they use thirteen different CDP ports** — counted from the list, which is now the authority; the sentence said "thirteen" while naming twelve until `motion-audit` landed on 9 Sept 2026 (`drive` 9222, `mobile-audit` 9333, `hero-art` 9337, `brand-mark` 9339, `lang-layout` 9343, `manual-audit` 9341, `error-banner` 9347, `field-align` 9351, `hero-geom` 9355, `print-audit` 9359, `hero-vibrance` 9361, `load-perf` 9363, `motion-audit` 9365) with separate profile dirs, so two can run at once. `hero-vibrance.mjs` sat on 9359 as well until 8 Sept 2026, which quietly broke that guarantee for the one pair most likely to be run together.
@@ -486,7 +486,14 @@ Each of its three checks found a real defect the first time it ran, and all thre
 
 The same maths carried straight over to the JPEG backdrop, and one corollary is worth stating outright because it reads as a typo: **`contrast(0.91)` is there for accessibility, not for looks.** Below 1 it pulls everything toward mid-grey, which *lifts the black halftone off zero* and hands the hero text back contrast — 5.18:1 → 5.48:1 on the worst pixel, for 0.5 ΔL\* of visibility. And because `saturate` is measurably neutral on both constraints, its value is the one number in that filter chain that may legitimately be chosen by eye; it went `2.2` → `1.2` when the backdrop changed, purely because 2.2 existed to stop halved brightness reading as a grey smudge on pale line art and lands lurid on an already-colourful photo.
 
-`screenshots/` is gitignored, so the driver is **not version-controlled** — it lives with the output it produces. Kill Edge and both servers when done.
+**The scripts live in `tools/` and are version-controlled; `screenshots/` is gitignored and holds only their output.** That split was made on 9 Sept 2026 and the reason is the ratio: `screenshots/` is **8.1 GB** — Edge profile directories and thousands of PNGs — while the scripts inside it totalled **317 KB**. So a teammate who cloned the repo got the app and none of the gates, and the obvious fix of relaxing `.gitignore` in place was the dangerous one: git does not descend into an excluded directory, so a naive `!screenshots/**/*.mjs` re-include does nothing, and a pattern that *does* work is one typo away from committing gigabytes of browser profile data to a shared repo — permanently, since the blobs stay in history after any follow-up delete.
+
+Two mechanical facts made the move safe, and both were verified rather than assumed:
+
+- **Every script but one resolves paths against `process.cwd()`**, not against its own location — `resolve('screenshots/verify/out')` and friends. So moving the file changes nothing as long as it is still invoked from the repo root, which was already the documented requirement.
+- **`glyph-audit.mjs` is the exception** and it survives by arithmetic rather than by luck: line 17 is `new URL('../../frontend/src/', import.meta.url)`, and `tools/verify/` is the **same two levels deep** as `screenshots/verify/` was. Any future move to a different depth breaks that one line, and nothing else in the suite.
+
+The scripts still *write* into `screenshots/`, which is why that directory keeps its ignore rule rather than being deleted. Kill Edge and both servers when done.
 
 ### Also fixed 7 Sept 2026 (found after the list above was written)
 
@@ -683,8 +690,8 @@ On the brief "add more schemes — Block/Taluka/Circle, Village/Urban Local Body
 - **The full backend-prose translation layer** — every service sentence carries a code, resolved through `tBackend()` / `backendText.js`. This is what closed the "backend prose is English only" gap.
 - **`schemeStrings.js`, the fourth dictionary file** — 188 keys × 8 languages for the scheme prose alone.
 - **Tier grouping on `/schemes`** under `lvl.*` headings with `lvlnote.*` office notes, and a `sch.runBy` badge on the flat lists on `/analysis` and `/report`.
-- **`screenshots/parity4.mjs`** — the 4-file, 8-language, 5-check parity verifier. It is the only thing that catches a cross-file key collision.
-- **`screenshots/verify/refresh-cases.mjs`** — regenerates the driver's fixtures, which had gone stale and were masking exactly this kind of change.
+- **`tools/parity4.mjs`** — the 4-file, 8-language, 5-check parity verifier. It is the only thing that catches a cross-file key collision.
+- **`tools/verify/refresh-cases.mjs`** — regenerates the driver's fixtures, which had gone stale and were masking exactly this kind of change.
 - **151 tests** (was 135; **171 now**, after the 8 Sept audit and the 9 Sept optimization pass), including `test_the_seven_levels_are_all_reachable_from_real_input`, which sweeps 8 (category, state) pairs and asserts every tier is reachable — so a tier with no UI heading would be caught as dead data.
 
 ### Safest demo configuration
@@ -741,7 +748,7 @@ Two chart rules exist because breaking them produces a *favourable* misreading, 
 
 **Print styles live in the `@media print` block at the end of `index.css`.** Anything added to `/report` that is a card needs to be covered by the `break-inside: avoid` selector list, or it will split across a page break in the PDF.
 
-**Timing goes through `--motion-fast` / `--motion` / `--motion-ease`, never a literal duration** — and a new transition must name its properties, never `all`. Ease colour by preference; a layout property (`width`, `height`, `padding`, `font-size`, `transform` on a resting state) moves geometry under the fixed sleeps every browser verifier measures at. Run `node screenshots/verify/motion-audit.mjs` after adding one: it is the only thing in the suite that can see whether a transition runs, and an **undefined** token silently deletes the whole declaration rather than falling back. See the motion-layer section for the full reasoning, including why the `prefers-reduced-motion` guard has to stay in `@layer base`.
+**Timing goes through `--motion-fast` / `--motion` / `--motion-ease`, never a literal duration** — and a new transition must name its properties, never `all`. Ease colour by preference; a layout property (`width`, `height`, `padding`, `font-size`, `transform` on a resting state) moves geometry under the fixed sleeps every browser verifier measures at. Run `node tools/verify/motion-audit.mjs` after adding one: it is the only thing in the suite that can see whether a transition runs, and an **undefined** token silently deletes the whole declaration rather than falling back. See the motion-layer section for the full reasoning, including why the `prefers-reduced-motion` guard has to stay in `@layer base`.
 
 **Design system** (`index.css`). **Not all of it is inside `@layer components`, despite what this file used to say here** — `@layer base` opens at line 112 and `@layer components` at line 589, so the **chrome block (lines ~195–580) is unlayered and therefore beats every Tailwind utility**, regardless of specificity or class-attribute order. That is why the phone rules below can set a `min-height` that wins over a call-site `py-1`, and it is a trap in the other direction: a chrome rule you *want* a call site to override has to be moved into `@layer components` first. Chrome: `.ui-shell`, `.ui-utilitybar(-inner|-note|-tools)`, `.ui-utility-button`, `.ui-textsize`, `.ui-wordmark(-text|-arth|-niti|-swoosh)`, `.ui-masthead(-inner)`, `.ui-tricolour`, `.ui-topbar(-inner)`, `.ui-navbar(-inner|-link)`, `.ui-brand(-mark|-name|-sub)`, `.ui-breadcrumb(-sep)`, `.ui-skip-link`, `.ui-main`, `.ui-footer(-inner|-title|-gov|-bottom|-bottom-inner)`. Instruction manual (27 classes, all prefixed): `.ui-manual`, `-strip-title`, `-strip-text`, `-open`, `-badge`, `-icon`, `-overlay`, `-panel`, `-head`, `-title`, `-lead`, `-close`, `-lang(-label)`, `-select`, `-body`, `-section`, `-list`, `-step(-icon|-text|-title)`, `-num`, `-note-title`, `-note-text`, `-foot`, `-secondary`. **`.ui-prototype-pill` is gone** — see the design-direction section before re-adding it. Content: `.ui-page-intro`, `.ui-eyebrow`, `.ui-page-title`, `.ui-page-subtitle`, `.ui-hero`, `.ui-card`, `.ui-card-soft`, `.ui-simple-grid`, `.ui-feature-*`, `.ui-progress*`, `.ui-disclosure(-body)`, `.ui-icon-button`, `.ui-notice(-danger|-warn)`, `.ui-required`. Forms: `.ui-formsection(-head|-num|-title|-body)`, `.ui-field`, `.ui-money-field`, `.ui-money-prefix`. Charts: `.ui-bar-row`, `.ui-bar-head`, `.ui-bar-label`, `.ui-bar-value`, `.ui-bar-track`, `.ui-bar-fill`, `.ui-bar-mark`, `.ui-unit-chart`, `.ui-chart-caption`.
 

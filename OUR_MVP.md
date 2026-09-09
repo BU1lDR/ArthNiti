@@ -367,7 +367,7 @@ npm run lint         # ESLint 10
 ../.venv/Scripts/python.exe -m pytest tests -q      # 169 passed in under 1.5s
 
 # Translation-key parity — from the repo root, no server needed
-node screenshots/parity4.mjs                        # 4 files × 8 languages, 5 checks
+node tools/parity4.mjs                        # 4 files × 8 languages, 5 checks
 ```
 
 API docs are auto-served at `http://127.0.0.1:8000/docs` and `/redoc`.
@@ -631,7 +631,7 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 
 ## How the frontend is verified — there are no unit tests, and that is not the same as unverified
 
-`npm run lint`, `npm run build` and `pytest` cannot see a leaked translation key, a `null%`, a page that scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, or a logo that prints invisible. **Twelve zero-dependency drivers** in `screenshots/verify/` drive Edge over the DevTools protocol and assert on what actually rendered. Each owns a *different* failure class — that is the point, and it is why there are twelve rather than one big one:
+`npm run lint`, `npm run build` and `pytest` cannot see a leaked translation key, a `null%`, a page that scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, or a logo that prints invisible. **Sixteen zero-dependency drivers** in `tools/verify/` drive Edge over the DevTools protocol and assert on what actually rendered. Each owns a *different* failure class — that is the point, and it is why there are sixteen rather than one big one:
 
 | Driver | The one question it asks |
 |---|---|
@@ -650,7 +650,7 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 
 Plus `parity4.mjs` (no browser needed) for translation-key parity, and `refresh-cases.mjs` to regenerate the captured API responses the drivers seed — **run that one after any backend change**, because stale fixtures make the drivers pass while telling you nothing.
 
-`screenshots/` is gitignored, so these live with the output they produce rather than in Git. **They are not a substitute for clicking through once on the presentation laptop, in the presentation browser.**
+The scripts are tracked in `tools/`; `screenshots/` stays gitignored and holds only the PNGs and JSON they write. **They are not a substitute for clicking through once on the presentation laptop, in the presentation browser.**
 
 ## Still not verified
 - **Phone landscape orientation, real touch scrolling on physical hardware, and the on-screen keyboard covering a focused input.** Emulation cannot answer these; borrow a phone.
@@ -693,8 +693,9 @@ SIH_2026/
 │
 ├── docs/                     frontend_integration.md, requirements.txt
 ├── presentation/             empty — Saad + Tripti
-├── screenshots/              gitignored — 11 verification drivers in verify/,
-│                             plus 27 stale PNGs at the top level (do not circulate)
+├── tools/                     tracked — 21 verification scripts, 16 of them in verify/
+├── screenshots/              gitignored, 8.1 GB — their output only: PNGs, report.json,
+│                             Edge profiles, plus 27 stale PNGs (do not circulate)
 ├── .venv/                    Python 3.14.6, gitignored
 ├── CLAUDE.md                 engineering context
 ├── OUR_MVP.md                this file
@@ -943,7 +944,7 @@ Four rows are filled in both columns — hence the demo persona in §3. **Scheme
 3. **Market rows stay labelled `"Prototype estimate / illustrative data"`** until someone sources a real figure, and then the label changes to the real source.
 4. Adding a market row is the cheapest possible coverage win: one JSON object, no code change.
 5. **A new scheme needs a `level`, a `location_types` list, and a translation code for every sentence.** The eligibility and document codes are **index-aligned** with their English arrays — insert a rule without inserting its code at the same position and every later rule silently gets the wrong translation, which reads fluently and is completely wrong (§8).
-6. **Run `pytest` and `node screenshots/parity4.mjs` after touching either dataset**, then `node screenshots/verify/refresh-cases.mjs` so the browser drivers are not testing last week's response.
+6. **Run `pytest` and `node tools/parity4.mjs` after touching either dataset**, then `node tools/verify/refresh-cases.mjs` so the browser drivers are not testing last week's response.
 
 ---
 
@@ -1071,7 +1072,7 @@ Any AI assistant reading this file should:
 - Guard on the raw value before printing a number. The backend sends `null` for anything it could not compute, and `Number(null)` is `0` — a naive guard turns "could not compute" into a confident, favourable `0%`. This has been a live bug twice.
 - Prefer changes that make the demo path work end to end and read clearly on a projector over refactors and infrastructure. The milestone is **11 September 2026**.
 - **Ask for explicit confirmation before any action that changes the GitHub repository** — push, PR, branch or tag creation or deletion, releases, settings. Local commits when requested are fine. Approval for one push does not carry to the next. Six people share this repo.
-- Run `pytest` after any service or schema edit; run `npm run lint` and `npm run build` after any frontend edit; run `node screenshots/parity4.mjs` after touching any dictionary; run `node screenshots/verify/refresh-cases.mjs` after any backend change, or the browser drivers will keep passing against last week's response.
+- Run `pytest` after any service or schema edit; run `npm run lint` and `npm run build` after any frontend edit; run `node tools/parity4.mjs` after touching any dictionary; run `node tools/verify/refresh-cases.mjs` after any backend change, or the browser drivers will keep passing against last week's response.
 - Clean up any server you start (§6).
 - When suggesting code, name the exact file path. When changing architecture, explain why and update this file in the same commit.
 

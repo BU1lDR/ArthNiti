@@ -88,7 +88,7 @@ still pass, because none of them parses an image. `public/favicon.svg` shipped
 broken this way from 8 Sept until it was caught on 9 Sept. That is why the
 comments in these files spell the token names out in words.
 
-`node screenshots/svgcheck.mjs` is the check that sees it: it loads every SVG in
+`node tools/svgcheck.mjs` is the check that sees it: it loads every SVG in
 the repo through a real browser and fails on any the browser refuses.
 
 ### The wordmark: live text in the app, a PNG here
@@ -161,13 +161,13 @@ replaced on 8 Sept 2026.
 
 ## Re-exporting
 
-The exports are produced by `screenshots/assetgen.mjs`. **That script is
-gitignored** (all of `screenshots/` is), so it will not be in your checkout —
-which is exactly why the recipe is written down here.
+The exports are produced by `tools/assetgen.mjs`, which **is** in your checkout
+as of 9 September 2026. It used to live in the gitignored `screenshots/` and so
+was absent from a fresh clone, which is why the recipe is also written down here.
 
 ```bash
 cd frontend && npm run dev          # the lockup and wordmark come from the live app
-node screenshots/assetgen.mjs       # from the repo root
+node tools/assetgen.mjs       # from the repo root
 ```
 
 It produces the seven PNGs from **two different sources on purpose**:

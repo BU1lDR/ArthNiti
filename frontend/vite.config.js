@@ -8,7 +8,7 @@ export default defineConfig({
     rolldownOptions: {
       output: {
         // Split one 1,018 kB chunk into seven. Measured, not assumed -- see
-        // screenshots/verify/load-perf.mjs, medians of 5 cold loads per case:
+        // tools/verify/load-perf.mjs, medians of 5 cold loads per case:
         //
         //   DOMContentLoaded   1 chunk            7 chunks
         //   desktop             66.2ms (65-80)     48.0ms (44-55)    -27%
