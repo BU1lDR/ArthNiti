@@ -130,7 +130,7 @@ Anything else renders a 404 page. **Nothing guards the journey order** — the n
 | `frontend/src/data/indiaLocations.js` | 36 states/UTs, 768 districts |
 | `frontend/src/services/api.js` | the only network call in the app |
 | `frontend/src/index.css` | design tokens, the `.ui-*` design system, `@media print` |
-| `tools/` | 21 verification scripts — see [tools/README.md](tools/README.md) |
+| `tools/` | 22 verification scripts — see [tools/README.md](tools/README.md) |
 | `presentation/` | empty — Saad + Tripti |
 
 ---
@@ -201,7 +201,7 @@ node tools/keycheck.mjs    # the other half: does every key the code ASKS for ex
 
 ## Verifying
 
-`npm run lint`, `npm run build` and `pytest` structurally cannot see a leaked translation key, a `null%`, a page that scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, a logo that prints invisible, or a transition that silently does nothing. **21 zero-dependency scripts in `tools/` cover those.** Full guide and traps: **[tools/README.md](tools/README.md)**.
+`npm run lint`, `npm run build` and `pytest` structurally cannot see a leaked translation key, a `null%`, a page that scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, a logo that prints invisible, a transition that silently does nothing, or a route that opens halfway down the page. **22 zero-dependency scripts in `tools/` cover those.** Full guide and traps: **[tools/README.md](tools/README.md)**.
 
 On a fresh clone, in this order:
 
@@ -244,7 +244,9 @@ Run the browser verifiers after any UI change, and `refresh-cases.mjs` after any
 
 The working branch is **`before-main`** — everything described in this file lives there, and it is what to check out. The remote has two branches, `before-main` and `main`.
 
-**`main` has diverged from `before-main`, it is not simply behind it.** `git rev-list --left-right --count main...before-main` reports **1 / 166**: `before-main` carries 166 commits `main` lacks, but `main` also carries one that `before-main` lacks. So merging is a real merge, not a fast-forward — don't reason about it as "main is 166 commits behind".
+**On the remote, `before-main` is simply ahead of `main` — `git rev-list --left-right --count origin/main...origin/before-main` reports `0 / 172`.** `main` carries nothing `before-main` lacks, so merging it is a fast-forward, not a real merge.
+
+> **Compare the `origin/` refs, not your local branch names.** A local `main` left over from early backend work can sit several commits ahead of `origin/main` and never have been pushed — one here does, by 6 — and then `main...before-main` reports `1 / 167` and looks like a genuine divergence. It is not: those commits exist on one laptop. This README said `1 / 166` and called it a real merge for exactly that reason.
 
 **Never commit directly to `main`.** The repo is private and shared with six people, so a push lands in everyone's working copy — say so before you push. Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`, `screenshots/`.
 

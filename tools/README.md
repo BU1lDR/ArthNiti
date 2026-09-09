@@ -1,9 +1,10 @@
 # `tools/` — the verification suite
 
-21 zero-dependency scripts that check things `npm run lint`, `npm run build` and
+22 zero-dependency scripts that check things `npm run lint`, `npm run build` and
 `pytest` structurally cannot see: a leaked translation key, a `null%`, a page that
 scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, a logo
-that prints invisible, a transition that silently does nothing.
+that prints invisible, a transition that silently does nothing, a route that opens
+halfway down the page.
 
 They lived in `screenshots/` until 9 September 2026 and so were **absent from every
 fresh clone** — `screenshots/` is gitignored, because it is 8.1 GB of Edge profile
@@ -67,6 +68,7 @@ node tools/verify/lang-layout.mjs    # 8 languages x 6 routes x 2 widths = 96 lo
 node tools/verify/field-align.mjs    # form controls sharing a grid row, 96 loads
 node tools/verify/print-audit.mjs    # the @media print stylesheet, 3 renders
 node tools/verify/motion-audit.mjs   # transitions actually run + reduced-motion
+node tools/verify/scroll-audit.mjs   # every route opens at the TOP of the page
 node tools/verify/hero-art.mjs       # landing backdrop visibility + hero copy AA
 node tools/verify/hero-geom.mjs      # backdrop edge vs the content sitting on it
 node tools/verify/brand-mark.mjs     # the lotus mark in both themes
@@ -131,7 +133,8 @@ taskkill //F //T //PID <pid>     # doubled slashes under Git Bash
 can run at once: `drive` 9222, `mobile-audit` 9333, `hero-art` 9337, `brand-mark`
 9339, `manual-audit` 9341, `lang-layout` 9343, `error-banner` 9347, `field-align`
 9351, `hero-geom` 9355, `print-audit` 9359, `hero-vibrance` 9361, `load-perf` 9363,
-`motion-audit` 9365.
+`motion-audit` 9365, `scroll-audit` 9367 — plus `assetgen` 9377 and `svgcheck` 9378,
+which drive a browser without being gates.
 
 **`--user-data-dir` must be absolute.** A relative path silently attaches to your
 already-running Edge profile and exits with no debug port. Every script builds it
@@ -146,3 +149,15 @@ because every test width produced identical line breaking, and all ten CSS
 transitions were inert for a full day while every script in this directory passed.
 A clean result from an inert check is indistinguishable from a clean result from a
 working one.
+
+Three scripts have that refuter built in as a flag, and each **must exit 1** with it:
+
+```bash
+node tools/verify/motion-audit.mjs --broken   # 29 findings across 10 kinds
+node tools/verify/field-align.mjs  --broken
+node tools/verify/scroll-audit.mjs --broken   # 9 findings: 8 TOP + 1 BACK
+```
+
+`scroll-audit` also carries the check in-band: a hop whose source page could not
+be scrolled at least 200px is reported as `INERT` rather than counted as a pass,
+because a navigation with no offset to carry over proves nothing either way.

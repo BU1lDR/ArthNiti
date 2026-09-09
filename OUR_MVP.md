@@ -11,7 +11,7 @@
 |---|---|
 | Project name | **अर्थNiti** (frozen) |
 | Phase | Working prototype, feature-frozen except polish |
-| Backend | Runs. 8 routers, 169 passing tests |
+| Backend | Runs. 8 routers, 171 passing tests |
 | Frontend | Runs. 10 routes plus a catch-all, full journey works end to end |
 | Integration | Done — one API call carries the whole journey |
 | Datasets | 30 government schemes across 7 tiers, 9 market rows (illustrative) |
@@ -334,7 +334,7 @@ backend/app/
   core/data_loader.py     loads JSON from app/data by absolute path (cwd-independent)
   data/                   schemes.json (30 schemes, 7 tiers), market_data.json (9 rows)
   gen_schemes.py          the generator that produced schemes.json — provenance, not runtime
-backend/tests/            25 files, 169 tests
+backend/tests/            25 files, 171 tests
 ```
 
 The planned `models/`, `calculations/` and `ai/` directories **do not exist**. Calculations live in `services/`; there are no ORM models because there is no database; there is no `ai/` because there is no model call.
@@ -364,7 +364,7 @@ npm run build        # production build into frontend/dist
 npm run lint         # ESLint 10
 
 # Tests — run from ./backend
-../.venv/Scripts/python.exe -m pytest tests -q      # 169 passed in under 1.5s
+../.venv/Scripts/python.exe -m pytest tests -q      # 171 passed in under 1s
 
 # Translation-key parity — from the repo root, no server needed
 node tools/parity4.mjs                        # 4 files × 8 languages, 5 checks
@@ -555,16 +555,17 @@ Nobody works in isolation. Every day: a 15-minute stand-up, one shared task boar
 
 **Repo:** `https://github.com/BU1lDR/SIH_2026` (private).
 
-The planned `develop` + `frontend/<name>` scheme was not adopted. Real branches are per-person and flat:
+The planned `develop` + `frontend/<name>` scheme was not adopted. Neither, any more, is the flat per-person scheme that replaced it. **As of 9 September 2026 the remote has exactly two branches:**
 
 ```text
 main            before-main
-backend         frontend
-aryan           aryan-frontend      aryan-ui-redesign   aryan-gov-ui
-netra           saad                tripti              Manjeet   (capital M)
 ```
 
-**`aryan-gov-ui` is where the current build lives** — branched from `aryan-ui-redesign` on 8 September 2026 to carry the government-style chrome, the 8-language layer, the charts, the cascading location data, `sessionStorage` and the accessibility switches. `aryan-ui-redesign` is deliberately left at the state before all of that.
+**`before-main` is where the current build lives** — everything in this document is on it, including the government-style chrome, the 8-language layer, the charts, the cascading location data, `sessionStorage` and the accessibility switches. It is what to check out.
+
+This section used to list eleven branches — `backend`, `frontend`, `aryan`, `aryan-frontend`, `aryan-ui-redesign`, `aryan-gov-ui`, `netra`, `saad`, `tripti`, `Manjeet` — and named `aryan-gov-ui` as the live one. Those are gone; the work merged. `git ls-remote --heads origin` is the authority here, not a list in a document.
+
+**On the remote, `before-main` is simply ahead of `main`**: `git rev-list --left-right --count origin/main...origin/before-main` reports `0 / 172`, so merging is a fast-forward. Compare the `origin/` refs and not the local branch names — a leftover local `main` from early backend work can sit unpushed commits ahead of `origin/main` and make the same command report a divergence that exists on one laptop only.
 
 Rules, still in force:
 1. **Never push directly to `main`.**
@@ -592,7 +593,7 @@ Kept as a record, because the day numbers appear in earlier notes and stand-ups.
 | Day 5 — **AI integration**, full happy path end-to-end | **Half done.** The end-to-end path works. The LLM was never connected |
 | Day 6 — hyperlocal + personalization | **Done**, then found to be broken: `market_context` was computed and silently discarded by the UI. Fixed 7 Sept |
 | Day 7 — UX, explainability, responsible framing | **Done.** Disclosures, source labels, disclaimers, plain-language copy |
-| Day 8 — testing + demo scenarios | **Partial.** 169 backend tests; no frontend *unit* tests, but 11 browser drivers that assert on rendered output; one polished scenario rather than three |
+| Day 8 — testing + demo scenarios | **Partial.** 171 backend tests; no frontend *unit* tests, but 16 browser drivers that assert on rendered output; one polished scenario rather than three |
 | Day 9 — polish + presentation | **In progress.** 7 Sept: a full defect sweep — 10 numbered defects plus 7 more, all fixed. 8 Sept: the government-style redesign, the translation layer, and a second audit closing 46 findings |
 | Day 10 — rehearsal + final build | **Pending.** §25 |
 
@@ -619,7 +620,7 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 - [x] At least 2–3 business categories work — 8 do
 - [x] One polished demo persona works (§3)
 - [x] Sources recorded with verification dates
-- [x] 169 backend tests pass; lint and production build are clean; translation-key parity clean across 619 keys × 8 languages
+- [x] 171 backend tests pass; lint and production build are clean; translation-key parity clean across 619 keys × 8 languages
 - [x] No API keys to protect (there are none)
 - [x] **State survives a page refresh** — closed 8 Sept via `sessionStorage` (§8)
 - [x] **Output is in the reader's own language**, including the generated advice (§2.6)
@@ -672,7 +673,7 @@ SIH_2026/
 │   │   ├── services/         all business logic
 │   │   ├── core/             data_loader.py
 │   │   └── data/             schemes.json (30), market_data.json (9)
-│   ├── tests/                25 files, 169 tests
+│   ├── tests/                25 files, 171 tests
 │   ├── gen_schemes.py        provenance for schemes.json, not runtime
 │   └── requirements.txt
 │
@@ -714,7 +715,7 @@ Differences from the plan worth knowing: no `.env.example` (nothing needs one), 
 
 ## What to say instead
 
-> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested — 169 tests. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. The AI-driven part of the problem statement is where this goes next: natural-language input, dialect-level paraphrasing, and a conversational 'why?' layer on top of the same engine — with the arithmetic staying in code."
+> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested — 171 tests. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. The AI-driven part of the problem statement is where this goes next: natural-language input, dialect-level paraphrasing, and a conversational 'why?' layer on top of the same engine — with the arithmetic staying in code."
 
 This is a strong position, honestly held. Do not weaken it by overclaiming.
 
@@ -852,7 +853,7 @@ Answer it straight: no chat, no EMI scenarios or break-even units, no suggested 
 
 # 18. Product Success Metrics
 
-For the prototype: time to generate an advisory plan (currently one request, sub-second) · journey completion · correctness of financial calculations (169 tests) · correctness of scheme matching (8 of the 9 category buttons match, 11–16 schemes each; only a typed-in *Other* is correctly empty) · translation coverage (619 keys × 8 languages at full parity, script-verified) · explanation quality · number of actionable recommendations · demo reliability.
+For the prototype: time to generate an advisory plan (currently one request, sub-second) · journey completion · correctness of financial calculations (171 tests) · correctness of scheme matching (8 of the 9 category buttons match, 11–16 schemes each; only a typed-in *Other* is correctly empty) · translation coverage (619 keys × 8 languages at full parity, script-verified) · explanation quality · number of actionable recommendations · demo reliability.
 
 For future production: entrepreneurs assisted · plans generated · financial-literacy improvement · successful formal-finance connections · business survival and growth · **reduction in inappropriate borrowing** — the metric that matters most and the reason the risk indicator exists.
 
@@ -1078,23 +1079,23 @@ Any AI assistant reading this file should:
 
 ---
 
-# 27. Current Status — 8 September 2026
+# 27. Current Status — 9 September 2026
 
 **Phase:** working prototype, feature-frozen except polish
-**Time to presentation:** 3 days (11 September 2026)
-**Branch:** `aryan-gov-ui`
+**Time to presentation:** 2 days (11 September 2026)
+**Branch:** `before-main`
 
 | | |
 |---|---|
 | **MVP status** | **Working end to end.** 10 routes plus a catch-all, one API call, 7 populated result sections |
-| **Backend** | 8 routers · 169 tests passing in under 1.5s |
+| **Backend** | 8 routers · 171 tests passing in under 1s |
 | **Frontend** | Lint clean · production build clean · translation parity clean (619 keys × 8 languages) |
 | **Data** | 30 schemes across 7 tiers (official sources, 29 of 30 URLs verified 7 Sept) · 9 market rows (illustrative, UP only) |
 | **AI integration** | **None, by decision.** Deterministic rules engine (§15) |
 | **Database** | **None.** The journey persists in the browser tab (`sessionStorage`) and nowhere else |
 | **Language output** | **8 languages, Hindi by default, including the generated advice** (§2.6) |
-| **Interface** | Government-style chrome, 3 accessibility switches, hand-rolled charts, an instruction manual |
-| **Verification** | 169 backend tests · 11 browser drivers over CDP · phone widths and print output measured clean |
+| **Interface** | Government-style chrome, 2 accessibility switches (dark theme, 3-step text scale), hand-rolled charts, an instruction manual, a light motion layer that honours `prefers-reduced-motion` |
+| **Verification** | 171 backend tests · 22 zero-dependency scripts in `tools/`, 16 of them driving a browser over CDP · phone widths, print output, motion and scroll-on-navigation all measured clean |
 | **Known defects** | 17 found and fixed 7 Sept (10 numbered + 7 more); **46 findings closed in the 8 Sept audit**. See CLAUDE.md |
 | **Still open** | Translations unreviewed by a native speaker · dialect phrases on 9 of 30 varieties · 1 scheme URL unverified from our network · phone landscape and physical touch untested |
 | **Presentation** | In progress — Saad + Tripti. `presentation/` is still empty |
