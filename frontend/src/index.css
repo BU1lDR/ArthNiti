@@ -107,7 +107,7 @@
      of sampled pixels at L* 0.5). Measured over 17,848 pixels, 0.5 puts the hero
      copy at 4.04:1 — below AA. 0.40 holds 5.48:1 and is MORE visible than the
      SVG ever was (mean dL* 21.7 at 100% present, against 15.7 at 74%).
-     Guarded by screenshots/verify/hero-art.mjs — run it before changing this. */
+     Guarded by tools/verify/hero-art.mjs — run it before changing this. */
   --landing-art-opacity: 0.4;
   /* Driven by the A- / A / A+ control in the utility bar. */
   --ui-scale: 1;
@@ -868,7 +868,7 @@ summary:focus-visible {
 
      Retuning the other two by eye does not work — visibility and hero-copy
      contrast pull in opposite directions and neither is legible from this file.
-     screenshots/verify/hero-art.mjs measures both off the real composite, and
+     tools/verify/hero-art.mjs measures both off the real composite, and
      hero-vibrance.mjs sweeps candidates and adds the chroma figure hero-art.mjs
      has no way to see. */
   filter: brightness(0.5) saturate(2.6) contrast(0.91);
@@ -1526,7 +1526,7 @@ summary:focus-visible {
    cosmetic problem, it is a different number. The label may wrap; this may not.
 
    Found at the largest text scale in Hindi on a phone, but the ingredients are
-   width-independent, so this reset is too. `screenshots/verify/mobile-audit.mjs`
+   width-independent, so this reset is too. `tools/verify/mobile-audit.mjs`
    guards it as SPLIT-FIGURE. */
 .ui-bar-value {
   font-weight: 800;
@@ -1749,7 +1749,7 @@ summary:focus-visible {
 
 /* --- phones -----------------------------------------------------------------
    The target user reads this on a phone, not a laptop, so these are correctness
-   fixes rather than polish. Measured with screenshots/verify/mobile-audit.mjs at
+   fixes rather than polish. Measured with tools/verify/mobile-audit.mjs at
    360 / 390 / 412 CSS px; before this block every one of the ten routes scrolled
    sideways at all three widths.
 
@@ -1872,12 +1872,57 @@ summary:focus-visible {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+/* Everything above turns off here for a reader who has asked their OS for reduced
+   motion. Six declarations, and each one is the non-obvious form on purpose:
+
+   - `transition-duration: 0.01ms`, NOT 0 — a zero duration fires no
+     transitionrun/transitionstart/transitionend at all, which hangs any JS that
+     awaits one. 0.01ms is instant to a human and still fires the events.
+   - `transition-delay: 0s` — the easily-missed one. A delay OUTLIVES a collapsed
+     duration, so `opacity 300ms 200ms` would still wait 200ms and then snap.
+     Nothing here sets a delay today; this is what stops the first one that does
+     from quietly escaping the guard.
+   - `animation-iteration-count: 1`, NOT `animation: none` — the shorthand drops
+     `animation-fill-mode` with it, so an element whose static style is its
+     PRE-animation state would stay permanently at `opacity: 0`. And note that
+     0.01ms does not tame `infinite`: it re-runs thousands of times a second, i.e.
+     a strobe, strictly worse for a photosensitive reader than the motion it
+     replaced. Capping the count is what actually stops it.
+   - `animation-timeline: auto`, NOT `none` — a scroll-driven animation takes its
+     progress from scroll offset, so neither duration override collapses it, and
+     `none` means the effect never applies so fill-mode never lands.
+
+   This sits in @layer base rather than unlayered, which is the opposite of the
+   rule the chrome block above follows, and it is load-bearing: Cascade 5 REVERSES
+   layer order for `!important` and treats unlayered as a final implicit layer, so
+   an unlayered `!important` is the WEAKEST author important — Tailwind's `!`
+   modifier, compiled into @layer utilities, would beat it. Measured in Edge:
+   utilities-important 300ms against unlayered-important 0.01ms yields 300ms; the
+   same rule in @layer base yields 0.01ms. Re-opening the layer here appends to it,
+   so the guard reads next to the motion it guards without losing the precedence.
+
+   The selector is deliberately these three and no more. `::backdrop`, `::marker`,
+   `::placeholder`, `::selection` and `::details-content` are NOT covered, and
+   adding them to this list would be a mistake rather than an improvement: an
+   unrecognised pseudo-element invalidates the WHOLE selector list in Firefox and
+   Safari, so the guard would silently stop applying to everything. They need a
+   separate rule of their own.
+
+   Guarded by tools/verify/motion-audit.mjs, which is the only thing in the suite
+   that can see whether a transition runs — every other verifier measures a page at
+   rest, so a dead transition produces a byte-identical report to a live one. */
+@layer base {
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      transition-delay: 0s !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      animation-timeline: auto !important;
+    }
   }
 }
 

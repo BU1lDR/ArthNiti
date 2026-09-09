@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import BrandMark from './components/BrandMark'
 import BrandWordmark from './components/BrandWordmark'
@@ -194,12 +194,51 @@ function LanguagePicker() {
   )
 }
 
+// Every route opens at the top of the page. In a single-page app the browser
+// never resets the scroll offset — react-router swaps the component and the
+// window stays exactly where it was — so tapping Continue at the bottom of
+// /business landed on /location already scrolled past its heading. Every form
+// step's Continue button sits at the bottom, so this hit the whole journey.
+//
+// Four details are load-bearing:
+//
+//   - useLayoutEffect, not useEffect. A layout effect runs before the browser
+//     paints, so the new page is never shown at the old offset. useEffect runs
+//     after paint and would flash the mid-scrolled page for one frame.
+//   - `behavior: 'instant'` rather than the two-argument scrollTo(0, 0). Both
+//     are instant today because nothing sets `scroll-behavior: smooth`, but the
+//     two-argument form obeys that property if anyone ever adds it — and a
+//     half-second animated scroll on every navigation would also move geometry
+//     under the fixed sleeps every browser verifier measures at.
+//   - A non-empty hash is left alone. `#how-it-works` and the `#main` skip link
+//     are same-page anchors, so they do not change `pathname` and this effect
+//     does not re-run on them — but a cold deep link to /#how-it-works would,
+//     and scrolling to the top there would defeat the anchor.
+//   - scrollRestoration is 'manual'. Left on 'auto' the browser restores the
+//     previous offset on back/forward ASYNCHRONOUSLY, i.e. possibly after this
+//     effect has already run, which reintroduces the exact bug via the back
+//     button. Accepted consequence: a refresh now also opens at the top. The
+//     answers survive it either way — they are in sessionStorage, not in the
+//     scroll position.
+function useOpenAtTop(pathname, hash) {
+  useEffect(() => {
+    window.history.scrollRestoration = 'manual'
+  }, [])
+
+  useLayoutEffect(() => {
+    if (hash) return
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [pathname, hash])
+}
+
 function AppShell({ children }) {
   const location = useLocation()
   const { t } = useI18n()
   const isJourneyPage = journey.some((item) => item.path === location.pathname)
   const isResultPage = resultLinks.some((item) => item.path === location.pathname)
   const isLanding = location.pathname === '/'
+
+  useOpenAtTop(location.pathname, location.hash)
 
   return (
     <div className="ui-shell">
