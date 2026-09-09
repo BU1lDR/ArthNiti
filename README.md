@@ -130,7 +130,7 @@ Anything else renders a 404 page. **Nothing guards the journey order** — the n
 | `frontend/src/data/indiaLocations.js` | 36 states/UTs, 768 districts |
 | `frontend/src/services/api.js` | the only network call in the app |
 | `frontend/src/index.css` | design tokens, the `.ui-*` design system, `@media print` |
-| `tools/` | 22 verification scripts — see [tools/README.md](tools/README.md) |
+| `tools/` | 23 verification scripts — see [tools/README.md](tools/README.md) |
 | `presentation/` | empty — Saad + Tripti |
 
 ---
@@ -201,7 +201,7 @@ node tools/keycheck.mjs    # the other half: does every key the code ASKS for ex
 
 ## Verifying
 
-`npm run lint`, `npm run build` and `pytest` structurally cannot see a leaked translation key, a `null%`, a page that scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, a logo that prints invisible, a transition that silently does nothing, or a route that opens halfway down the page. **22 zero-dependency scripts in `tools/` cover those.** Full guide and traps: **[tools/README.md](tools/README.md)**.
+`npm run lint`, `npm run build` and `pytest` structurally cannot see a leaked translation key, a `null%`, a page that scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, a logo that prints invisible, a transition that silently does nothing, a route that opens halfway down the page, or a footer column whose heading starts 50px below its neighbours'. **23 zero-dependency scripts in `tools/` cover those.** Full guide and traps: **[tools/README.md](tools/README.md)**.
 
 On a fresh clone, in this order:
 

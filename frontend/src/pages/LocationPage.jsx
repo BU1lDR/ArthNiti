@@ -27,8 +27,11 @@ function ChoiceGrid({ value, options, onChange, label, columns = 'sm:grid-cols-3
     <div className={`mt-4 grid grid-cols-1 gap-3 ${columns}`}>
       {options.map(([option, icon, labelKey]) => {
         const selected = value === option
+        // flex flex-col so a two-line label does not lift this button's icon
+        // half a line above its neighbours' — see the comment at the category
+        // buttons in BusinessPage.jsx for the measurement.
         return (
-          <button key={option} type="button" onClick={() => onChange(option)} aria-pressed={selected} className={`rounded-xl border-2 p-4 text-left transition ${selected ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'}`}>
+          <button key={option} type="button" onClick={() => onChange(option)} aria-pressed={selected} className={`flex flex-col rounded-xl border-2 p-4 text-left transition ${selected ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'}`}>
             <span className="text-2xl" aria-hidden="true">{icon}</span>
             <span className="mt-2 block text-sm font-extrabold">{label(labelKey)}</span>
           </button>
@@ -46,8 +49,10 @@ function MultiChoiceGrid({ values, options, onToggle, label, columns = 'sm:grid-
     <div className={`mt-4 grid grid-cols-1 gap-3 ${columns}`}>
       {options.map(([option, icon, labelKey]) => {
         const isSelected = selected.includes(option)
+        // flex flex-col, as above. `relative` stays: the tick is absolutely
+        // positioned against this button and is unaffected by the flow.
         return (
-          <button key={option} type="button" onClick={() => onToggle(option)} aria-pressed={isSelected} className={`relative rounded-xl border-2 p-4 text-left transition ${isSelected ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'}`}>
+          <button key={option} type="button" onClick={() => onToggle(option)} aria-pressed={isSelected} className={`relative flex flex-col rounded-xl border-2 p-4 text-left transition ${isSelected ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'}`}>
             <span className="text-2xl" aria-hidden="true">{icon}</span>
             <span className="mt-2 block text-sm font-extrabold">{label(labelKey)}</span>
             {isSelected && <span className="absolute right-3 top-3 font-black text-[var(--color-primary-strong)]" aria-hidden="true">✓</span>}

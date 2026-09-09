@@ -62,27 +62,126 @@ const FORMS_GOOD = {
   finance: { availableCapital: '150000', monthlyExpenses: '15000', monthlyEmi: '3000' },
 }
 
-// The navigations a reader actually performs, in the order they perform them.
+// Every control in the app that can change the route, one hop each.
 //
-// `via: 'nav'` clicks the nav bar's own link for the destination. That is a real
-// react-router navigation and it works from any page, which is what makes the
-// matrix uniform — the alternative, clicking each page's Continue button, is
-// gated by that page's form validation and would silently stop testing a route
-// the moment a required field changed.
+// The first version of this file tested 8 hops, 7 of them nav-bar links, and
+// called the result "every route opens at the top". That was a stronger claim
+// than the matrix supported: the app has ELEVEN distinct classes of navigating
+// control, and a nav link is the *easiest* of them — it sits at the top of the
+// page, it is a plain <Link>, and it changes the path synchronously. The classes
+// that could plausibly behave differently are exactly the ones that were missing:
 //
-// `via: 'continue'` is here anyway, once, because the Continue button at the
-// bottom of a form is the exact control the defect was reported against, and a
-// nav link sits at the TOP of the page where the offset is small. /profile is the
-// one step whose validation the seeded name already satisfies.
+//   continue    a form's Continue button calls navigate() programmatically from
+//               a submit handler, not from a <Link> click
+//   submit-api  /finance is the same shape but its navigate() fires AFTER an
+//               awaited network call, so the layout effect runs in a different
+//               task than the click. This is the single riskiest control in the
+//               app and it was untested.
+//   manual      the instruction dialog sets document.body.style.overflow =
+//               'hidden' as a scroll lock, and its CTA navigates while that lock
+//               may still be in effect. A locked viewport is exactly the
+//               condition under which a scroll reset could silently no-op.
+//   startover   navigate() from the utility bar, after resetApplication()
+//   cta         the bottom-of-page buttons on the result pages — the controls
+//               that sit at the LARGEST offset in the whole app
+//   backlink    every page's own "← back" link
+//   footer      the footer's generated journey links
+//   breadcrumb / brand / login   the three chrome links outside the nav bar
+//   404         the catch-all's two buttons
+//
+// `find` is a JS expression returning the element, rather than a bare selector,
+// because several of these cannot be addressed by href alone: /analysis carries
+// a[href="/finance"] twice (the back link at the top, the CTA at the bottom) and
+// it is specifically the bottom one that matters here, so those hops take the
+// LAST match inside .ui-main. Writing the expression out per hop keeps each row
+// self-documenting instead of hiding the choice in a helper.
+const lastInMain = (href) =>
+  `[...document.querySelectorAll('.ui-main a[href="${href}"]')].pop()`
+
 const HOPS = [
-  { from: '/', to: '/profile', via: 'nav' },
-  { from: '/profile', to: '/business', via: 'continue' },
-  { from: '/business', to: '/location', via: 'nav' },
-  { from: '/location', to: '/finance', via: 'nav' },
-  { from: '/analysis', to: '/schemes', via: 'nav' },
-  { from: '/schemes', to: '/advisory', via: 'nav' },
-  { from: '/advisory', to: '/report', via: 'nav' },
-  { from: '/report', to: '/analysis', via: 'nav' },
+  // Chrome. These work from any page, so each is paired with a tall source.
+  { from: '/', to: '/profile', via: 'nav', find: `document.querySelector('.ui-navbar a[href="/profile"]')` },
+  { from: '/analysis', to: '/schemes', via: 'nav', find: `document.querySelector('.ui-navbar a[href="/schemes"]')` },
+  { from: '/schemes', to: '/advisory', via: 'nav', find: `document.querySelector('.ui-navbar a[href="/advisory"]')` },
+  { from: '/advisory', to: '/report', via: 'nav', find: `document.querySelector('.ui-navbar a[href="/report"]')` },
+  { from: '/report', to: '/analysis', via: 'nav', find: `document.querySelector('.ui-navbar a[href="/analysis"]')` },
+  { from: '/analysis', to: '/', via: 'brand', find: `document.querySelector('a.ui-brand')` },
+  { from: '/schemes', to: '/', via: 'breadcrumb', find: `document.querySelector('.ui-breadcrumb a[href="/"]')` },
+  { from: '/report', to: '/login', via: 'login', find: `document.querySelector('.ui-masthead a[href="/login"]')` },
+  { from: '/advisory', to: '/business', via: 'footer', find: `document.querySelector('.ui-footer-inner a[href="/business"]')` },
+  // The utility bar's start-over button. Matched on the glyph rather than on its
+  // title, which is translated — and it only exists once isStarted(data) is true,
+  // which the seeded fixture satisfies.
+  { from: '/analysis', to: '/', via: 'startover', find: `[...document.querySelectorAll('button.ui-utility-button')].find((b) => b.textContent.includes('\\u21BA'))` },
+
+  // The four form steps. Each Continue calls navigate() from its submit handler.
+  { from: '/profile', to: '/business', via: 'continue', find: `document.querySelector('form button[type="submit"]')` },
+  { from: '/business', to: '/location', via: 'continue', find: `document.querySelector('form button[type="submit"]')` },
+  { from: '/location', to: '/finance', via: 'continue', find: `document.querySelector('form button[type="submit"]')` },
+  // The API call is real, so this one needs a longer settle than a client-side
+  // route change. The backend must be up for this hop; if it is not, the app
+  // shows the error banner and stays put, which reports as NO-NAV rather than
+  // as a pass.
+  { from: '/finance', to: '/analysis', via: 'submit-api', find: `document.querySelector('form button[type="submit"]')`, wait: 4000 },
+
+  // Every page's own back link.
+  { from: '/profile', to: '/', via: 'backlink', find: `document.querySelector('.ui-main a[href="/"]')` },
+  { from: '/business', to: '/profile', via: 'backlink', find: `document.querySelector('.ui-main a[href="/profile"]')` },
+  { from: '/location', to: '/business', via: 'backlink', find: `document.querySelector('.ui-main a[href="/business"]')` },
+  { from: '/finance', to: '/location', via: 'backlink', find: `document.querySelector('.ui-main a[href="/location"]')` },
+  { from: '/analysis', to: '/finance', via: 'backlink', find: `document.querySelector('.ui-main a[href="/finance"]')` },
+  { from: '/schemes', to: '/analysis', via: 'backlink', find: `document.querySelector('.ui-main a[href="/analysis"]')` },
+  { from: '/advisory', to: '/schemes', via: 'backlink', find: `document.querySelector('.ui-main a[href="/schemes"]')` },
+  { from: '/report', to: '/advisory', via: 'backlink', find: `document.querySelector('.ui-main a[href="/advisory"]')` },
+  { from: '/login', to: '/', via: 'backlink', find: `document.querySelector('.ui-main a[href="/"]')` },
+
+  // The bottom-of-page CTAs on the result pages. These are the controls at the
+  // largest offset anywhere in the app, which makes them the worst case for this
+  // defect and the reason `lastInMain` exists.
+  { from: '/analysis', to: '/schemes', via: 'cta', find: lastInMain('/schemes') },
+  { from: '/analysis', to: '/advisory', via: 'cta', find: lastInMain('/advisory') },
+  { from: '/analysis', to: '/finance', via: 'cta', find: lastInMain('/finance') },
+  { from: '/schemes', to: '/advisory', via: 'cta', find: lastInMain('/advisory') },
+  { from: '/schemes', to: '/analysis', via: 'cta', find: lastInMain('/analysis') },
+  { from: '/advisory', to: '/report', via: 'cta', find: lastInMain('/report') },
+  { from: '/advisory', to: '/schemes', via: 'cta', find: lastInMain('/schemes') },
+
+  // The instruction dialog, opened from the landing strip. `pre` opens it, which
+  // is what puts body overflow: hidden in effect; the CTA then navigates out of
+  // a locked viewport.
+  //
+  // THIS HOP IS OVER-DETERMINED, AND IT IS THE ONE HOP --broken CANNOT REFUTE.
+  // It passes with the fix removed, which was measured rather than assumed:
+  // stubbing window.scrollTo and clicking a PLAIN landing link from the same
+  // offset lands at 706px (the destination's max scroll — the defect), while the
+  // same stub through this dialog lands at 0. scrollTo was called and swallowed
+  // exactly once in both, so the refuter is working; the difference is the scroll
+  // lock. InstructionManual.jsx restores body.style.overflow in a PASSIVE effect
+  // cleanup, which runs after paint — so during the commit that swaps / for
+  // /profile the body is still overflow: hidden, the viewport is momentarily not
+  // scrollable, and Chromium RESETS the offset to 0 rather than clamping it to
+  // the new maximum. Then the cleanup restores overflow and 0 stands.
+  // So this hop verifies the user-visible outcome for the app's one
+  // navigate-out-of-a-modal path, and proves nothing about useOpenAtTop. Keep it
+  // for the former; do not read a --broken run's count as 33-of-33 refuted.
+  {
+    from: '/', to: '/profile', via: 'manual',
+    pre: `document.querySelector('button.ui-manual-open').click()`,
+    find: `document.querySelector('.ui-manual-panel a[href="/profile"]')`,
+  },
+
+  // The catch-all. /login and * were the two routes that never appeared in the
+  // matrix at all.
+  //
+  // These two carry their own viewport, and the reason is worth stating: the 404
+  // page is short — one card between the chrome and the footer — so at 1280x720
+  // it is only ~154px taller than the window and the instrument check correctly
+  // reported both hops INERT, i.e. proving nothing. Shrinking the viewport for
+  // these two cases is not weakening the test, it is the only way to give them
+  // an offset to carry at all; without it the catch-all is the one route in the
+  // app with no real coverage.
+  { from: '/no-such-page', to: '/', via: '404', find: `document.querySelector('.ui-main a[href="/"]')`, viewport: { width: 1280, height: 380 } },
+  { from: '/no-such-page', to: '/profile', via: '404', find: `document.querySelector('.ui-main a[href="/profile"]')`, viewport: { width: 1280, height: 380 } },
 ]
 
 class CDP {
@@ -181,20 +280,38 @@ async function main() {
       })
     }
 
-    await cdp.send('Page.navigate', { url: APP + '/' })
-    await sleep(1200)
+    // Seed on EVERY document, not once up front. Four of the hops below are form
+    // Continue buttons, and updateSection() deliberately clears `result` for the
+    // business, location and finance sections — so one up-front seed would leave
+    // every later result-page hop rendering an empty state, and an empty page is
+    // short enough that the instrument check would report it INERT. Worse, that
+    // would look like a coverage problem rather than what it is: the fixture
+    // being consumed by an earlier case. Re-seeding before any app code runs
+    // makes each hop independent of the ones before it.
+    //
+    // The try/catch is for about:blank, whose opaque origin throws on any
+    // storage access.
     const payload = JSON.stringify({
       v: 1,
       data: { ...FORMS_GOOD, result: JSON.parse(readFileSync('screenshots/verify/case_good.json', 'utf8')) },
     })
-    await cdp.evaluate(`
-      sessionStorage.setItem('sih-application', ${JSON.stringify(payload)});
-      localStorage.setItem('sih-language', 'en');
-      localStorage.setItem('sih-theme', 'light');
-      localStorage.setItem('sih-textsize', 'md');
-      localStorage.removeItem('sih-dialect');
-      true;
-    `)
+    await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
+      source: `
+        try {
+          sessionStorage.setItem('sih-application', ${JSON.stringify(payload)})
+          localStorage.setItem('sih-language', 'en')
+          localStorage.setItem('sih-theme', 'light')
+          localStorage.setItem('sih-textsize', 'md')
+          localStorage.removeItem('sih-dialect')
+        } catch {}
+      `,
+    })
+
+    // A warm-up load: Vite compiles on demand, and the first hit of a route is
+    // far slower than the rest. Without this the first hop's fixed sleep can
+    // expire mid-compile.
+    await cdp.send('Page.navigate', { url: APP + '/' })
+    await sleep(1500)
 
     const goto = async (path) => {
       await cdp.send('Page.navigate', { url: APP + path })
@@ -215,48 +332,75 @@ async function main() {
     const offset = () => cdp.evaluate('Math.round(window.scrollY)')
 
     for (const hop of HOPS) {
+      const label = `${hop.from} -> ${hop.to} (${hop.via})`
+
+      // Cleared unconditionally at the TOP of every iteration rather than at the
+      // bottom of the ones that set it: three branches below `continue` out of
+      // the case, and any of them would otherwise leak a short viewport into the
+      // next hop, where it would silently change what that hop measured.
+      await cdp.send('Emulation.clearDeviceMetricsOverride')
+      if (hop.viewport) {
+        await cdp.send('Emulation.setDeviceMetricsOverride', { ...hop.viewport, deviceScaleFactor: 1, mobile: false })
+      }
+
       await goto(hop.from)
       const before = await scrollToBottom()
+
+      // `pre` runs AFTER the scroll, deliberately. The manual hop needs the
+      // landing page already scrolled at the moment the dialog opens, because
+      // opening it is what puts body overflow: hidden in effect — a lock applied
+      // at offset 0 would test nothing.
+      if (hop.pre) {
+        await cdp.evaluate(`(() => { ${hop.pre}; return true })()`)
+        await sleep(500)
+      }
+
+      // Re-measured after `pre` rather than reusing before.y, because a dialog
+      // that moves focus can scroll the document out from under the case, and
+      // then the hop would pass while proving nothing.
+      const carried = hop.pre ? await offset() : before.y
 
       // The instrument check. If the source page could not scroll, the hop
       // proves nothing whether it passes or fails — a clean result from an inert
       // case is indistinguishable from a clean result from a working one, which
       // is the trap tools/README.md's last section is about.
-      if (before.max < 200 || before.y < 200) {
-        findings.push({ kind: 'INERT', hop: `${hop.from} -> ${hop.to}`, note: `source page only scrolled to ${before.y} of ${before.max}px; case proves nothing` })
-        report.hops.push({ ...hop, scrolledTo: before.y, scrollable: before.max, after: null, inert: true })
+      if (before.max < 200 || carried < 200) {
+        findings.push({ kind: 'INERT', hop: label, note: `carried only ${carried}px of ${before.max}px scrollable; case proves nothing` })
+        report.hops.push({ ...hop, scrolledTo: carried, scrollable: before.max, after: null, inert: true })
         continue
       }
 
       const clicked = await cdp.evaluate(`(() => {
-        ${hop.via === 'nav'
-          ? `const el = document.querySelector('.ui-navbar a[href="${hop.to}"]') || document.querySelector('a[href="${hop.to}"]')`
-          : `const el = document.querySelector('form button[type="submit"]')`}
+        const el = ${hop.find}
         if (!el) return { ok: false, why: 'control not found' }
         el.click()
-        return { ok: true, tag: el.tagName.toLowerCase(), text: (el.textContent || '').trim().slice(0, 40) }
+        return { ok: true, tag: el.tagName.toLowerCase(), text: (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 40) }
       })()`)
 
       if (!clicked.ok) {
-        findings.push({ kind: 'NO-CONTROL', hop: `${hop.from} -> ${hop.to}`, note: `${hop.via}: ${clicked.why}` })
-        report.hops.push({ ...hop, scrolledTo: before.y, after: null, error: clicked.why })
+        findings.push({ kind: 'NO-CONTROL', hop: label, note: `${hop.via}: ${clicked.why}` })
+        report.hops.push({ ...hop, scrolledTo: carried, after: null, error: clicked.why })
         continue
       }
 
-      await sleep(700)
+      await sleep(hop.wait ?? 700)
       const landedOn = await cdp.evaluate('location.pathname')
       const after = await offset()
 
       if (landedOn !== hop.to) {
-        findings.push({ kind: 'NO-NAV', hop: `${hop.from} -> ${hop.to}`, note: `clicked ${clicked.tag} "${clicked.text}" but landed on ${landedOn}` })
+        findings.push({ kind: 'NO-NAV', hop: label, note: `clicked ${clicked.tag} "${clicked.text}" but landed on ${landedOn}` })
       } else if (after > 4) {
         // 4px of slack rather than an exact 0: a sub-pixel layout settle can
         // leave a rounded 1, and a false alarm on this check would be worse than
         // the tolerance, since the defect it watches for is hundreds of pixels.
-        findings.push({ kind: 'TOP', hop: `${hop.from} -> ${hop.to}`, note: `${hop.to} opened at ${after}px, not at the top (came from ${before.y}px)` })
+        findings.push({ kind: 'TOP', hop: label, note: `${hop.to} opened at ${after}px, not at the top (came from ${carried}px)` })
       }
-      report.hops.push({ ...hop, scrolledTo: before.y, scrollable: before.max, landedOn, after, control: clicked.text })
+      report.hops.push({ ...hop, scrolledTo: carried, scrollable: before.max, landedOn, after, control: clicked.text })
     }
+
+    // The last hop in HOPS carries a viewport override; the back and anchor arms
+    // below must run at the real window size like every other case.
+    await cdp.send('Emulation.clearDeviceMetricsOverride')
 
     // Back/forward. Left on the default 'auto', the browser restores the previous
     // offset asynchronously — possibly after the layout effect has already run —
@@ -312,8 +456,23 @@ async function main() {
   const inert = findings.filter((f) => f.kind === 'INERT').length
   for (const h of report.hops) {
     const mark = h.inert ? 'inert' : h.after === undefined || h.after === null ? '—' : `${h.after}px`
-    console.log(`  ${String(h.from).padEnd(10)} -> ${String(h.to).padEnd(10)} via ${h.via.padEnd(8)} from ${String(h.scrolledTo ?? '?').padStart(5)}px  opened at ${mark}`)
+    const vp = h.viewport ? `  (viewport ${h.viewport.width}x${h.viewport.height})` : ''
+    console.log(`  ${String(h.from).padEnd(14)} -> ${String(h.to).padEnd(10)} via ${h.via.padEnd(11)} from ${String(h.scrolledTo ?? '?').padStart(5)}px  opened at ${mark}${vp}`)
   }
+
+  // Which classes of control actually ran. A per-hop pass list does not show
+  // this, and the whole reason this file was rewritten is that its first version
+  // tested two classes out of eleven while reading as complete coverage.
+  const byClass = {}
+  for (const h of report.hops) {
+    byClass[h.via] ??= { ran: 0, inert: 0 }
+    byClass[h.via].ran += 1
+    if (h.inert) byClass[h.via].inert += 1
+  }
+  const classes = Object.entries(byClass)
+    .map(([via, c]) => `${via} ${c.ran - c.inert}/${c.ran}`)
+    .join('  ')
+  console.log(`\n  control classes exercised (non-inert/total): ${classes}`)
   console.log(`  back button: /analysis at ${report.back?.scrolledTo}px -> /schemes -> back -> ${report.back?.landedOn} at ${report.back?.after}px`)
   console.log(`  #how-it-works anchor: page at ${report.anchor?.after}px, section ${report.anchor?.sectionTopInViewport}px from the viewport top`)
   console.log('')

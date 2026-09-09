@@ -89,8 +89,18 @@ function BusinessPage() {
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {categories.map(([value, icon, labelKey]) => {
                   const selected = business.category === value
+                  // flex flex-col, because a <button> CENTRES its content
+                  // vertically. These sit in a grid, so every button is as tall
+                  // as the tallest one — and the moment a label wraps to two
+                  // lines its icon and text are pushed half a line ABOVE the
+                  // icons either side of it. Measured at 10px in Tamil, and it
+                  // is not a translation problem: on a phone the labels wrap
+                  // unevenly in every language including English. A flex column
+                  // top-aligns instead, so the icons share a line and so do the
+                  // first lines of the labels. Same fix at both button sites in
+                  // LocationPage.jsx.
                   return (
-                    <button key={value} type="button" onClick={() => handleCategory(value)} className={`rounded-xl border-2 p-4 text-left transition ${selected ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'}`} aria-pressed={selected}>
+                    <button key={value} type="button" onClick={() => handleCategory(value)} className={`flex flex-col rounded-xl border-2 p-4 text-left transition ${selected ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface-soft)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'}`} aria-pressed={selected}>
                       <span className="text-2xl" aria-hidden="true">{icon}</span>
                       <span className="mt-2 block text-sm font-extrabold">{t(labelKey)}</span>
                     </button>

@@ -1,10 +1,11 @@
 # `tools/` — the verification suite
 
-22 zero-dependency scripts that check things `npm run lint`, `npm run build` and
+23 zero-dependency scripts that check things `npm run lint`, `npm run build` and
 `pytest` structurally cannot see: a leaked translation key, a `null%`, a page that
 scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, a logo
 that prints invisible, a transition that silently does nothing, a route that opens
-halfway down the page.
+halfway down the page, a footer column whose heading starts 50px below its
+neighbours'.
 
 They lived in `screenshots/` until 9 September 2026 and so were **absent from every
 fresh clone** — `screenshots/` is gitignored, because it is 8.1 GB of Edge profile
@@ -69,6 +70,7 @@ node tools/verify/field-align.mjs    # form controls sharing a grid row, 96 load
 node tools/verify/print-audit.mjs    # the @media print stylesheet, 3 renders
 node tools/verify/motion-audit.mjs   # transitions actually run + reduced-motion
 node tools/verify/scroll-audit.mjs   # every route opens at the TOP of the page
+node tools/verify/text-align.mjs     # sibling cells start their text on one line
 node tools/verify/hero-art.mjs       # landing backdrop visibility + hero copy AA
 node tools/verify/hero-geom.mjs      # backdrop edge vs the content sitting on it
 node tools/verify/brand-mark.mjs     # the lotus mark in both themes
@@ -133,8 +135,10 @@ taskkill //F //T //PID <pid>     # doubled slashes under Git Bash
 can run at once: `drive` 9222, `mobile-audit` 9333, `hero-art` 9337, `brand-mark`
 9339, `manual-audit` 9341, `lang-layout` 9343, `error-banner` 9347, `field-align`
 9351, `hero-geom` 9355, `print-audit` 9359, `hero-vibrance` 9361, `load-perf` 9363,
-`motion-audit` 9365, `scroll-audit` 9367 — plus `assetgen` 9377 and `svgcheck` 9378,
-which drive a browser without being gates.
+`motion-audit` 9365, `scroll-audit` 9367, `text-align` 9371 — plus `assetgen` 9377
+and `svgcheck` 9378, which drive a browser without being gates. 9369 is left free on
+purpose: it was a throwaway probe's port, and the next one-off should reuse it rather
+than take a number a gate might want.
 
 **`--user-data-dir` must be absolute.** A relative path silently attaches to your
 already-running Edge profile and exits with no debug port. Every script builds it
@@ -150,14 +154,26 @@ transitions were inert for a full day while every script in this directory passe
 A clean result from an inert check is indistinguishable from a clean result from a
 working one.
 
-Three scripts have that refuter built in as a flag, and each **must exit 1** with it:
+Four scripts have that refuter built in as a flag, and each **must exit 1** with it:
 
 ```bash
 node tools/verify/motion-audit.mjs --broken   # 29 findings across 10 kinds
 node tools/verify/field-align.mjs  --broken
-node tools/verify/scroll-audit.mjs --broken   # 9 findings: 8 TOP + 1 BACK
+node tools/verify/scroll-audit.mjs --broken   # 33 findings, one per hop
+node tools/verify/text-align.mjs   --broken   # 30 findings, one per load
 ```
 
 `scroll-audit` also carries the check in-band: a hop whose source page could not
 be scrolled at least 200px is reported as `INERT` rather than counted as a pass,
 because a navigation with no offset to carry over proves nothing either way.
+
+**And the corollary, which cost real time on the flip side: when a check *passes*
+under the refuter, find out why.** One of `scroll-audit`'s 33 hops — the one that
+leaves the instruction-manual dialog — is over-determined and passes with the fix
+removed. Measured with a dedicated probe rather than assumed: the refuter is working
+(`scrollTo` is swallowed exactly once, and a plain landing link from the same offset
+does land at the destination's 706px maximum), but the dialog's scroll lock is
+restored in a **passive effect cleanup that runs after paint**, so the destination's
+first paint happens with a non-scrollable viewport and Chromium resets the offset to
+0 instead of clamping it. An unexplained pass is indistinguishable from an inert
+case, so do not read that run as 33-of-33 refuted.

@@ -1696,6 +1696,22 @@ summary:focus-visible {
   font-weight: 800;
 }
 
+/* The brand column's mark, beside its text rather than stacked above it.
+   Stacked, the mark was a flow sibling ahead of .ui-footer-title, so this
+   column's heading started ~50px lower than the other two and none of the three
+   columns shared a text baseline.
+   align-items: center rather than flex-start because the text block (heading +
+   tagline, ~53px) is taller than the 38px mark, so the block defines the row
+   height and stays at the column top — the heading therefore still lines up with
+   the other two columns, and the mark is centred against it instead of hanging
+   off the first line. flex-start would leave the mark's top edge above the
+   heading's cap height, which is the same ragged look in miniature. */
+.ui-footer-brandblock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .ui-footer-bottom {
   border-top: 1px solid var(--color-border);
   background: var(--color-surface-soft);

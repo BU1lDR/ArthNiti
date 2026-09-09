@@ -353,10 +353,21 @@ function GovFooter() {
           <div>
             {/* Government footers lead with the owning body's emblem. Ours leads
                 with the mark, which is also the one place on the page where it
-                appears at rest rather than as a link target. */}
-            <BrandMark size="sm" className="mb-3" />
-            <p className="ui-footer-title">{APP_NAME}</p>
-            <p>{t('common.appTagline')}</p>
+                appears at rest rather than as a link target.
+
+                The mark sits BESIDE the text, not above it. Stacked, it was in
+                the flow ahead of this column's heading and pushed it ~50px below
+                "Your business journey" and "Helpline" — so the three columns
+                started their text on three different lines. Beside it, all three
+                headings share a baseline and so do the three body lines. See
+                .ui-footer-brandblock. */}
+            <div className="ui-footer-brandblock">
+              <BrandMark size="sm" />
+              <div>
+                <p className="ui-footer-title">{APP_NAME}</p>
+                <p>{t('common.appTagline')}</p>
+              </div>
+            </div>
           </div>
           <div>
             <p className="ui-footer-title">{t('nav.journey')}</p>
