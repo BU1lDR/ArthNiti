@@ -132,7 +132,7 @@ function AdvisoryPage() {
                 <p className="ui-eyebrow">{t('ad.planEyebrow')}</p>
                 <h2 className="mt-1 text-2xl font-bold text-[var(--color-text)]">{t('ad.planTitle')}</h2>
               </div>
-              <span className="shrink-0 text-2xl" aria-hidden="true">👉</span>
+              <span className="shrink-0 text-2xl" aria-hidden="true">👇</span>
             </div>
 
             <div className="mt-6 space-y-4">
