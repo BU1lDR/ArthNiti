@@ -14,7 +14,7 @@
 // through the browser endpoint rather than picking the first "page" in /json/list,
 // which on a signed-in profile is a sync-confirmation dialog.
 //
-// Run from the repo root:  node screenshots/verify/drive.mjs
+// Run from the repo root:  node tools/verify/drive.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'

@@ -36,7 +36,7 @@
 // softTop gradient mask that faded its own top edge to nothing. A JPEG has no
 // mask and `cover` fills the box, so every pixel is artwork a reader can meet.
 //
-// Run the Vite dev server first, then:  node screenshots/verify/hero-art.mjs
+// Run the Vite dev server first, then:  node tools/verify/hero-art.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'

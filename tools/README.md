@@ -25,6 +25,28 @@ cd backend  && ../.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.
 cd frontend && npm run dev      # Vite, port 5173
 ```
 
+## On a fresh clone, run these in order
+
+The fixtures the browser drivers seed `sessionStorage` from are **deliberately not
+tracked** — they are backend-derived and go stale silently, so they are generated
+rather than committed. That means a fresh clone has none, and five of the drivers
+(`drive`, `lang-layout`, `mobile-audit`, `motion-audit`, `print-audit`) cannot run
+until you make them.
+
+```bash
+cd frontend && npm install && cd ..        # 1. deps
+node tools/parity4.mjs                     # 2. no server, ~1s — fastest real signal
+# start the backend (see above), then:
+node tools/verify/refresh-cases.mjs        # 3. generates screenshots/verify/case_*.json
+# start Vite, then:
+node tools/verify/drive.mjs                # 4. the main gate, 36 page loads
+```
+
+Step 3 creates `screenshots/` itself if it is absent, so you do not need to
+`mkdir` anything. Expect `good` to report **14 schemes, scores [100,90], 1 market
+row, 6 tiers** — if it does not, the backend changed and the figures in CLAUDE.md
+need re-measuring, not the script.
+
 ## The scripts
 
 No server needed — run these first, they are fast and catch the most:

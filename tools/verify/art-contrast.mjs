@@ -21,7 +21,7 @@
 //     artwork it can land on
 //
 // The second one is the constraint that kept every hand-tuned attempt failing.
-// Run: node screenshots/verify/art-contrast.mjs
+// Run: node tools/verify/art-contrast.mjs
 import { readFileSync } from 'node:fs'
 
 const SVG = 'frontend/public/town-consulting.svg'
@@ -160,7 +160,7 @@ function evaluate(els, bg, textColor, { brightness, sat, contrast, opacity }) {
 // and worse than worthless, because it would keep printing confident numbers
 // about an image nobody sees. The landing backdrop was replaced with an opaque
 // JPEG on 8 Sept 2026, so this now refuses to run rather than lying. See
-// screenshots/verify/hero-art.mjs, which measures whatever the page actually
+// tools/verify/hero-art.mjs, which measures whatever the page actually
 // uses; the raster equivalent of this modelling lives there.
 const CSS = readFileSync('frontend/src/index.css', 'utf8')
 const shippedBackdrop = (CSS.match(/\.ui-hero::before[\s\S]*?background-image:\s*url\(["']?([^"')]+)/) || [])[1]
@@ -168,7 +168,7 @@ if (shippedBackdrop && !SVG.endsWith(shippedBackdrop.replace(/^\//, ''))) {
   console.error(`This script models ${SVG}, but .ui-hero::before now uses ${shippedBackdrop}.`)
   console.error('Its mask stops and per-element alphas do not describe that file, so every')
   console.error('number it prints would be about an image the page no longer shows.')
-  console.error('Use screenshots/verify/hero-art.mjs instead — it reads the backdrop off the page.')
+  console.error('Use tools/verify/hero-art.mjs instead — it reads the backdrop off the page.')
   process.exit(2)
 }
 
@@ -228,7 +228,7 @@ console.log(`\nDARK as shipped, for reference : band dL* ${dark.band.toFixed(1)}
 // so it is nearly free against all four constraints, and a higher brightness
 // paired with a higher opacity keeps the hue while landing in the same place.
 // Pass a config on the command line to check one:
-//   node screenshots/verify/art-contrast.mjs 0.62 1.9 0.95 0.62
+//   node tools/verify/art-contrast.mjs 0.62 1.9 0.95 0.62
 const SHORTLIST = [
   ['sweep optimum          ', { brightness: 0.5, sat: 1.4, contrast: 0.91, opacity: 0.5 }],
   ['more colour, mid        ', { brightness: 0.58, sat: 1.8, contrast: 0.94, opacity: 0.56 }],

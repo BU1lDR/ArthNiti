@@ -34,7 +34,7 @@
 // space is restored in front of every asterisk. That pass MUST fail. A check that
 // has only ever been seen to pass has not been seen to work.
 //
-// Run the Vite dev server first, then:  node screenshots/verify/field-align.mjs
+// Run the Vite dev server first, then:  node tools/verify/field-align.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'

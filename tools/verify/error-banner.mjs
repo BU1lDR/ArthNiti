@@ -35,7 +35,7 @@
 //   * a validation banner with no field list in it
 //
 // Run the backend AND the Vite dev server first, then:
-//   node screenshots/verify/error-banner.mjs
+//   node tools/verify/error-banner.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'

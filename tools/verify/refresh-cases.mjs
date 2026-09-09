@@ -6,11 +6,11 @@
 // started emitting codes. A driver run against a stale fixture passes while
 // telling you nothing about the code you just changed.
 //
-// Run the backend first, then:  node screenshots/verify/refresh-cases.mjs
+// Run the backend first, then:  node tools/verify/refresh-cases.mjs
 // It builds the same payload FinancePage.jsx builds, so the fixture matches what
 // a real submit would have stored.
 
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 
 const API = 'http://127.0.0.1:8000/api/analysis/run'
 
@@ -79,6 +79,15 @@ for (const [name, form] of Object.entries(CASES)) {
     process.exit(1)
   }
   const result = await res.json()
+  // screenshots/ is gitignored and holds nothing tracked, so on a FRESH CLONE
+  // this directory does not exist and writeFileSync throws ENOENT. That made
+  // this the one script a new teammate must run first and the one that could
+  // not run at all — and with it, the five verifiers that read these fixtures
+  // (drive, lang-layout, mobile-audit, motion-audit, print-audit). Every other
+  // script that writes here already did this; this one lived in the directory
+  // it writes to, so it never needed to until the move to tools/.
+  // recursive: true is also what makes it idempotent across the four cases.
+  mkdirSync('screenshots/verify', { recursive: true })
   writeFileSync(`screenshots/verify/case_${name}.json`, JSON.stringify(result, null, 2))
 
   const schemes = result.scheme_matches || []

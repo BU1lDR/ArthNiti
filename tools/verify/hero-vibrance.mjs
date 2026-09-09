@@ -32,7 +32,7 @@
 // already costing half the chroma before saturate() sees the pixel.
 //
 // Run the Vite dev server first, then:
-//   node screenshots/verify/hero-vibrance.mjs
+//   node tools/verify/hero-vibrance.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'

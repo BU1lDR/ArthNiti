@@ -55,7 +55,7 @@
 // hidden measures 0x0; one it failed to hide measures its real box.
 //
 // Needs the Vite dev server up. Run from the repo root:
-//   node screenshots/verify/print-audit.mjs
+//   node tools/verify/print-audit.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'

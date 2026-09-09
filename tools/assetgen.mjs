@@ -22,7 +22,7 @@
 //
 // Needs the Vite dev server up for the second half:
 //   cd frontend && npm run dev
-//   node screenshots/assetgen.mjs
+//   node tools/assetgen.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'

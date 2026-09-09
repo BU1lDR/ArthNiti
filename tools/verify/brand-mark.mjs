@@ -26,7 +26,7 @@
 // It also captures each mode so the mark can be looked at, which is the only way
 // to judge whether a logo is any good.
 //
-// Run the Vite dev server first, then: node screenshots/verify/brand-mark.mjs
+// Run the Vite dev server first, then: node tools/verify/brand-mark.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'

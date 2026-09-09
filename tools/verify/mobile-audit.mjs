@@ -30,7 +30,7 @@
 // rest, but all three are checked because a broken breakpoint often only bites in
 // a narrow band.
 //
-// Run the Vite dev server first, then:  node screenshots/verify/mobile-audit.mjs
+// Run the Vite dev server first, then:  node tools/verify/mobile-audit.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'

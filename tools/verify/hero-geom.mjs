@@ -14,7 +14,7 @@
 // So this measures, per width: the ::before box, the section box, the page
 // container, and every hero child's gap to each of the four artwork edges.
 //
-// Run the Vite dev server first, then: node screenshots/verify/hero-geom.mjs
+// Run the Vite dev server first, then: node tools/verify/hero-geom.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'

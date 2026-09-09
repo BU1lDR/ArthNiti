@@ -37,7 +37,7 @@
 //             every interactive element for a 44px box, and the document for
 //             sideways scroll.
 //
-// Run the Vite dev server first, then: node screenshots/verify/manual-audit.mjs
+// Run the Vite dev server first, then: node tools/verify/manual-audit.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'

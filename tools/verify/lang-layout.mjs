@@ -27,7 +27,7 @@
 //                  into each other. Measured by rendering the same string at
 //                  line-height: normal in the same font and comparing.
 //
-// Run the Vite dev server first, then: node screenshots/verify/lang-layout.mjs
+// Run the Vite dev server first, then: node tools/verify/lang-layout.mjs
 import { spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'

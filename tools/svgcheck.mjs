@@ -9,7 +9,7 @@
 // A refusal is silent by design: the browser drops the icon and shows its
 // default. So the check is empirical rather than a lint rule.
 //
-//   node screenshots/svgcheck.mjs
+//   node tools/svgcheck.mjs
 // One trap worth knowing, because it made the first version of this script
 // report every file as refused: an `about:blank` page has an opaque origin and
 // cannot load a file:// image AT ALL. Every SVG came back EncodingError, which

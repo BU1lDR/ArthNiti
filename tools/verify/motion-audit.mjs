@@ -23,7 +23,7 @@
 // element permanently at opacity 0; 0.01ms does not stop `infinite`, it strobes),
 // and it has to out-specify Tailwind's utilities layer to apply at all.
 //
-// Run the Vite dev server first, then: node screenshots/verify/motion-audit.mjs
+// Run the Vite dev server first, then: node tools/verify/motion-audit.mjs
 //   --broken   puts every defect back at runtime and MUST exit 1
 //
 // That flag is not a convenience. A check that has only ever reported zero has not

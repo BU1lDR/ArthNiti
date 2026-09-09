@@ -25,7 +25,7 @@
 // otherwise translated, with nothing anywhere reporting it. That is what the
 // backend half below checks.
 //
-// Run from the repo root:  node screenshots/keycheck.mjs
+// Run from the repo root:  node tools/keycheck.mjs
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
