@@ -373,7 +373,28 @@ async function main() {
             // second row in a long-script language — both grow legitimately, and
             // flagging them buries the utility bar, masthead and breadcrumb, which
             // are the ones whose height really is fixed.
-            const fixedHeight = sel !== '.ui-main' && sel !== '.ui-navbar-inner'
+            //
+            // `.ui-footer-inner` belongs in that set and was missed, which cost 24
+            // findings on 11 Sept 2026 — ta and ml, both widths, all 6 routes,
+            // dx=0 dw=0 dh=22.9 every time. Measured before excluding it, because
+            // the alternative reading was a real defect: it is a three-column grid
+            // of TRANSLATED PROSE, its columns stretch to the tallest (align-items
+            // resolves to `normal`), and in ta the tagline wraps 1 -> 2 lines
+            // (22.8 -> 45.7px) while in ml the journey link list does. Same element
+            // set, same box count, uniform columns, 101.3 -> 124.2px = one extra
+            // line of Indic text. That is the language, not the layout.
+            //
+            // It went unseen until a Tamil tagline crossed a line boundary and
+            // pushed the delta past the 12px threshold, i.e. the exclusion list was
+            // wrong from the day it was written and nothing could tell. The
+            // HORIZONTAL arms still apply to the footer unchanged, and they are the
+            // point of SHIFT — every one of these containers is
+            // `width: min(1180px, 100% - 32px); margin: auto` and must be
+            // pixel-identical in every language. The footer's own height-related
+            // defect class (three columns starting on three different lines) is
+            // owned by text-align.mjs, which fires 30 findings under --broken.
+            const COPY_DRIVEN_HEIGHT = ['.ui-main', '.ui-navbar-inner', '.ui-footer-inner']
+            const fixedHeight = !COPY_DRIVEN_HEIGHT.includes(sel)
             if (Math.abs(dx) > 1 || Math.abs(dw) > 1 || (fixedHeight && Math.abs(dh) > 12)) {
               r.findings.unshift({ kind: 'SHIFT', el: sel, dx, dw, dh })
             }
