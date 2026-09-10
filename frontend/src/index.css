@@ -138,23 +138,40 @@
   --mark-drop: #F5A31B;
   --mark-drop-edge: #C2410C;
 
-  /* The अर्थNiti wordmark in the utility strip (components/BrandWordmark.jsx).
-     One colour case exists for these, not two: the utility bar is #08243F in
-     BOTH themes, so the strip never changes underneath them the way a themed
-     surface does. Measured against #08243F: gold 9.1:1, cream 14:1,
-     swoosh 6.1:1. (It was two cases until high contrast was removed on 8 Sept
-     2026, when the strip was forced to #000000 and these went plain white.) */
-  --wordmark-arth: #F6C15C;
-  --wordmark-niti: #FFF4E0;
-  --wordmark-swoosh: #E8973A;
-  --wordmark-dot: #F6C15C;
+  /* The अर्थNiti wordmark (components/BrandWordmark.jsx), which is the masthead's
+     product name as of 11 Sept 2026.
+
+     THESE ARE THEME-DEPENDENT, and the note here used to say the opposite: "one
+     colour case exists for these, not two: the utility bar is #08243F in BOTH
+     themes, so the strip never changes underneath them the way a themed surface
+     does." That was true and load-bearing right up until the wordmark moved off
+     the strip. `.ui-masthead` is `var(--color-surface)` — #ffffff light,
+     #10273E dark — so the surface now flips, and the values tuned for navy are
+     catastrophic on paper-white: measured, the gold is 1.65:1 and the cream
+     1.09:1 against #ffffff, i.e. all but invisible. Both halves are live text at
+     ~1.15rem, so the logotype exemption in WCAG 1.4.3 is the wrong thing to lean
+     on; manual-audit.mjs gates each half at 4.5:1 and is what catches this.
+
+     Light values are chosen with headroom above 5.5:1 so a later surface tweak
+     cannot quietly tip them under. Measured on #ffffff: arth 5.92:1,
+     niti 15.82:1 (which is --color-text's own value, so the quiet half matches
+     the tagline beneath it), swoosh 3.95:1 at ΔL* 46.4 — no 4.5 floor on the
+     swoosh, since it is an aria-hidden flourish rather than text.
+
+     The bead is DARKER than the stroke in light and LIGHTER in dark. That is one
+     relationship, not two: the bead is the more prominent of the pair, and on
+     white "more prominent" means darker. */
+  --wordmark-arth: #8A5A0A;
+  --wordmark-niti: #12233A;
+  --wordmark-swoosh: #B86F10;
+  --wordmark-dot: #8A5A0A;
   --wordmark-swoosh-w: 2;
 
   /* The instruction manual's book icon (components/InstructionManual.jsx).
      Same reasoning as the brand mark: a fixed asset, so the colours are its own
      rather than the palette's, and only what has to react to the page behind it
-     moves per theme. Unlike the wordmark this one sits on a themed card, so it
-     needs both cases rather than one. */
+     moves per theme. Like the wordmark above, this one sits on a themed surface,
+     so it needs both cases rather than one. */
   --book-cover: #7B1E3C;
   --book-spine: #5E162E;
   --book-band: #E2582B;
@@ -188,14 +205,25 @@
      hairline disappears against a navy masthead, so the separator becomes a
      pale rim instead. */
   --mark-edge: rgba(255, 226, 240, 0.4);
+  /* The wordmark inverts wholesale, because the masthead it now sits on is a
+     themed surface — #ffffff light, #10273E dark. These four are the values it
+     carried when it lived in the utility strip, and they are correct here for
+     the same reason they were correct there: measured on #10273E the gold is
+     9.19:1 and the cream 13.94:1. It is the LIGHT case that had to be invented
+     for the move (see :root), not this one.
+
+     The bead matches the warm half rather than the stroke, so the pair reads as
+     one flourish with a bright terminal — the same relationship as in light,
+     where "more prominent" happens to mean darker instead. */
+  --wordmark-arth: #F6C15C;
+  --wordmark-niti: #FFF4E0;
+  --wordmark-swoosh: #E8973A;
+  --wordmark-dot: #F6C15C;
   /* The book brightens on navy. The maroon cover and the dark-teal sprout are
      both near-black against #10273E — the sprout in particular vanished
      completely, which turned the icon into a book with nothing growing out of
      it. The gold seal, the orange band and the cream pages are already light
-     and stay as they are.
-
-     The wordmark has no entry here on purpose: it lives in the utility strip,
-     which is the same #08243F in both themes. */
+     and stay as they are. */
   --book-cover: #A8294F;
   --book-spine: #7B1E3C;
   --book-sprout: #7FD4C1;
@@ -300,15 +328,21 @@ summary:focus-visible {
   margin: 0 auto;
   min-height: 34px;
   align-items: center;
-  justify-content: space-between;
+  /* flex-end, NOT space-between. The strip held two children — the wordmark at
+     the left and the tools at the right — and space-between pushed them apart.
+     The wordmark moved to the masthead on 11 Sept 2026, and space-between with
+     ONE child places it at flex-START, so the whole tools cluster would have
+     jumped to the left edge. Right-aligning explicitly says what the strip
+     wants rather than relying on a sibling that no longer exists. */
+  justify-content: flex-end;
   gap: 14px;
   flex-wrap: wrap;
 }
 
-/* The अर्थNiti wordmark, at the left of the utility strip, where the prototype
-   notice used to sit. The notice was removed from the page outright on 8 Sept
-   2026 at the owner's explicit instruction, restated after the trade-off was
-   put to them — see the note in CLAUDE.md before adding any disclaimer back.
+/* The अर्थNiti wordmark. It sat at the left of the utility strip from 8 Sept
+   2026 until 11 Sept, when the owner asked for it to be the masthead's product
+   name instead — so it is now the identity band's name and the strip carries
+   no branding at all. Its size modifier is .ui-wordmark-brand below.
 
    Live text, not an image, so it scales with --ui-scale, recolours from tokens
    and is read aloud. The family stays inherited (Noto Sans) rather
@@ -320,6 +354,11 @@ summary:focus-visible {
   flex-direction: column;
   gap: 1px;
   line-height: 1;
+  /* Reset, not decoration. Its host .ui-brand carries letter-spacing: -0.02em,
+     and letter-spacing INHERITS — so the tightening would reach the Devanagari
+     half, which has no override of its own, and pull the र्थ conjunct apart.
+     .ui-wordmark-niti re-applies its own positive tracking on top of this. */
+  letter-spacing: normal;
 }
 
 .ui-wordmark-text {
@@ -348,6 +387,14 @@ summary:focus-visible {
   display: block;
   width: 100%;
   height: 0.36rem;
+}
+
+/* The masthead's size. 1.15rem is what the plain .ui-brand-name span this
+   replaced used, so the identity band's name did not change size when the
+   wordmark took over — only its treatment did. The strip's own 1.02rem stays
+   the base in case anything is ever set there again. */
+.ui-wordmark-brand .ui-wordmark-text {
+  font-size: 1.15rem;
 }
 
 .ui-utilitybar-tools {
@@ -624,9 +671,13 @@ summary:focus-visible {
   height: 88px;
 }
 
-.ui-brand-name {
-  font-size: 1.15rem;
-}
+/* .ui-brand-name is gone as of 11 Sept 2026 — deleted, not left behind. It was
+   a one-declaration font-size on the plain bold span that carried the product
+   name here, and <BrandWordmark className="ui-wordmark-brand" /> replaced that
+   span; its size lives on .ui-wordmark-brand instead. A rule kept "just in case"
+   after its element goes is the exact shape that let @media print hide
+   .ui-topbar and .ui-footer for weeks while the real masthead and footer printed
+   onto the sheet — a selector list that reads complete and matches nothing. */
 
 /* The department line under the product name. Government sites lead with the
    owning body; ours names the programme honestly instead. */
@@ -1750,14 +1801,18 @@ summary:focus-visible {
     padding-top: 18px;
   }
 
-  .ui-brand-name {
+  /* Was .ui-brand-name at this width. The wordmark took the masthead's name slot
+     on 11 Sept 2026, so the step down moves with it. */
+  .ui-wordmark-brand .ui-wordmark-text {
     font-size: 1rem;
   }
 
-  /* The tools cluster takes its own row and the wordmark keeps the one above it.
-     Before the tools learned to wrap they formed one unbreakable ~396px row
-     inside a 336px box, and that single overflow pushed the document sideways on
-     every route in the app. */
+  /* The tools cluster takes the strip's full width. It is the strip's only child
+     since the wordmark moved to the masthead, so this is now about the cluster's
+     own wrapping rather than about sharing a row: before the tools learned to
+     wrap they formed one unbreakable ~396px row inside a 336px box, and that
+     single overflow pushed the document sideways on every route in the app. The
+     cluster's own justify-content: flex-end keeps it right-aligned in the row. */
   .ui-utilitybar-tools {
     flex: 1 1 100%;
   }
@@ -1986,8 +2041,8 @@ summary:focus-visible {
        complete: the two entries this block has been wrong about — the mark
        tokens and these six — were both "the ones nobody drew with on /report",
        right up until someone did. print-audit.mjs now asserts every token
-       resolves identically in all four modes under media:print, which only
-       holds if the list stays exhaustive. */
+       resolves identically in every mode under media:print, which only holds if
+       the list stays exhaustive. */
     --color-primary: #2C6DB5;
     --color-accent: #FFC53D;
     --color-on-accent: #3A2A00;
@@ -2016,6 +2071,28 @@ summary:focus-visible {
     --mark-coin-glyph: #7A1220;
     --mark-drop: #F5A31B;
     --mark-drop-edge: #C2410C;
+    /* The wordmark and the book icon, restated for the same reason and added on
+       11 Sept 2026 — when the wordmark moved into the masthead and gained a dark
+       case, both sets became theme-dependent tokens that this block did not
+       cover. Neither draws on the sheet today: .ui-masthead and .ui-manual are
+       both display:none below, so the wordmark and the book are off the paper
+       entirely. That is exactly the condition under which the previous two
+       omissions went unnoticed — "the ones nothing on /report happens to draw
+       with" — so they are listed now rather than after something starts drawing
+       them. The paper values are the light ones, since the sheet is white. */
+    --wordmark-arth: #8A5A0A;
+    --wordmark-niti: #12233A;
+    --wordmark-swoosh: #B86F10;
+    --wordmark-dot: #8A5A0A;
+    --wordmark-swoosh-w: 2;
+    --book-cover: #7B1E3C;
+    --book-spine: #5E162E;
+    --book-band: #E2582B;
+    --book-seal: #EFB03C;
+    --book-seal-rim: #D08E1C;
+    --book-pages: #FBEBBE;
+    --book-pageline: #E2CE92;
+    --book-sprout: #23414D;
   }
 
   /* App chrome is navigation, and navigation means nothing on paper. The manual

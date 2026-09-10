@@ -224,6 +224,17 @@ const PROBE = `(() => {
     '--color-btn', '--color-on-btn', '--color-primary', '--color-primary-strong',
     '--color-accent', '--color-on-accent', '--color-focus',
     '--color-danger', '--color-success',
+    // The wordmark and the book icon, added 11 Sept 2026. Both are fixed-asset
+    // colour sets that differ per theme, and both were uncovered by the print
+    // reset AND unasked-for here — so the invariance check was blind to them in
+    // exactly the way it had already been blind to --color-danger. Neither one
+    // draws on the sheet today (.ui-masthead and .ui-manual are display:none in
+    // print), which is precisely the condition that hid the last two omissions.
+    // Asking about them now means a future /report that shows the wordmark
+    // cannot print theme-dependent ink without this failing first.
+    '--wordmark-arth', '--wordmark-niti', '--wordmark-swoosh', '--wordmark-dot',
+    '--book-cover', '--book-spine', '--book-band', '--book-seal',
+    '--book-seal-rim', '--book-pages', '--book-pageline', '--book-sprout',
   ]) {
     tokens[name] = cs.getPropertyValue(name).trim()
   }

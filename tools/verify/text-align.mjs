@@ -32,12 +32,21 @@
 // lead with .ui-footer-title, so the broken version fires and the hero never
 // does.
 //
+// THE COLUMN ARM NEEDS A SECOND HALF OF THAT RULE, and it took a real false
+// positive to find: two cells are only comparable on a left edge if the layout
+// anchors both of them leftward. See anchorOf() below for the case — a
+// right-aligned utility strip grouped with a left-aligned footer line, on the
+// degenerate signature of a classless <span>, reporting 312.9px on all 30 loads
+// with nothing on the page misplaced. The anchor is therefore part of the group
+// key, and each group is compared on the edge its anchor makes meaningful.
+//
 // Findings:
 //   RAGGED-ROW  two cells in the same row lead with the same kind of element,
 //               and its first LINE BOX sits at a different top. The footer bug.
-//   RAGGED-COL  two stacked siblings lead with the same kind of element at a
-//               different LEFT. A heading indented away from the heading below
-//               it, i.e. the same defect rotated.
+//   RAGGED-COL  two stacked siblings lead with the same kind of element, anchored
+//               the same way, and their anchored edges disagree. A heading
+//               indented away from the heading below it, i.e. the same defect
+//               rotated.
 //   INERT       a route where no same-signature pair existed to compare. Proves
 //               nothing, so it is reported rather than counted as a pass — same
 //               instrument check as field-align's unevenRows.
@@ -216,6 +225,50 @@ const PROBE = `(() => {
     return el.tagName.toLowerCase() + (cls ? '.' + cls : '')
   }
 
+  // Which edge does the layout anchor this cell's content to? The COLUMN arm
+  // compares LEFT edges, and that is only a meaningful comparison between cells
+  // the layout pushes leftward. A right-anchored cell's left edge is a function
+  // of how wide its content happens to be, so measuring it against a
+  // left-anchored cell's is comparing two different quantities.
+  //
+  // The case that forced this: the wordmark moved from the utility strip to the
+  // masthead on 11 Sept 2026, which left .ui-utilitybar-inner right-aligned with
+  // a single child. That band's first text became the language picker's globe at
+  // x=328.9, which grouped — on a bare classless <span> signature — with the
+  // footer's disclaimer at x=16 and reported a 312.9px ragged column on all 30
+  // loads. Neither cell is misplaced. One band is right-aligned by design.
+  //
+  // THIS READS COMPUTED STYLE RATHER THAN MEASURING, which is the exception in
+  // this file and needs its reason on the record: anchoring is a property of the
+  // CONTAINER that positions the text, not of the text's own box. The globe sits
+  // at the LEFT edge of a right-anchored cluster, so its gap to the cell's left
+  // edge (313px) is smaller than its gap to the right (661px) — every
+  // measurement of the text itself classifies it as left-anchored, and only the
+  // container says otherwise.
+  //
+  // text-align inherits, so reading it anywhere down the chain finds it wherever
+  // it was set; justify-content and justify-self do not, hence the walk. Known
+  // blind spot: margin-left: auto is the other way to push a flex item rightward
+  // and getComputedStyle resolves it to a used px value, so it cannot be seen
+  // here. Nothing in this app uses it that way.
+  const ENDISH = new Set(['flex-end', 'end', 'right'])
+  const MIDISH = new Set(['center'])
+  const anchorOf = (cellNode, el) => {
+    let n = el
+    while (n) {
+      const cs = getComputedStyle(n)
+      if (ENDISH.has(cs.textAlign) || ENDISH.has(cs.justifySelf)) return 'end'
+      if (MIDISH.has(cs.textAlign) || MIDISH.has(cs.justifySelf)) return 'mid'
+      if (/flex|grid/.test(cs.display)) {
+        if (ENDISH.has(cs.justifyContent)) return 'end'
+        if (MIDISH.has(cs.justifyContent)) return 'mid'
+      }
+      if (n === cellNode) break
+      n = n.parentElement
+    }
+    return 'start'
+  }
+
   const describe = (el) => {
     const t = (el.textContent || '').trim().replace(/\\s+/g, ' ')
     return t.length > 44 ? t.slice(0, 44) + '\\u2026' : t
@@ -264,6 +317,9 @@ const PROBE = `(() => {
         paints: paints(k),
         top: Math.round(boxes[0].top * 10) / 10,
         left: Math.round(boxes[0].left * 10) / 10,
+        right: Math.round(boxes[0].right * 10) / 10,
+        mid: Math.round(((boxes[0].left + boxes[0].right) / 2) * 10) / 10,
+        anchor: anchorOf(k, el),
         rowTop: Math.round(k.getBoundingClientRect().top * 10) / 10,
         text: describe(el),
       })
@@ -309,23 +365,36 @@ const PROBE = `(() => {
     if (stacked.length >= 2) {
       const bySig = new Map()
       for (const c of stacked) {
-        if (!bySig.has(c.sig)) bySig.set(c.sig, [])
-        bySig.get(c.sig).push(c)
+        // The anchor is part of the signature rather than a demotion applied
+        // after a spread is found. Demoting would report the pair and then
+        // forgive it, which reads as a near-miss; these two are not a column at
+        // all, so they should never be grouped. Same reasoning as the ROW arm
+        // keying on the class list: group only what the layout says is parallel.
+        const key = c.sig + ' @' + c.anchor
+        if (!bySig.has(key)) bySig.set(key, [])
+        bySig.get(key).push(c)
       }
       for (const [signature, group] of bySig) {
         if (group.length < 2) continue
         comparedCols += 1
-        const lefts = group.map((c) => c.left)
-        const spread = Math.max(...lefts) - Math.min(...lefts)
+        // Compare the edge the anchor makes meaningful. Right-aligned cells share
+        // a right edge and centred ones share a centre; only left-anchored cells
+        // are answerable on their left. (No backticks in here — the probe is a
+        // template literal and one would close it early. index.css and
+        // print-audit.mjs both carry this warning; I did it anyway.)
+        const edge = group[0].anchor === 'end' ? 'right' : group[0].anchor === 'mid' ? 'mid' : 'left'
+        const at = group.map((c) => c[edge])
+        const spread = Math.max(...at) - Math.min(...at)
         if (spread <= TOL_COL) continue
         const mixed = group.some((c) => c.paints) && group.some((c) => !c.paints)
         findings.push({
           kind: mixed ? 'PANEL-INSET' : 'RAGGED-COL',
           axis: 'col',
+          edge,
           where,
           signature,
           spread: Math.round(spread * 10) / 10,
-          cells: group.map((c) => ({ left: c.left, panel: c.paints, text: c.text })),
+          cells: group.map((c) => ({ at: c[edge], panel: c.paints, text: c.text })),
         })
       }
     }
@@ -474,7 +543,7 @@ async function main() {
         for (const f of res.findings) {
           console.log(`        ${f.kind} ${f.where} ${f.signature} spread ${f.spread}px`)
           for (const c of f.cells) {
-            const at = f.axis === 'row' ? `top ${c.top}` : `left ${c.left}`
+            const at = f.axis === 'row' ? `top ${c.top}` : `${f.edge} ${c.at}`
             console.log(`          ${at.padEnd(12)} ${c.panel ? '[panel]' : '[bare] '} "${c.text}"`)
           }
         }

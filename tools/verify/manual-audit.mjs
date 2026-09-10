@@ -4,7 +4,7 @@
 // It covered four modes until 8 September 2026; light and dark high-contrast
 // went with the high-contrast feature itself. The measurements that were written
 // FOR that mode all stay, because each one also catches a plain-theme failure —
-// see the notes on the wordmark strip, the bead and the book's region count.
+// see the notes on the wordmark surface, the bead and the book's region count.
 //
 // Neither piece is reachable by the other drivers, and both have a failure mode
 // that lint, build and parity all pass through:
@@ -13,18 +13,23 @@
 //     on a click, so everything inside it — twenty strings, a language select,
 //     eight step rows, two buttons — is unmeasured by every existing script.
 //   * The wordmark and the book icon resolve their colours through tokens, and
-//     the surfaces they sit on do not track the theme the way the rest of the
-//     page does — the utility strip is the same near-black in both themes while
-//     the book sits on a themed card. So the pairing of ink and ground differs
-//     per mode even where the ink does not, and reading the CSS cannot tell you
-//     which way round it landed. Only the painted result can.
+//     the pairing of ink and ground is what has to be right, not either half on
+//     its own. Reading the CSS cannot tell you which way round it landed, because
+//     both sides of the pair are var() indirections that resolve per theme. Only
+//     the painted result can. This is not hypothetical: the wordmark's four
+//     tokens had ONE colour case for three days, correct on the #08243F utility
+//     strip they were tuned against, and the light half of that pair measured
+//     1.65:1 and 1.09:1 the moment the wordmark moved to the white masthead.
 //
 // So this measures the painted result. Per mode:
 //
-//   WORDMARK  contrast of each half of the name, and of the swoosh, against the
-//             utility strip it sits on. The strip is #08243F in BOTH themes — it
-//             is NOT themed, so a colour read off the palette here would be
-//             right half the time.
+//   WORDMARK  contrast of each half of the name, and of the swoosh, against
+//             whatever surface it is actually sitting on. The selectors are
+//             document-wide rather than scoped to a container, which is why this
+//             check followed the wordmark from the utility strip into the
+//             masthead on 11 Sept 2026 with no edit: it measures the element
+//             wherever it is. That is also the trap — a container-scoped selector
+//             would have gone quietly missing-and-passing instead.
 //   PILL      that the prototype disclaimer is ABSENT. This check used to require
 //             it. The owner asked for it off the page outright on 8 Sept 2026 and
 //             restated that after the trade-off was put to them, so the check was
@@ -133,18 +138,23 @@ const CHROME_PROBE = [
   '  const swoosh = document.querySelector(".ui-wordmark-swoosh path")',
   '  const bead = document.querySelector(".ui-wordmark-swoosh circle")',
   '  if (!arth || !niti) return { missing: "wordmark" }',
-  '  const strip = backdrop(arth)',
-  '  out.stripColour = "rgb(" + strip.join(",") + ")"',
+  // Walked from the element, not read off a known constant. The surface under
+  // the wordmark used to be the hardcoded #08243F utility strip; since 11 Sept
+  // 2026 it is the masthead's var(--color-surface), which is #ffffff light and
+  // #10273E dark. Naming the ground here rather than measuring it is what would
+  // have made this check certify the move as safe when it was not.
+  '  const ground = backdrop(arth)',
+  '  out.groundColour = "rgb(" + ground.join(",") + ")"',
   '  out.arthText = arth.textContent',
   '  out.nitiText = niti.textContent',
-  '  out.arthRatio = ratio(parse(getComputedStyle(arth).color), strip)',
-  '  out.nitiRatio = ratio(parse(getComputedStyle(niti).color), strip)',
+  '  out.arthRatio = ratio(parse(getComputedStyle(arth).color), ground)',
+  '  out.nitiRatio = ratio(parse(getComputedStyle(niti).color), ground)',
   // The swoosh is decoration, so it is reported rather than gated on 4.5 — but a
-  // stroke that resolved to the strip colour would mean the token indirection
+  // stroke that resolved to the ground colour would mean the token indirection
   // broke, and dL* 0 with a non-transparent stroke says exactly that.
   '  const sc = swoosh ? getComputedStyle(swoosh).stroke : "none"',
   '  out.swooshStroke = sc',
-  '  out.swooshDeltaL = (sc === "none" || alpha(sc) === 0) ? null : Math.round(Math.abs(Ls(parse(sc)) - Ls(strip)) * 10) / 10',
+  '  out.swooshDeltaL = (sc === "none" || alpha(sc) === 0) ? null : Math.round(Math.abs(Ls(parse(sc)) - Ls(ground)) * 10) / 10',
   // The bead is the tip of the stroke. If the stroke is switched off for a mode
   // and the bead is not, it floats past the last letter with no line running
   // into it and reads as a full stop after the product name — which is how it
@@ -379,7 +389,8 @@ const MIN_INK = 10
 const MIN_VS_PAGE = 10
 const MIN_REGIONS = 4
 const MIN_EDGE = 3
-// Body text on the strip; the two halves of the name are bold display text but
+// Body text on the wordmark's own surface; the two halves of the name are bold
+// display text but
 // still held to the plain-text floor, because a wordmark nobody can read is not
 // a wordmark.
 const MIN_TEXT_RATIO = 4.5
@@ -438,9 +449,9 @@ async function main() {
         notes.push(`${chrome.missing} is not on the page at all`)
       } else {
         for (const [k, v] of Object.entries(chrome)) console.log(`    ${k.padEnd(14)} ${v}`)
-        if (chrome.arthRatio < MIN_TEXT_RATIO) notes.push(`wordmark "${chrome.arthText}" is only ${chrome.arthRatio}:1 on the strip`)
-        if (chrome.nitiRatio < MIN_TEXT_RATIO) notes.push(`wordmark "${chrome.nitiText}" is only ${chrome.nitiRatio}:1 on the strip`)
-        if (chrome.swooshDeltaL !== null && chrome.swooshDeltaL < 3) notes.push(`the swoosh is painted but only dL* ${chrome.swooshDeltaL} from the strip — the token indirection is wrong`)
+        if (chrome.arthRatio < MIN_TEXT_RATIO) notes.push(`wordmark "${chrome.arthText}" is only ${chrome.arthRatio}:1 on ${chrome.groundColour}`)
+        if (chrome.nitiRatio < MIN_TEXT_RATIO) notes.push(`wordmark "${chrome.nitiText}" is only ${chrome.nitiRatio}:1 on ${chrome.groundColour}`)
+        if (chrome.swooshDeltaL !== null && chrome.swooshDeltaL < 3) notes.push(`the swoosh is painted but only dL* ${chrome.swooshDeltaL} from ${chrome.groundColour} — the token indirection is wrong`)
         if (chrome.beadOrphaned) notes.push('the swoosh is switched off but its bead is still painted — it reads as a full stop after the name')
         if (chrome.wordmarkLines > 1) notes.push(`the wordmark wrapped onto ${chrome.wordmarkLines} lines`)
         if (chrome.pillPresent) notes.push('the prototype disclaimer pill is back on the page — it was removed on the owner\'s instruction')
@@ -456,10 +467,14 @@ async function main() {
       if (book.regions < MIN_REGIONS) notes.push(`the cover's centre line crosses only ${book.regions} regions — the seal and band have merged into it`)
       if (book.worstEdge !== null && book.worstEdge < MIN_EDGE) notes.push(`adjacent regions of the book differ by only dL* ${book.worstEdge}`)
 
-      const strip = await cdp.send('Page.captureScreenshot', {
+      // The top 520px: utility strip, masthead, tricolour, nav. Named for the
+      // chrome rather than for the strip, because the wordmark this capture
+      // exists to eyeball moved from the first band into the second on 11 Sept
+      // 2026 and the clip covers both either way.
+      const chromeShot = await cdp.send('Page.captureScreenshot', {
         format: 'png', clip: { x: 0, y: 0, width: mode.w, height: Math.min(mode.h, 520), scale: 1 },
       })
-      writeFileSync(`${OUT}/strip-${mode.name}.png`, Buffer.from(strip.data, 'base64'))
+      writeFileSync(`${OUT}/chrome-${mode.name}.png`, Buffer.from(chromeShot.data, 'base64'))
 
       // --- open it and measure the panel
       await cdp.evaluate('document.querySelector(".ui-manual-open").click(); true')

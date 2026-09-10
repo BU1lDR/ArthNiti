@@ -184,11 +184,13 @@ It produces the seven PNGs from **two different sources on purpose**:
   moment a token moved. Capturing the real thing cannot drift.
 
 If you have to redo it without the script: screenshot `.ui-brand` in the masthead
-at a high device-pixel ratio for the lockup, and `.ui-wordmark` in the utility
-strip for the wordmark. Two things that went wrong the first time and will again:
+at a high device-pixel ratio for the lockup, and `.ui-wordmark` — which is the
+masthead's product name as of 11 Sept 2026, having moved there from the utility
+strip — for the wordmark on its own. Two things that went wrong the first time and will again:
 
 - **Capture at a high scale, not by upscaling afterwards.** The lockup is only
-  ~305 CSS px wide in the masthead and the wordmark ~64. A screenshot re-rendered
+  ~305 CSS px wide in the masthead and the wordmark ~72 at its masthead size (~64
+at the smaller size it used in the strip). A screenshot re-rendered
   at 6× or 12× is sharp because the mark is vector and the name is live text; the
   same bitmap enlarged in an image editor is mush.
 - **The wordmark's navy plate is only 34px tall and the wordmark is 23px of it.**

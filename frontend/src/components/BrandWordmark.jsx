@@ -1,12 +1,21 @@
 import { APP_NAME } from '../i18n/brand'
 
-// The अर्थNiti wordmark for the utility strip: the two halves of the name in
-// contrasting weights and warm tones, over a gold swoosh.
+// The अर्थNiti wordmark: the two halves of the name in contrasting weights and
+// warm tones, over a gold swoosh. It is the masthead's product name as of
+// 11 Sept 2026, in place of the plain bold span that used to sit there; it lived
+// in the utility strip before that.
 //
 // Set as live text rather than as an image, for the reasons that decide most
 // things in this app: it takes its colours from the --wordmark-* tokens, it
 // scales with --ui-scale, a screen reader reads it, and it does not blur on a
 // projector.
+//
+// The move cost the tokens their single colour case. The strip was #08243F in
+// both themes, so one set of warm values was correct everywhere; the masthead is
+// var(--color-surface), which flips, and the strip's gold measured 1.65:1 on
+// white. Both light and dark cases are in index.css now — do not collapse them
+// back, and do not hardcode a hex here. manual-audit.mjs gates each half at
+// 4.5:1 against whatever surface the wordmark is actually on.
 //
 // The name is split on the Devanagari/Latin boundary rather than being hardcoded
 // twice, so `i18n/brand.js` stays the one place the product is spelled. The two

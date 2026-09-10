@@ -246,9 +246,12 @@ function AppShell({ children }) {
         {t('common.skipToMain')}
       </a>
 
+      {/* Tools only. The wordmark used to sit at the left of this strip and now
+          serves as the masthead's product name instead, so the strip carries no
+          branding at all — see the .ui-utilitybar-inner rule, which right-aligns
+          the cluster explicitly rather than relying on space-between. */}
       <div className="ui-utilitybar">
         <div className="ui-utilitybar-inner">
-          <BrandWordmark />
           <div className="ui-utilitybar-tools">
             <LanguagePicker />
             <TextSizeControl />
@@ -260,12 +263,19 @@ function AppShell({ children }) {
 
       <header className="ui-masthead">
         <div className="ui-masthead-inner">
-          {/* APP_NAME, not t(). The product name is a proper noun and does not
-              change when the interface language does — see i18n/brand.js. */}
+          {/* The wordmark reads APP_NAME itself, and APP_NAME rather than t() is
+              the point: the product name is a proper noun and does not change
+              when the interface language does — see i18n/brand.js.
+
+              This was a plain bold <span className="ui-brand-name"> until 11 Sept
+              2026, when the owner asked for the styled wordmark here instead of
+              in the utility strip. The masthead is a THEMED surface, unlike the
+              strip, which is why --wordmark-* gained a dark case — see the token
+              block in index.css. */}
           <Link to="/" className="ui-brand" aria-label={`${APP_NAME} — ${t('nav.home')}`}>
             <BrandMark />
             <span>
-              <span className="ui-brand-name">{APP_NAME}</span>
+              <BrandWordmark className="ui-wordmark-brand" />
               <span className="ui-brand-sub">{t('common.appTagline')}</span>
             </span>
           </Link>
