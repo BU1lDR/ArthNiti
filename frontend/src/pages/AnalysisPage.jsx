@@ -574,8 +574,8 @@ function SchemeCard({ scheme, t, bt }) {
       {/* description, support_type, match_reasons, eligibility_rules and
           documents are all written by the Python services, each with a
           translatable code alongside. The scheme NAME stays English on purpose:
-          PMEGP and PMMY are what the official portal calls them, and a user
-          following official_url has to recognise it there. */}
+          PMEGP and PMMY are what the scheme is called on the form and at the
+          counter, so a reader has to be able to ask for it by that name. */}
       {scheme.description && (
         <p className="mt-2 break-words text-sm leading-6 text-[var(--color-text-muted)]">
           {bt.schemeDescription(scheme)}
@@ -616,16 +616,8 @@ function SchemeCard({ scheme, t, bt }) {
         </p>
       )}
 
-      {scheme.official_url && (
-        <a
-          href={scheme.official_url}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-3 inline-flex min-h-11 items-center break-words text-xs font-bold text-[var(--color-primary-strong)] hover:underline"
-        >
-          {t('sc.openSite')} <span aria-hidden="true">↗</span>
-        </a>
-      )}
+      {/* No link out to the scheme's government portal — see the note in
+          SchemesPage.jsx. */}
 
       {scheme.last_verified && (
         <p className="mt-1 break-words text-xs text-[var(--color-text-muted)]">

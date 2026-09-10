@@ -246,23 +246,11 @@ function SchemeCard({ scheme, index, t, bt }) {
         </div>
       </details>
 
-      {scheme.official_url && (
-        <div className="mt-6 border-t border-[var(--color-border)] pt-5">
-          {/* No focus:outline-none and no focus:ring here on purpose. The
-              unlayered a:focus-visible rule in index.css already draws the ring
-              and cannot be removed anyway; a Tailwind ring would stack a second
-              indicator on top of it, and ring-offset-* carries a default white
-              offset colour that would show as a halo on a dark card. */}
-          <a
-            href={scheme.official_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-12 items-center rounded-xl bg-[var(--color-btn)] px-5 py-3 font-bold text-[var(--color-on-btn)] transition hover:opacity-90"
-          >
-            {t('sc.openSite')} <span aria-hidden="true">↗</span>
-          </a>
-        </div>
-      )}
+      {/* There is deliberately no link out to the scheme's own government
+          portal here, and there must not be one. The card names the office
+          that runs the scheme (lvlnote.*) and the footer says to verify
+          eligibility at a government office; that is the whole route we
+          point a reader down. */}
     </section>
   )
 }
