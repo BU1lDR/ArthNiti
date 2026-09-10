@@ -2,7 +2,7 @@
 
 Hyper-local business advice and financial structuring for rural micro-entrepreneurs. Our entry for Smart India Hackathon 2026.
 
-Someone running a small business in a village — a tailor, a weaver, a woman keeping four buffaloes — opens this on a cheap Android phone, answers sixteen plain questions in their own language, and gets four things back:
+Someone running a small business in a village — a tailor, a weaver, a woman keeping four buffaloes — opens this on a cheap Android phone, answers nineteen plain questions in their own language, and gets four things back:
 
 - whether the business actually makes money
 - how risky the loan repayment looks
