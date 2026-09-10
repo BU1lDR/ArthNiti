@@ -98,6 +98,10 @@ BORDER = [
 # (id, name, level, states, categories, target, description, support,
 #  eligibility (shared code, or (code, text) for a scheme-specific one),
 #  document codes, url)
+#
+# The trailing url is the source each scheme's rules were transcribed from. It
+# is a citation for us, not data: build() does not emit it, schemes.json does
+# not carry it, and nothing in the app links a reader to a government portal.
 SPEC = [
     # ------------------------------- CENTRAL -------------------------------
     (
@@ -630,7 +634,12 @@ def build():
                 "eligibility_rules": texts,
                 "support_type": support,
                 "documents": [D[code] for code in docs],
-                "official_url": url,
+                # `url` is NOT emitted. It stays in SPEC as the internal
+                # citation for where each scheme's rules were transcribed
+                # from, but the dataset carries no official_url and the app
+                # links no reader out to a government portal. Emitting it
+                # here would put the field back into schemes.json on the next
+                # regeneration, which is how it would return.
                 "last_verified": EXISTING_VERIFIED.get(sid, LAST_VERIFIED),
                 "eligibility_codes": codes,
                 "document_codes": list(docs),

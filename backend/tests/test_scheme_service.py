@@ -39,7 +39,8 @@ def make_scheme(
         "states": states or ["Delhi"],
         "eligibility_rules": ["Test eligibility rule"],
         "documents": ["Test document"],
-        "official_url": "https://example.com",
+        # No official_url, matching the real dataset. Its absence here also
+        # proves the matcher never subscripts it.
         "last_verified": "2026-01-01",
     }
 
@@ -179,8 +180,8 @@ def test_match_schemes_returns_only_matching_categories():
         assert "match_reasons" in match
         assert "eligibility_rules" in match
         assert "documents" in match
-        assert "official_url" in match
         assert "last_verified" in match
+        assert "official_url" not in match
 
 
 def test_match_schemes_are_sorted_by_score():

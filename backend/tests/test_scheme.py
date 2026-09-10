@@ -68,7 +68,13 @@ def test_every_scheme_carries_complete_translation_codes():
         assert scheme["documents"], where
         assert scheme["business_categories"], where
         assert scheme["states"], where
-        assert scheme["official_url"].startswith("http"), where
+
+        # Inverted on purpose, not deleted. The dataset must NOT carry a link
+        # out to the scheme's own government portal, so this fails on the
+        # field coming back rather than on it being absent -- including via a
+        # regeneration from gen_schemes.py, which still holds the source URLs
+        # as citations and must never emit them.
+        assert "official_url" not in scheme, where
 
 
 def test_scheme_ids_are_unique():

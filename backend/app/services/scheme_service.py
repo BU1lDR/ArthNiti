@@ -397,7 +397,6 @@ def match_schemes(
                     "support_type_code": scheme.get("support_type_code"),
                     "eligibility_codes": list(scheme.get("eligibility_codes", [])),
                     "document_codes": list(scheme.get("document_codes", [])),
-                    "official_url": scheme["official_url"],
                     "last_verified": scheme["last_verified"]
                 }
             )

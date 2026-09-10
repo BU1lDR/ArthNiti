@@ -157,7 +157,7 @@ def test_unified_analysis_returns_scheme_matches_as_list():
     for scheme in result["scheme_matches"]:
         assert scheme["match_score"] > 0
         assert "name" in scheme
-        assert "official_url" in scheme
+        assert "official_url" not in scheme
 
 
 def test_unified_analysis_preserves_input_values():

@@ -121,8 +121,13 @@ def test_frontend_contract_scheme_matches():
         assert isinstance(scheme["match_reasons"], list)
         assert isinstance(scheme["eligibility_rules"], list)
         assert isinstance(scheme["documents"], list)
-        assert isinstance(scheme["official_url"], str)
         assert isinstance(scheme["last_verified"], str)
+
+        # The response must not hand the frontend a government portal URL --
+        # see test_scheme.py. Asserted here too because this file is the
+        # contract the UI reads, and an absent key is what stops a card from
+        # rendering a link again.
+        assert "official_url" not in scheme
 
 
 def test_frontend_contract_advisory_section():

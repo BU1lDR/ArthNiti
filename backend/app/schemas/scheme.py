@@ -18,7 +18,11 @@ class Scheme(BaseModel):
     eligibility_rules: List[str]
     support_type: str
     documents: List[str]
-    official_url: str
+    # No official_url. The app deliberately does not link a reader out to a
+    # scheme's own government portal, so the field is not carried through the
+    # data, the response or the UI. Don't re-add it here: a response_model
+    # filters silently, so declaring it would be the first step to it
+    # reappearing on a card with nothing reporting the change.
     last_verified: str
 
 
