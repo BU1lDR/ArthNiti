@@ -162,7 +162,7 @@ Every row is labelled `"Prototype estimate / illustrative data"`, and the UI pri
 
 Eight: `en`, `hi`, `ta`, `te`, `ml`, `kn`, `mr`, `bn`. The default is **Hindi**, not English, because that's who this is for. English is the fallback.
 
-619 distinct keys across 4 dictionary files, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
+618 distinct keys across 4 dictionary files, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
 
 The dialect layer is a curated set of phrases, not a translation. Nine of the thirty listed varieties override a handful of the most visible strings. In the demo, say "dialect-aware phrasing" — not "translated into Bhojpuri".
 

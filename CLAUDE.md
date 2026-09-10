@@ -188,7 +188,7 @@ Strings live in **four** files, split purely by size and by who wrote the senten
 | [backendStrings.js](frontend/src/i18n/backendStrings.js) | 30 | sentences a **Python service composes** (`adv.*`, `obs.*`, `rsn.*`, `sum.*`, `nxt.*`, `why.*`, `seas.*`, `src.*`) |
 | [schemeStrings.js](frontend/src/i18n/schemeStrings.js) | 188 | prose **typed into schemes.json** (`sdata.*`, `elig.*`, `doc.*`, `scat.*`) |
 
-**619 distinct keys, 4,952 strings** — measured by `parity4.mjs`, which prints the total. The split rule is one line: *if a Python function builds the sentence it belongs in `backendStrings.js`; if the sentence is typed into `schemes.json` it belongs in `schemeStrings.js`.*
+**618 distinct keys, 4,944 strings** — measured by `parity4.mjs`, which prints the total. The split rule is one line: *if a Python function builds the sentence it belongs in `backendStrings.js`; if the sentence is typed into `schemes.json` it belongs in `schemeStrings.js`.*
 
 It was 584 until 8 Sept 2026. `common.appName` and `landing.eyebrow` were **deleted**, not retranslated — see "The product name is not a translatable string" below. `common.highContrast` went the same way when high contrast was removed later that day; `man.tipText` was **rewritten** in all 8 languages rather than deleted, because its third tip named that control and the string itself is live manual copy.
 
@@ -259,7 +259,7 @@ Response — **7** top-level keys ([analysis_service.py:106-114](backend/app/ser
 | `risk_analysis` | `pressure_ratio_percent`, `risk_level`, `reason`, `reason_code` |
 | `business_analysis` | `business_type`, `initial_investment`, `expected_monthly_revenue`, `monthly_operating_expenses`, `monthly_operating_surplus`, `operating_margin_percent`, `annual_operating_surplus`, `estimated_roi_percent`, `feasibility_status`, `observations[]`, `observation_codes[]` |
 | `market_context` | list of `{state, district, business_category, indicative_price, demand_indicator, seasonality, source, last_verified, seasonality_code, source_code, match_level, local_context:{village, market_type, customers}}` |
-| `scheme_matches` | list of `{name, level, scheme_id, description, support_type, match_score, match_reasons[], match_reason_codes[], eligibility_rules[], documents[], description_code, support_type_code, eligibility_codes[], document_codes[], official_url, last_verified}` |
+| `scheme_matches` | list of `{name, level, scheme_id, description, support_type, match_score, match_reasons[], match_reason_codes[], eligibility_rules[], documents[], description_code, support_type_code, eligibility_codes[], document_codes[], last_verified}` — **no `official_url`**, deliberately; see the link-removal section |
 | `advisory` | `recommendations[]`, `recommendation_codes[]` |
 | `mvp_summary` | `status`, `simple_message`, `message_code`, `next_step`, `next_step_code`, `priority`, `language`, `preferred_dialect`, `literacy_level`, `entrepreneur_type`, `location_type` |
 
@@ -293,7 +293,7 @@ The frontend mirrors this: `LEVEL_ORDER` in [backendText.js](frontend/src/i18n/b
 
 [gen_schemes.py](backend/gen_schemes.py) is the generator that produced the file, kept as **provenance rather than runtime** — nothing imports it and the backend reads only `schemes.json`. It is how to regenerate the dataset consistently if the tiers change; `gen_schemes_keys.json` records the key inventory it emitted (`{eligibility: 94, documents: 21, ids: 30}`).
 
-**29 of the 30 `official_url`s were confirmed HTTP 200 on 7 Sept 2026.** The exception is PMEGP's `https://www.kviconline.gov.in/pmegpeportal/` — a pre-existing repo URL the team verified on 1 Sept; its host resolves but refuses connections from this network, so it is unverified rather than known-bad. Worth a manual click before the demo.
+**The dataset carries no `official_url`, and that is deliberate as of 10 Sept 2026.** Every scheme used to hold a link to its own government portal, 29 of the 30 confirmed HTTP 200 on 7 Sept; the owner's instruction was to remove them because deep-linking a reader into a government service from an unaffiliated student prototype is not ours to do. See "The outbound government links removed" below for what went and why the field is not coming back. `last_verified` stays — it is provenance about when the *rules* were transcribed, not a link.
 
 ### Formulas and thresholds
 
@@ -373,7 +373,7 @@ Ranked by demo impact, all confirmed against the code. **Numbers are stable** �
 - **Dialect coverage is 9 of 30 varieties**, and each is a handful of phrases rather than a translation. Deliberate and disclosed in the UI — see the i18n section. Don't describe it as a translation.
 - **Non-English translations are unreviewed by a native speaker.** Covered by the entry above; the specific errors found by eye were Tamil `money.left` reading "moderate money" (மிதம் for மிச்சம்) and a duplicated word in Malayalam `elig.bdo.funds`.
 - ~~**Backend prose is English only.**~~ **CLOSED 7 Sept 2026.** Every generated sentence now carries a translation code and resolves through `tBackend()` in all 8 languages — see the translation-code section above. What remains English is narrow and deliberate: an enum value the `LEVEL_KEYS`/`STATUS_KEYS` maps do not recognise falls back to the title-cased enum, and a scheme added to `schemes.json` without codes falls back to its English prose.
-- **Non-English wording quality is still unreviewed by a native speaker** — now across 619 keys × 8 languages rather than 530. Parity, placeholder integrity and identical-to-English are all script-verified; *naturalness* is not. Two real errors have already been found by eye (Tamil `money.left` read "moderate money", Malayalam `elig.bdo.funds` had a duplicated word), which is evidence there are more.
+- **Non-English wording quality is still unreviewed by a native speaker** — now across 618 keys × 8 languages rather than 530. Parity, placeholder integrity and identical-to-English are all script-verified; *naturalness* is not. Two real errors have already been found by eye (Tamil `money.left` read "moderate money", Malayalam `elig.bdo.funds` had a duplicated word), which is evidence there are more.
 - **The print PDF layout and the `api.js` timeout path still need a manual click-through.** The driver below covers page rendering, not `window.print()` output or a stalled backend.
 - ~~**Mobile is not pixel-verified.** Desktop widths only.~~ **CLOSED 7 Sept 2026** — see "Phones" below. All ten routes now pass a measured audit at 360 / 390 / 412 px. What is still unverified there: landscape orientation, real touch scrolling on a physical device, and the on-screen keyboard covering a focused input.
 
@@ -404,7 +404,7 @@ node tools/verify/hero-vibrance.mjs  # NOT a gate — sweeps filter candidates f
 node tools/verify/art-contrast.mjs   # RETIRED — exits 2; modelled the old SVG backdrop
 ```
 
-**Each of these fifteen browser scripts owns a different failure class, and they use fifteen different CDP ports** — counted from the list, which is now the authority; the sentence said "thirteen" while naming twelve until `motion-audit` landed on 9 Sept 2026 (`drive` 9222, `mobile-audit` 9333, `hero-art` 9337, `brand-mark` 9339, `lang-layout` 9343, `manual-audit` 9341, `error-banner` 9347, `field-align` 9351, `hero-geom` 9355, `print-audit` 9359, `hero-vibrance` 9361, `load-perf` 9363, `motion-audit` 9365, `scroll-audit` 9367, `text-align` 9371) with separate profile dirs, so two can run at once. `hero-vibrance.mjs` sat on 9359 as well until 8 Sept 2026, which quietly broke that guarantee for the one pair most likely to be run together. Two more scripts drive a browser without being gates and are easy to miss when checking for a port collision — `assetgen` on 9377 and `svgcheck` on 9378, both of which name the constant `PORT` rather than `DEBUG_PORT`, so a grep for the latter finds fifteen of the seventeen. **9369 is deliberately left free**: it was a throwaway probe's port during the scroll work, and the next one-off should reuse it rather than take a number a gate might want.
+**Each of these fifteen browser scripts owns a different failure class, and they use fifteen different CDP ports** — counted from the list, which is now the authority; the sentence said "thirteen" while naming twelve until `motion-audit` landed on 9 Sept 2026 (`drive` 9222, `mobile-audit` 9333, `hero-art` 9337, `brand-mark` 9339, `lang-layout` 9343, `manual-audit` 9341, `error-banner` 9347, `field-align` 9351, `hero-geom` 9355, `print-audit` 9359, `hero-vibrance` 9361, `load-perf` 9363, `motion-audit` 9365, `scroll-audit` 9367, `text-align` 9371) with separate profile dirs, so two can run at once. `hero-vibrance.mjs` sat on 9359 as well until 8 Sept 2026, which quietly broke that guarantee for the one pair most likely to be run together. Two more scripts drive a browser without being gates — `assetgen` on 9377 and `svgcheck` on 9378 — so **seventeen scripts in the repo open a browser on a port of their own**, and a grep for `DEBUG_PORT` finds only fifteen of them. **The two it misses are `svgcheck` (9378) and `load-perf` (9363), which name the constant `PORT`** — measured per file, because this sentence previously named `assetgen` as one of the two and `assetgen` in fact uses `DEBUG_PORT`. The practical consequence of getting it wrong is the opposite of harmless: someone grepping `DEBUG_PORT` before picking a port sees 9377 and misses **9363**, which is the one a gate already owns. **9369 is deliberately left free**: it was a throwaway probe's port during the scroll work, and the next one-off should reuse it rather than take a number a gate might want.
 
 **`load-perf.mjs` is the only one that points at `npm run preview` rather than `npm run dev`, and that is not a detail.** `vite dev` serves unbundled modules and unminified source, so every figure measured against it describes a pipeline that never ships — hundreds of module requests where production has seven. It is also the only script that measures *time* rather than correctness, which forces two things the other thirteen do not need: **medians of 5 cold loads** (one sample read FCP as 456 / 272 / 480 ms going 1× → 4× → 8× CPU throttle, i.e. faster on a slower CPU, which is impossible and is the giveaway that noise exceeded the effect), and `about:blank` between navigations so each load's Performance entries are its own. It separates **transfer** from **execute** because they have opposite fixes — fewer bytes helps the first and does nothing for the second — and it asserts the app actually mounted (`.ui-shell` present, ≥200 chars rendered), because a fast blank page measures beautifully.
 
@@ -756,6 +756,34 @@ CSS went 42.92 → **42.98 kB** (gzip 9.11 → 9.12) for the one rule. Verified 
 
 **A cwd trap worth not rediscovering, since it cost two failed runs here.** Every script resolves its output path against `process.cwd()`, and the Bash tool's working directory **persists between calls** — so a `cd frontend && npm run build` earlier in the session leaves the next `node tools/verify/x.mjs` writing into a directory that does not exist, and the failure surfaces as an ENOENT on the redirect target rather than as anything about the script. Prefix an explicit `cd` to the repo root. Related: **Node can truncate stdout redirected to a file when the script ends on `process.exit()`**, so three of these gates' console logs stopped mid-run while exiting 0 — the mirror image of the documented `| head` SIGPIPE trap, and the reason `report.json` is the authority for a pass, not the terminal.
 
+### The outbound government links removed, 10 Sept 2026
+
+On the owner's instruction: "remove the hyperlinks present inside the schemes, which redirects to the official government scheme website, which is illegal to do." **This is a legal/ownership judgement, not a technical one, and it is recorded here rather than re-argued** — an unaffiliated student prototype deep-linking a reader into a government service is not ours to do, whatever the link's HTTP status.
+
+**It was removed end to end rather than hidden, and that distinction is the whole entry.** Deleting the two anchors would have left the URL still travelling in the JSON payload on every request — one line of JSX away from being a link again, with nothing reporting it. What went, in the order the field flowed:
+
+| Layer | What went |
+|---|---|
+| `backend/gen_schemes.py` | the emission. **The 30 `url` values STAY in the SPEC tuples** as the internal citation for where each scheme's rules were transcribed from — `build()` no longer emits it, so a regeneration cannot put the field back |
+| `backend/app/data/schemes.json` | 30 `official_url` lines |
+| `backend/app/schemas/scheme.py` | the `official_url: str` field on `Scheme` |
+| `backend/app/services/scheme_service.py` | `"official_url": scheme["official_url"]` from the match response |
+| `frontend/src/pages/SchemesPage.jsx` | the full-size link button (17 lines) |
+| `frontend/src/pages/AnalysisPage.jsx` | the small text link (10 lines) |
+| `frontend/src/i18n/resultStrings.js` | `sc.openSite` × 8 languages — **619 → 618 keys** |
+
+Five things are load-bearing:
+
+- **The four test assertions were INVERTED, not deleted** — `assert "official_url" not in ...` in `test_scheme.py`, `test_frontend_contract.py`, `test_scheme_service.py` and `test_analysis_service.py`. Same move as `manual-audit.mjs`'s PILL check and `hero-art.mjs`'s `artOff` guard: a well-meaning future re-add breaks a gate rather than passing silently. `test_scheme_service.py`'s `make_scheme` fixture also dropped the field, which additionally proves the matcher never subscripts it.
+- **The comment in `scheme.py` names the mechanism, because a `response_model` filters silently.** Re-declaring the field there would be the first step to it reappearing on a card with nothing failing — the same asymmetry that hid `match_level` and `local_context` in the 8 Sept audit.
+- **`sch.before2` had to be rewritten in all 8 languages, and it is the finding the original ask did not cover.** It read "Check the latest rules, benefits, papers and how to apply **on the official scheme website**" — with the link gone that is both a dead end *and* still directing the reader to the government site. It now names the physical office that runs the scheme, which is what `lvlnote.*` and the footer's `common.disclaimer` already do. Found by grepping the rendered `drive.mjs` text dumps, not by reading the source: the string is a *sibling* of the removed anchor, so nothing about deleting the anchor pointed at it.
+- **`lvlnote.state` still says "you apply at a state office or on its website" and was deliberately left.** It describes how a tier works and carries no URL, so it is not a link-out; rewriting it would be scope creep into copy the owner did not ask about.
+- **`last_verified` stays on every scheme.** It is provenance about when the eligibility rules were transcribed — the same class of honesty as the market rows' `src.prototypeEstimate` label, not an is-this-official link.
+
+Built CSS fell **42.98 → 42.38 kB** (gzip 9.12 → 9.05), because Tailwind stopped emitting the utilities only the two anchors used — which is also a cheap confirmation the markup really went.
+
+Verified after: **171 tests** (unchanged), `parity4` **618 keys** all checks passed, `keycheck` PASS 0/0/0, lint and build clean with all 7 chunks, `refresh-cases` regenerated to good=14/[100,90]/1 market/6 tiers with zero `official_url`, **`drive.mjs` 36/36**, no `gov`/`nic` URL anywhere in `frontend/dist/`, and `git grep -lE 'https?://[a-z0-9.-]*(gov|nic)\.in'` returning exactly one tracked file — `backend/gen_schemes.py`, the citations.
+
 ### The scheme expansion, 7 Sept 2026
 
 On the brief "add more schemes — Block/Taluka/Circle, Village/Urban Local Body, Regional, District, Sub-District, State/UT, Central". What landed:
@@ -847,7 +875,7 @@ Two chart rules exist because breaking them produces a *favourable* misreading, 
 
 ### Phones (7 Sept 2026)
 
-**The target user reads this on a phone, not a laptop**, so narrow-width behaviour is correctness, not polish. Before this work every one of the ten routes scrolled sideways at all three phone widths, and all seven accessibility controls were under the 44px touch minimum. Measured clean now: **40 page loads (10 routes × 360/390/412 plus a 360 stress pass), 0 findings.** Desktop was re-verified unchanged in the same pass — `drive.mjs` 36/36, parity 584 keys (**619 now**), 151 tests (**171 now**).
+**The target user reads this on a phone, not a laptop**, so narrow-width behaviour is correctness, not polish. Before this work every one of the ten routes scrolled sideways at all three phone widths, and all seven accessibility controls were under the 44px touch minimum. Measured clean now: **40 page loads (10 routes × 360/390/412 plus a 360 stress pass), 0 findings.** Desktop was re-verified unchanged in the same pass — `drive.mjs` 36/36, parity 584 keys (**618 now**), 151 tests (**171 now**).
 
 **The stress viewport is the one that earns its keep.** `360-stress` is 360px *and* dark *and* the 1.18 text scale *and* Hindi, all at once, because `index.css` has to survive every combination of the switches and the narrowest screen with the largest type is where a fixed box overflows again. The three plain widths were clean when it was added; it immediately found four defects the others could not. It carried high contrast as a fourth arm until that mode was removed on 8 Sept 2026 — the remaining combination is still the one that finds things.
 
