@@ -2,7 +2,7 @@
 
 **Project statement:** "AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs."
 
-**Milestone:** internal college round presentation, **11 September 2026**. This is demo-driven prototype work judged by a panel — not production software. Prefer changes that make the demo path work end to end and read clearly on a projector over refactors and infrastructure.
+**Milestone:** internal college round presentation, **14 September 2026**. This is demo-driven prototype work judged by a panel — not production software. Prefer changes that make the demo path work end to end and read clearly on a projector over refactors and infrastructure.
 
 **Repo:** `https://github.com/BU1lDR/SIH_2026` (**private**).
 
