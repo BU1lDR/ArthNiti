@@ -54,6 +54,7 @@ def run_unified_analysis(
     risk_analysis = calculate_repayment_pressure(
         monthly_surplus=financial_analysis["monthly_profit"],
         monthly_emi=monthly_emi,
+        funding_gap=financial_analysis["funding_gap"],
     )
 
     # 3. Business feasibility analysis
@@ -92,6 +93,7 @@ def run_unified_analysis(
         financial_status=financial_analysis["financial_status"],
         profit_margin_percent=financial_analysis["profit_margin_percent"],
         available_capital=available_capital,
+        funding_gap=financial_analysis["funding_gap"],
     )
 
     # 7. Low-literacy-friendly MVP summary

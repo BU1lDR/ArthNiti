@@ -5,7 +5,7 @@ Hyper-local business advice and financial structuring for rural micro-entreprene
 Someone running a small business in a village — a tailor, a weaver, a woman keeping four buffaloes — opens this on a cheap Android phone, answers nineteen plain questions in their own language, and gets four things back:
 
 - whether the business actually makes money
-- how risky the loan repayment looks
+- how risky the loan repayment looks, counting the loan they would need if they do not yet have all the money the plan requires (at an assumed 12% over 5 years, which the page states)
 - which government schemes cover their kind of work where they live, from Central ministries down to the Gram Panchayat counter (it checks the kind of work and the place, not full eligibility)
 - a one-page sheet to print and carry to a bank
 
@@ -71,7 +71,7 @@ taskkill //F //T //PID <pid>          # yes, doubled slashes, that's Git Bash
 ### The other commands
 
 ```bash
-cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 171 tests, about a second
+cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 181 tests, about a second
 cd frontend && npm run build                                   # → frontend/dist
 cd frontend && npm run lint                                    # ESLint 10
 cd frontend && npm run preview                                 # serves the build on 4173
@@ -112,7 +112,7 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 | `backend/app/services/` | all the business logic. Pure functions, no classes, no I/O |
 | `backend/app/core/data_loader.py` | cached JSON loading. What it hands back is shared, so treat it as read-only |
 | `backend/app/data/` | `schemes.json` (30 schemes), `market_data.json` (9 rows) |
-| `backend/tests/` | 25 files, 171 tests |
+| `backend/tests/` | 25 files, 181 tests |
 | `frontend/src/App.jsx` | the shell, all the chrome, 10 routes and a catch-all |
 | `frontend/src/pages/` | 9 page components |
 | `frontend/src/components/` | `Button`, `BrandMark`, `BrandWordmark`, `InstructionManual`, `Charts`, `chartData` |
@@ -162,7 +162,7 @@ Every row is labelled `"Prototype estimate / illustrative data"`, and the UI pri
 
 Eight: `en`, `hi`, `ta`, `te`, `ml`, `kn`, `mr`, `bn`. The default is **Hindi**, not English, because that's who this is for. English is the fallback.
 
-618 distinct keys across 4 dictionary files, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
+627 distinct keys across 4 dictionary files, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
 
 The dialect layer is a curated set of phrases, not a translation. Nine of the thirty listed varieties override a handful of the most visible strings. In the demo, say "dialect-aware phrasing" — not "translated into Bhojpuri".
 

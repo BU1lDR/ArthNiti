@@ -30,6 +30,14 @@ function AdvisoryPage() {
   const riskLevel = risk?.risk_level
   const repaymentPressure = risk?.pressure_ratio_percent
   const feasibility = business?.feasibility_status
+  // The pressure figure counts a loan for the funding gap when there is one.
+  // Same note as /analysis, so the two pages cannot describe it differently.
+  const newLoanNote = hasNumber(risk?.estimated_new_emi) && Number(risk.estimated_new_emi) > 0
+    ? t('ch.pressureIncludesNew', {
+        rate: risk.assumed_interest_rate_percent,
+        years: Number(risk.assumed_tenure_months) / 12,
+      })
+    : null
 
   // Ten coins, one for each rupee in ten. A real 0% margin must still draw zero
   // filled coins rather than disappearing, so the guard is on the raw value.
@@ -192,6 +200,7 @@ function AdvisoryPage() {
                         marks={[{ at: 0.3 }, { at: 0.5 }]}
                       />
                       <p className="ui-chart-caption">{t('ch.pressureCaption')}</p>
+                      {newLoanNote && <p className="ui-chart-caption">{newLoanNote}</p>}
                     </div>
                   ) : (
                     riskReason && <p className="mt-3">{riskReason}</p>

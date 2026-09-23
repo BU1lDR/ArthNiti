@@ -133,6 +133,20 @@ function AnalysisPage() {
         ? 'warn'
         : 'good'
 
+  // When the plan needs more money than the entrepreneur has, risk_service
+  // prices that gap as a new loan and counts its payment in the pressure figure.
+  // The reader has to be told, or "Loan pressure" reads as being about a loan
+  // they never mentioned. The assumed rate and tenure are printed beside it
+  // because they are an assumption, not a quote.
+  const newLoanEmi = risk.estimated_new_emi
+  const hasNewLoan = hasNumber(newLoanEmi) && Number(newLoanEmi) > 0
+  const newLoanNote = hasNewLoan
+    ? t('ch.pressureIncludesNew', {
+        rate: risk.assumed_interest_rate_percent,
+        years: Number(risk.assumed_tenure_months) / 12,
+      })
+    : null
+
   // profit_margin_percent is null when there is no revenue to divide by, which is
   // financial_service saying "could not compute" rather than "zero" — it used to
   // return a real 0 there, and this guard was written against that. It is kept
@@ -246,6 +260,7 @@ function AnalysisPage() {
             <DetailRow label={t('f.income')} value={formatCurrency(financial.expected_monthly_revenue, t)} />
             <DetailRow label={t('f.spending')} value={formatCurrency(financial.monthly_expenses, t)} />
             <DetailRow label={t('f.profit')} value={formatCurrency(monthlyProfit, t)} />
+            {hasNewLoan && <DetailRow label={t('an.newLoanEmi')} value={formatCurrency(newLoanEmi, t)} />}
             <DetailRow label={t('f.emiPressure')} value={formatPercent(pressure, t)} />
           </div>
 
@@ -273,6 +288,7 @@ function AnalysisPage() {
                   <span>{t('ch.heavy')} · 50%</span>
                 </div>
                 <p className="ui-chart-caption">{t('ch.pressureCaption')}</p>
+                {newLoanNote && <p className="ui-chart-caption">{newLoanNote}</p>}
               </>
             ) : (
               // No bar at all when the ratio could not be computed: the backend
@@ -347,6 +363,7 @@ function AnalysisPage() {
               <DetailRow label={t('f.haveMoney')} value={formatCurrency(financial.available_capital, t)} />
               <DetailRow label={t('f.profit')} value={formatCurrency(monthlyProfit, t)} />
               <DetailRow label={t('f.margin')} value={formatPercent(margin, t)} />
+              {hasNewLoan && <DetailRow label={t('an.newLoanEmi')} value={formatCurrency(newLoanEmi, t)} />}
               <DetailRow label={t('f.emiPressure')} value={formatPercent(pressure, t)} />
             </div>
           </div>

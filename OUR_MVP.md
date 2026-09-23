@@ -11,7 +11,7 @@
 |---|---|
 | Project name | **अर्थNiti** (frozen) |
 | Phase | Working prototype. The hackathon ended, so the feature freeze no longer applies. It continues as a standalone project |
-| Backend | Runs. 8 routers, 171 passing tests |
+| Backend | Runs. 8 routers, 181 passing tests |
 | Frontend | Runs. 10 routes plus a catch-all, full journey works end to end |
 | Integration | Done — one API call carries the whole journey |
 | Datasets | 30 government schemes across 7 tiers, 9 market rows (illustrative) |
@@ -83,7 +83,7 @@ Of the ten questions the blueprint set out to answer, here is where the MVP actu
    - **8 languages** — English, Hindi, Tamil, Telugu, Malayalam, Kannada, Marathi, Bengali — each listed in its own script with a sample line, so a reader who cannot read English can find their own language. **Hindi is the default**, not English.
    - **The generated advice and the scheme text change with it.** Every sentence a Python service composes carries a translation code beside it, and the frontend resolves the code to the reader's language. So do not say "the labels are translated" — the *output* is. On stage this is the single strongest moment in the walkthrough, and a **result** page is a better place to show it than a form page.
    - **A dialect phrase layer** on top: 30 varieties listed, of which **9 carry curated phrase overrides** for the highest-visibility strings (the greeting, the call to action, the words for money). Anything not overridden falls through to the language, so every dialect is a fully usable UI. Say **"dialect-aware phrasing"** — not "translated into Bhojpuri".
-   - **What is still English, say this if asked:** an enum value the label maps do not recognise falls back to a title-cased English word; a scheme added to `schemes.json` without codes falls back to its English prose; digits stay Latin and money stays `en-IN`-grouped on purpose, because that is what is printed on Indian currency and on government forms; and **the non-English wording has not been reviewed by a native speaker** (618 keys × 8 languages — parity and placeholders are script-verified, naturalness is not).
+   - **What is still English, say this if asked:** an enum value the label maps do not recognise falls back to a title-cased English word; a scheme added to `schemes.json` without codes falls back to its English prose; digits stay Latin and money stays `en-IN`-grouped on purpose, because that is what is printed on Indian currency and on government forms; and **the non-English wording has not been reviewed by a native speaker** (627 keys × 8 languages — parity and placeholders are script-verified, naturalness is not).
 7. **Responsible — DELIVERED.** A non-positive surplus short-circuits to `high` risk. Nothing in the app recommends borrowing a specific amount. Scheme cards carry a verify-with-the-authority disclaimer, and every market row is labelled *"Prototype estimate / illustrative data"*.
 
 ---
@@ -154,7 +154,9 @@ Result — HTTP 200, all 7 sections populated:
 ```text
 Money needed (funding gap)     ₹50,000
 Money left each month          ₹15,000        profit margin 50%     → profitable
-Risk                           LOW            EMI is 13.33% of surplus
+Risk                           LOW            loan payments are 20.75% of surplus
+                                              (₹2,000 EMI + ₹1,112 estimated for a
+                                              loan covering the ₹50,000 gap)
 Business health                FEASIBLE       operating surplus ₹12,000/mo,
                                               operating margin 40%, ROI 144%
 Government support             14 schemes across 6 of the 7 tiers
@@ -164,9 +166,10 @@ Government support             14 schemes across 6 of the 7 tiers
                                             BLBC, CSC, Gram Panchayat
 Local market                   1 row, match_level "district" — Lucknow tailoring,
                                  ₹320, high demand
-Action plan                    2 recommendations
-Overall status                 good  → "Maintain the current business model and
-                                             consider controlled expansion."
+Action plan                    1 recommendation — cover the funding gap first
+Overall status                 attention_needed  → "Decide how you will cover the
+                                             funding gap before you start, and keep
+                                             any loan small enough to repay."
 ```
 
 Those are the numbers to have in your head on stage. If a figure on screen disagrees with this table, something regressed — check before presenting.
@@ -240,7 +243,7 @@ Framing that must stay: अर्थNiti is a **decision-support prototype, not 
 `match_reasons[]` per scheme ("Your kind of work is supported by this scheme (listed as …)", "This scheme is available in your state."), a `reason` sentence on risk, `observations[]` on business analysis, `match_level` provenance on every market row, and a source label on every price. **Every one of those sentences also carries a translation code**, so the explanation appears in the reader's own language rather than only the labels around it (§2.6).
 
 ## Feature 8 — Risk Indicator · **BUILT**
-`pressure_ratio = monthly_emi / monthly_surplus × 100` → **below 30% low, 30–50% moderate, above 50% high**. Non-positive surplus short-circuits to `high` with a null ratio and the sentence "There is no positive monthly surplus available for repayment."
+`pressure_ratio = (monthly_emi + estimated_new_emi) / monthly_surplus × 100` → **below 30% low, 30–50% moderate, above 50% high**. `estimated_new_emi` is the funding gap priced as a new loan at an assumed 12% a year over 60 months, and the page prints that assumption beside the figure; it is 0 when the entrepreneur already has the money. `existing_debt` is not added, because its repayment is the EMI they entered. Non-positive surplus short-circuits to `high` with a null ratio and the sentence "There is no positive monthly surplus available for repayment."
 **These thresholds are our prototype assumptions and must be presented as such** — not as universal financial rules. That framing is a judge-facing requirement, not a footnote.
 
 ## Feature 9 — Action Plan · **BUILT**
@@ -336,7 +339,7 @@ backend/app/
   core/data_loader.py     loads JSON from app/data by absolute path (cwd-independent)
   data/                   schemes.json (30 schemes, 7 tiers), market_data.json (9 rows)
   gen_schemes.py          the generator that produced schemes.json — provenance, not runtime
-backend/tests/            25 files, 171 tests
+backend/tests/            25 files, 181 tests
 ```
 
 The planned `models/`, `calculations/` and `ai/` directories **do not exist**. Calculations live in `services/`; there are no ORM models because there is no database; there is no `ai/` because there is no model call.
@@ -366,7 +369,7 @@ npm run build        # production build into frontend/dist
 npm run lint         # ESLint 10
 
 # Tests — run from ./backend
-../.venv/Scripts/python.exe -m pytest tests -q      # 171 passed in under 1s
+../.venv/Scripts/python.exe -m pytest tests -q      # 181 passed in about a second
 
 # Translation-key parity — from the repo root, no server needed
 node tools/parity4.mjs                        # 4 files × 8 languages, 5 checks
@@ -418,7 +421,7 @@ Measured against a live response on 8 September 2026. **Every `*_code` field is 
 | Section | Contents |
 |---|---|
 | `financial_analysis` | `monthly_profit`, `profit_margin_percent`, `financial_status`, `available_capital`, `monthly_expenses`, `expected_monthly_revenue`, `initial_investment`, `funding_gap` |
-| `risk_analysis` | `pressure_ratio_percent`, `risk_level`, `reason`, **`reason_code`** |
+| `risk_analysis` | `pressure_ratio_percent`, `risk_level`, `risk_level_without_new_loan`, `reason`, **`reason_code`**, `monthly_emi`, `estimated_new_emi`, `total_monthly_emi`, `assumed_interest_rate_percent`, `assumed_tenure_months` |
 | `business_analysis` | `business_type`, `initial_investment`, `expected_monthly_revenue`, `monthly_operating_expenses`, `monthly_operating_surplus`, `operating_margin_percent`, `annual_operating_surplus`, `estimated_roi_percent`, `feasibility_status`, `observations[]`, **`observation_codes[]`** |
 | `market_context` | list of `{state, district, business_category, indicative_price, demand_indicator, seasonality, source, last_verified, match_level, local_context:{village, market_type, customers}, `**`seasonality_code`**`, `**`source_code`**`}` |
 | `scheme_matches` | list of `{name, `**`level`**`, `**`scheme_id`**`, description, support_type, match_score, match_reasons[], eligibility_rules[], documents[], last_verified, `**`description_code`**`, `**`support_type_code`**`, `**`match_reason_codes[]`**`, `**`eligibility_codes[]`**`, `**`document_codes[]`**`}` |
@@ -595,7 +598,7 @@ Kept as a record, because the day numbers appear in earlier notes and stand-ups.
 | Day 5 — **AI integration**, full happy path end-to-end | **Half done.** The end-to-end path works. The LLM was never connected |
 | Day 6 — hyperlocal + personalization | **Done**, then found to be broken: `market_context` was computed and silently discarded by the UI. Fixed 7 Sept |
 | Day 7 — UX, explainability, responsible framing | **Done.** Disclosures, source labels, disclaimers, plain-language copy |
-| Day 8 — testing + demo scenarios | **Partial.** 171 backend tests; no frontend *unit* tests, but 16 browser drivers that assert on rendered output; one polished scenario rather than three |
+| Day 8 — testing + demo scenarios | **Partial.** 181 backend tests; no frontend *unit* tests, but 16 browser drivers that assert on rendered output; one polished scenario rather than three |
 | Day 9 — polish + presentation | **In progress.** 7 Sept: a full defect sweep — 10 numbered defects plus 7 more, all fixed. 8 Sept: the government-style redesign, the translation layer, and a second audit closing 46 findings |
 | Day 10 — rehearsal + final build | **Pending.** §25 |
 
@@ -622,7 +625,7 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 - [x] At least 2–3 business categories work — 8 do
 - [x] One polished demo persona works (§3)
 - [x] Sources recorded with verification dates
-- [x] 171 backend tests pass; lint and production build are clean; translation-key parity clean across 618 keys × 8 languages
+- [x] 181 backend tests pass; lint and production build are clean; translation-key parity clean across 627 keys × 8 languages
 - [x] No API keys to protect (there are none)
 - [x] **State survives a page refresh** — closed 8 Sept via `sessionStorage` (§8)
 - [x] **Output is in the reader's own language**, including the generated advice (§2.6)
@@ -658,7 +661,7 @@ The scripts are tracked in `tools/`; `screenshots/` stays gitignored and holds o
 ## Still not verified
 - **Phone landscape orientation, real touch scrolling on physical hardware, and the on-screen keyboard covering a focused input.** Emulation cannot answer these; borrow a phone.
 - **The `api.js` 20-second timeout path** — stop the backend mid-request and confirm the message reads as a sentence.
-- **Non-English wording quality.** Parity, placeholders and "no string left identical to English" are all script-verified across 618 keys × 8 languages. **Naturalness is not** — no native speaker has reviewed it, and two real errors have already been found by eye, which is evidence there are more. Say this if asked; do not claim professional translation.
+- **Non-English wording quality.** Parity, placeholders and "no string left identical to English" are all script-verified across 627 keys × 8 languages. **Naturalness is not** — no native speaker has reviewed it, and two real errors have already been found by eye, which is evidence there are more. Say this if asked; do not claim professional translation.
 
 ---
 
@@ -674,7 +677,7 @@ SIH_2026/
 │   │   ├── services/         all business logic
 │   │   ├── core/             data_loader.py
 │   │   └── data/             schemes.json (30), market_data.json (9)
-│   ├── tests/                25 files, 171 tests
+│   ├── tests/                25 files, 181 tests
 │   ├── gen_schemes.py        provenance for schemes.json, not runtime
 │   └── requirements.txt
 │
@@ -716,7 +719,7 @@ Differences from the plan worth knowing: no `.env.example` (nothing needs one), 
 
 ## What to say instead
 
-> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested — 171 tests. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. The AI-driven part of the problem statement is where this goes next: natural-language input, dialect-level paraphrasing, and a conversational 'why?' layer on top of the same engine — with the arithmetic staying in code."
+> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested — 181 tests. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. The AI-driven part of the problem statement is where this goes next: natural-language input, dialect-level paraphrasing, and a conversational 'why?' layer on top of the same engine — with the arithmetic staying in code."
 
 This is a strong position, honestly held. Do not weaken it by overclaiming.
 
@@ -817,7 +820,7 @@ Answer honestly, and lead with the design decision — see §15. Then: the *AI-d
 ## "Is it actually in Hindi, or just the buttons?"
 **All of it** — the labels, the generated advice, the risk explanation and the scheme text, in 8 languages, with Hindi as the default rather than English. Show it rather than saying it: switch language while standing on `/analysis`. The mechanism is a translation code emitted beside every sentence the engine composes, resolved against dictionaries we wrote — so it cannot drift the way a paraphrasing model would.
 
-Then volunteer the limits, because they are the credible part: 30 dialects are listed and **9 carry curated phrase overrides**, which is dialect-aware phrasing rather than dialect translation; digits and money stay in Latin script on purpose, matching Indian currency and government forms; and **no native speaker has reviewed the wording** — parity and placeholders are script-verified across 618 keys, naturalness is not.
+Then volunteer the limits, because they are the credible part: 30 dialects are listed and **9 carry curated phrase overrides**, which is dialect-aware phrasing rather than dialect translation; digits and money stay in Latin script on purpose, matching Indian currency and government forms; and **no native speaker has reviewed the wording** — parity and placeholders are script-verified across 627 keys, naturalness is not.
 
 ## "How do you prevent hallucinations?"
 There is nothing to hallucinate. Every number comes from a unit-tested formula; every scheme fact comes from a structured dataset transcribed from an official source with a verification date and a link the judge can open. When we do add a model, it will be allowed to rephrase and explain, never to calculate or to decide eligibility (§15).
@@ -835,7 +838,7 @@ No — and the app says so on every row: *"Prototype estimate / illustrative dat
 No. It is decision-support and financial-literacy assistance — not a lender, not an approval authority. Scheme eligibility, interest rates and approval are decided by the relevant institution, and the app says so.
 
 ## "What if the user should not borrow?"
-The engine flags it. A non-positive monthly surplus returns `high` risk with an explicit reason, and an EMI above half the surplus is `high` too. Nothing in the app recommends a loan amount; the recommendations point at reducing expenses, improving margin and keeping a cash reserve before new investment.
+The engine flags it. A non-positive monthly surplus returns `high` risk with an explicit reason, and an EMI above half the surplus is `high` too. If the plan needs more money than they have, the loan that gap would need is counted in the repayment figure, and when that loan alone is what tips it into `high` the next step says to start smaller or raise more first. Nothing in the app recommends a loan amount; the recommendations point at reducing expenses, improving margin and keeping a cash reserve before new investment.
 
 ## "Why two different expense figures?"
 Because a business can be viable while the family is still short of money — see §9. Conflating the two hides exactly the situation the app exists to surface.
@@ -858,7 +861,7 @@ Answer it straight: no chat, no EMI scenarios or break-even units, no suggested 
 
 # 18. Product Success Metrics
 
-For the prototype: time to generate an advisory plan (currently one request, sub-second) · journey completion · correctness of financial calculations (171 tests) · correctness of scheme matching (8 of the 9 category buttons match, 11–16 schemes each; only a typed-in *Other* is correctly empty) · translation coverage (618 keys × 8 languages at full parity, script-verified) · explanation quality · number of actionable recommendations · demo reliability.
+For the prototype: time to generate an advisory plan (currently one request, sub-second) · journey completion · correctness of financial calculations (181 tests) · correctness of scheme matching (8 of the 9 category buttons match, 11–16 schemes each; only a typed-in *Other* is correctly empty) · translation coverage (627 keys × 8 languages at full parity, script-verified) · explanation quality · number of actionable recommendations · demo reliability.
 
 For future production: entrepreneurs assisted · plans generated · financial-literacy improvement · successful formal-finance connections · business survival and growth · **reduction in inappropriate borrowing** — the metric that matters most and the reason the risk indicator exists.
 
@@ -1099,14 +1102,14 @@ Any AI assistant reading this file should:
 | | |
 |---|---|
 | **MVP status** | **Working end to end.** 10 routes plus a catch-all, one API call, 7 populated result sections |
-| **Backend** | 8 routers · 171 tests passing in under 1s |
-| **Frontend** | Lint clean · production build clean · translation parity clean (618 keys × 8 languages) |
+| **Backend** | 8 routers · 181 tests passing in under 1s |
+| **Frontend** | Lint clean · production build clean · translation parity clean (627 keys × 8 languages) |
 | **Data** | 30 schemes across 7 tiers (official sources, 29 of 30 URLs verified 7 Sept) · 9 market rows (illustrative, UP only) |
 | **AI integration** | **None, by decision.** Deterministic rules engine (§15) |
 | **Database** | **None.** The journey persists in the browser tab (`sessionStorage`) and nowhere else |
 | **Language output** | **8 languages, Hindi by default, including the generated advice** (§2.6) |
 | **Interface** | Government-style chrome, 2 accessibility switches (dark theme, 3-step text scale), hand-rolled charts, an instruction manual, a light motion layer that honours `prefers-reduced-motion` |
-| **Verification** | 171 backend tests · 22 zero-dependency scripts in `tools/`, 16 of them driving a browser over CDP · phone widths, print output, motion and scroll-on-navigation all measured clean |
+| **Verification** | 181 backend tests · 22 zero-dependency scripts in `tools/`, 16 of them driving a browser over CDP · phone widths, print output, motion and scroll-on-navigation all measured clean |
 | **Known defects** | 17 found and fixed 7 Sept (10 numbered + 7 more); **46 findings closed in the 8 Sept audit**. See CLAUDE.md |
 | **Still open** | Translations unreviewed by a native speaker · dialect phrases on 9 of 30 varieties · 1 scheme URL unverified from our network · phone landscape and physical touch untested |
 | **Presentation** | In progress — Saad + Tripti. `presentation/` is still empty |

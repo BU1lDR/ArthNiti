@@ -20,6 +20,10 @@ def build_mvp_summary(
         business_analysis.get("feasibility", "unknown"),
     )
 
+    # Money the plan needs that the entrepreneur does not have. `or 0` because
+    # the unused routers and the unit tests pass partial dicts without it.
+    funding_gap = financial_analysis.get("funding_gap", 0) or 0
+
     recommendations = advisory.get("recommendations", [])
     recommendation_codes = advisory.get("recommendation_codes", [])
 
@@ -33,10 +37,18 @@ def build_mvp_summary(
     # (monthly_expenses vs monthly_operating_expenses) and can legitimately
     # disagree. Adding it is also what makes "review" reachable at all: see the
     # note on the priority chain below.
+    #
+    # A funding gap rules "good" out as well. It used to be computed and then
+    # ignored everywhere, so ₹0 of capital against a ₹5 lakh plan read as "your
+    # business is in a good position" and "keep going". risk_service now prices
+    # the gap into the repayment pressure, which catches a gap too large to
+    # repay; the `sum.needsFunding` branch below catches the one small enough
+    # to repay but still not in hand.
     if (
         financial_status == "profitable"
         and risk_level == "low"
         and feasibility == "feasible"
+        and funding_gap <= 0
     ):
         status = "good"
         message = "Your business situation looks positive."
@@ -45,6 +57,14 @@ def build_mvp_summary(
         status = "attention_needed"
         message = "Your business needs attention before taking additional financial risk."
         message_code = "sum.needsAttention"
+    elif (
+        funding_gap > 0
+        and financial_status == "profitable"
+        and feasibility == "feasible"
+    ):
+        status = "attention_needed"
+        message = "The figures work, but the plan is not yet fully funded."
+        message_code = "sum.needsFunding"
     else:
         status = "review"
         message = "Review your business finances carefully before making the next decision."
@@ -74,12 +94,33 @@ def build_mvp_summary(
         next_step_code = "nxt.reviewExpenses"
         priority = "high"
     elif risk_level == "high":
-        next_step = "Reduce repayment pressure before taking another loan."
-        next_step_code = "nxt.reducePressure"
+        # Two different problems reach "high", and they need different advice.
+        # If the EMI the entrepreneur already pays is fine on its own, the thing
+        # pushing them over is the loan the funding gap would need — so "bring
+        # down your loan pressure" would point at a debt that does not exist yet.
+        if (
+            (risk_analysis.get("estimated_new_emi") or 0) > 0
+            and risk_analysis.get("risk_level_without_new_loan") != "high"
+        ):
+            next_step = (
+                "The loan needed for the funding gap is too large for the monthly surplus. "
+                "Plan a smaller start, or raise more of the money first."
+            )
+            next_step_code = "nxt.gapTooLarge"
+        else:
+            next_step = "Reduce repayment pressure before taking another loan."
+            next_step_code = "nxt.reducePressure"
         priority = "high"
     elif feasibility != "feasible":
         next_step = "Review the business plan before investing more money."
         next_step_code = "nxt.reviewPlan"
+        priority = "medium"
+    elif funding_gap > 0:
+        next_step = (
+            "Decide how you will cover the funding gap before you start, "
+            "and keep any loan small enough to repay."
+        )
+        next_step_code = "nxt.arrangeGap"
         priority = "medium"
     else:
         # The step is borrowed from the advisory list, so its code has to be

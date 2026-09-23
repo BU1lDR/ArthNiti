@@ -141,10 +141,16 @@ def test_priority_advice_is_reachable_through_the_real_pipeline():
     "review" unreachable across every one of these combinations.
     """
     seen_codes = set()
+    seen_messages = set()
     seen_status = set()
     seen_priority = set()
 
-    for rev, exp, emi, opex in product(
+    # Capital is a dimension because the funding gap now drives status and
+    # risk: 0 leaves the whole ₹2 lakh to borrow, 150000 leaves ₹50,000, and
+    # 250000 covers it. With capital fixed below the investment, as it was
+    # before the gap was wired in, "good" became unreachable.
+    for cap, rev, exp, emi, opex in product(
+        [0, 150000, 250000],
         [0, 5000, 20000, 30000],
         [0, 5000, 15000, 40000],
         [0, 3000, 12000],
@@ -154,7 +160,7 @@ def test_priority_advice_is_reachable_through_the_real_pipeline():
             business_category="tailoring",
             state="Uttar Pradesh",
             district="Lucknow",
-            available_capital=150000,
+            available_capital=cap,
             monthly_expenses=exp,
             expected_monthly_revenue=rev,
             monthly_emi=emi,
@@ -163,6 +169,7 @@ def test_priority_advice_is_reachable_through_the_real_pipeline():
         )
         summary = result["mvp_summary"]
         seen_codes.add(summary["next_step_code"])
+        seen_messages.add(summary["message_code"])
         seen_status.add(summary["status"])
         seen_priority.add(summary["priority"])
 
@@ -170,7 +177,24 @@ def test_priority_advice_is_reachable_through_the_real_pipeline():
         if emi == 0:
             assert summary["next_step_code"] != "nxt.reducePressure"
 
-    assert {"nxt.reviewExpenses", "nxt.reducePressure", "nxt.reviewPlan"} <= seen_codes
+        # No one short of the money their plan needs is told it looks good.
+        if cap < 200000:
+            assert summary["status"] != "good"
+            assert "adv.maintainExpand" not in result["advisory"]["recommendation_codes"]
+
+    assert {
+        "nxt.reviewExpenses",
+        "nxt.reducePressure",
+        "nxt.reviewPlan",
+        "nxt.gapTooLarge",
+        "nxt.arrangeGap",
+    } <= seen_codes
+    assert {
+        "sum.positive",
+        "sum.needsAttention",
+        "sum.needsFunding",
+        "sum.reviewCarefully",
+    } <= seen_messages
     # All three documented statuses and priorities are live.
     assert seen_status == {"good", "attention_needed", "review"}
     assert seen_priority == {"high", "medium", "low"}
@@ -218,3 +242,50 @@ def test_language_and_accessibility_context_is_preserved():
     assert result["language"] == "Hindi"
     assert result["preferred_dialect"] == "Haryanvi"
     assert result["literacy_level"] == "low"
+
+
+def test_no_capital_against_a_large_plan_is_not_told_to_keep_going():
+    # The reported case: nothing in hand, ₹5 lakh needed, no loan today. It used
+    # to come back "good" with "keep going" because the gap was ignored.
+    result = run_unified_analysis(
+        business_category="tailoring",
+        state="Uttar Pradesh",
+        district="Lucknow",
+        available_capital=0,
+        monthly_expenses=15000,
+        expected_monthly_revenue=30000,
+        monthly_emi=0,
+        initial_investment=500000,
+        monthly_operating_expenses=18000,
+    )
+    summary = result["mvp_summary"]
+
+    assert result["financial_analysis"]["funding_gap"] == 500000
+    assert result["risk_analysis"]["risk_level"] == "high"
+    assert summary["status"] == "attention_needed"
+    assert summary["next_step_code"] == "nxt.gapTooLarge"
+    assert summary["priority"] == "high"
+    assert "adv.maintainExpand" not in result["advisory"]["recommendation_codes"]
+
+
+def test_a_small_gap_is_flagged_without_calling_the_risk_high():
+    # ₹20,000 short costs ₹445 a month against ₹15,000 left: the plan is sound,
+    # it just is not fully funded yet.
+    result = run_unified_analysis(
+        business_category="tailoring",
+        state="Uttar Pradesh",
+        district="Lucknow",
+        available_capital=480000,
+        monthly_expenses=15000,
+        expected_monthly_revenue=30000,
+        monthly_emi=0,
+        initial_investment=500000,
+        monthly_operating_expenses=18000,
+    )
+    summary = result["mvp_summary"]
+
+    assert result["risk_analysis"]["risk_level"] == "low"
+    assert summary["status"] == "attention_needed"
+    assert summary["message_code"] == "sum.needsFunding"
+    assert summary["next_step_code"] == "nxt.arrangeGap"
+    assert summary["priority"] == "medium"

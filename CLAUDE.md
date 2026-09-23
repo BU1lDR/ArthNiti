@@ -109,7 +109,7 @@ backend/app/
                           lru_cached — the returned object is SHARED, treat as read-only
   data/                   schemes.json (30 schemes, 7 tiers), market_data.json (9 rows)
   gen_schemes.py          the generator that produced schemes.json — provenance, not runtime
-backend/tests/            25 files, 171 tests
+backend/tests/            25 files, 181 tests
 frontend/src/
   App.jsx                 shell (utility bar/topbar/main/footer) + JourneyBar + LandingPage
                           + NotFoundPage + 10 routes + a `*` catch-all
@@ -204,11 +204,11 @@ Strings live in **four** files, split purely by size and by who wrote the senten
 | File | Keys × 8 | Holds |
 |---|---|---|
 | [strings.js](frontend/src/i18n/strings.js) | 190 | chrome, landing, the four data-entry steps — and the `merge()` that assembles the other three |
-| [resultStrings.js](frontend/src/i18n/resultStrings.js) | 210 | the four result pages, `/login`, `/404`, and the enum→label maps' targets (`st.*`, `risk.*`, `lvl.*`, `lvlnote.*`) |
-| [backendStrings.js](frontend/src/i18n/backendStrings.js) | 30 | sentences a **Python service composes** (`adv.*`, `obs.*`, `rsn.*`, `sum.*`, `nxt.*`, `why.*`, `seas.*`, `src.*`) |
+| [resultStrings.js](frontend/src/i18n/resultStrings.js) | 212 | the four result pages, `/login`, `/404`, and the enum→label maps' targets (`st.*`, `risk.*`, `lvl.*`, `lvlnote.*`) |
+| [backendStrings.js](frontend/src/i18n/backendStrings.js) | 37 | sentences a **Python service composes** (`adv.*`, `obs.*`, `rsn.*`, `sum.*`, `nxt.*`, `why.*`, `seas.*`, `src.*`) |
 | [schemeStrings.js](frontend/src/i18n/schemeStrings.js) | 188 | prose **typed into schemes.json** (`sdata.*`, `elig.*`, `doc.*`, `scat.*`) |
 
-**618 distinct keys, 4,944 strings** — measured by `parity4.mjs`, which prints the total. The split rule is one line: *if a Python function builds the sentence it belongs in `backendStrings.js`; if the sentence is typed into `schemes.json` it belongs in `schemeStrings.js`.*
+**627 distinct keys, 5,016 strings** — measured by `parity4.mjs`, which prints the total. (618 until 23 Sept 2026; the nine added are the funding-gap strings, see "The funding gap counted".) The split rule is one line: *if a Python function builds the sentence it belongs in `backendStrings.js`; if the sentence is typed into `schemes.json` it belongs in `schemeStrings.js`.*
 
 It was 584 until 8 Sept 2026. `common.appName` and `landing.eyebrow` were **deleted**, not retranslated — see "The product name is not a translatable string" below. `common.highContrast` went the same way when high contrast was removed later that day; `man.tipText` was **rewritten** in all 8 languages rather than deleted, because its third tip named that control and the string itself is live manual copy.
 
@@ -280,7 +280,7 @@ Response — **7** top-level keys ([analysis_service.py:106-114](backend/app/ser
 | Section | Keys |
 |---|---|
 | `financial_analysis` | `monthly_profit`, `profit_margin_percent`, `financial_status`, `available_capital`, `monthly_expenses`, `expected_monthly_revenue`, `initial_investment`, `funding_gap` — the last four were added 7 Sept 2026 to fix defect 4 |
-| `risk_analysis` | `pressure_ratio_percent`, `risk_level`, `reason`, `reason_code` |
+| `risk_analysis` | `pressure_ratio_percent`, `risk_level`, `risk_level_without_new_loan`, `reason`, `reason_code`, `monthly_emi`, `estimated_new_emi`, `total_monthly_emi`, `assumed_interest_rate_percent`, `assumed_tenure_months` — everything after `reason_code`, plus `risk_level_without_new_loan`, added 23 Sept 2026 for the funding gap |
 | `business_analysis` | `business_type`, `initial_investment`, `expected_monthly_revenue`, `monthly_operating_expenses`, `monthly_operating_surplus`, `operating_margin_percent`, `annual_operating_surplus`, `estimated_roi_percent`, `feasibility_status`, `observations[]`, `observation_codes[]` |
 | `market_context` | list of `{state, district, business_category, indicative_price, demand_indicator, seasonality, source, last_verified, seasonality_code, source_code, match_level, local_context:{village, market_type, customers}}` |
 | `scheme_matches` | list of `{name, level, scheme_id, description, support_type, match_score, match_reasons[], match_reason_codes[], eligibility_rules[], documents[], description_code, support_type_code, eligibility_codes[], document_codes[], last_verified}` — **no `official_url`**, deliberately; see the link-removal section |
@@ -329,7 +329,7 @@ All deterministic, all unit-tested. Keep them that way — never move arithmetic
 
 - `monthly_profit = expected_monthly_revenue - monthly_expenses`; margin = profit/revenue×100, and **`None` when revenue is 0** — this line used to say "0 when revenue is 0", which was the bug. A margin needs revenue to be a share *of*, and that branch is reached exactly when someone has entered expenses but no expected income, which is a loss; printing `0%` there reads as break-even. It now matches `estimated_roi_percent`, which already returned `None` for the same reason ([financial_service.py](backend/app/services/financial_service.py))
 - `funding_gap = max(initial_investment - available_capital, 0)` — clamped, so surplus capital reads as no gap rather than a negative one. `/report` prefers this over its own client-side sum so the two pages cannot disagree.
-- `pressure_ratio = monthly_emi / monthly_surplus × 100`; **<30 low, 30–50 moderate, >50 high**. Non-positive surplus short-circuits to `high` with `pressure_ratio_percent: None` ([risk_service.py:5-24](backend/app/services/risk_service.py#L5-L24))
+- `pressure_ratio = total_monthly_emi / monthly_surplus × 100`, where **`total_monthly_emi = monthly_emi + estimated_new_emi`** and `estimated_new_emi` is the `funding_gap` priced as a new loan at **12% a year over 60 months** (standard annuity, rounded to the rupee; `0` when there is no gap). **<30 low, 30–50 moderate, >50 high**, taken on the total. Non-positive surplus short-circuits to `high` with `pressure_ratio_percent: None` ([risk_service.py](backend/app/services/risk_service.py)). `risk_level_without_new_loan` is the same band on the entered EMI alone, so the advice can tell "your current loan is too heavy" from "a loan for the gap would be too heavy". **`existing_debt` is deliberately not counted**: it is the outstanding principal of the loan whose repayment is `monthly_emi`, so adding it would count one loan twice. The 12% / 60-month terms are an assumption, not a quote, and every page that prints the figure says so (`ch.pressureIncludesNew`).
 - `estimated_roi_percent = (monthly_operating_surplus × 12) / initial_investment × 100`, or `None` when investment is 0 ([business_service.py:30-35](backend/app/services/business_service.py#L30-L35))
 - Observation/advice text is chosen by margin bands at 10% and 30% ([business_service.py:63-71](backend/app/services/business_service.py#L63-L71), [advisory_service.py:23-31](backend/app/services/advisory_service.py#L23-L31))
 - Scheme score: **+60** if the category matches, then geography splits — **+40** if the scheme names the entrepreneur's own state (→ 100) or **+30** if it is open nationwide (→ 90). No category match returns `0, []` and the scheme is dropped ([scheme_service.py](backend/app/services/scheme_service.py)). The split exists because with 30 schemes a flat +40 for both put almost every match on exactly 100, and a percentage that is always 100 tells the reader nothing. **Only 90 and 100 are reachable** — which is why `/schemes` gates its comparison chart on there being more than one *distinct* score.
@@ -402,7 +402,7 @@ Ranked by demo impact, all confirmed against the code. **Numbers are stable** �
 - **Dialect coverage is 9 of 30 varieties**, and each is a handful of phrases rather than a translation. Deliberate and disclosed in the UI — see the i18n section. Don't describe it as a translation.
 - **Non-English translations are unreviewed by a native speaker.** Covered by the entry above; the specific errors found by eye were Tamil `money.left` reading "moderate money" (மிதம் for மிச்சம்) and a duplicated word in Malayalam `elig.bdo.funds`.
 - ~~**Backend prose is English only.**~~ **CLOSED 7 Sept 2026.** Every generated sentence now carries a translation code and resolves through `tBackend()` in all 8 languages — see the translation-code section above. What remains English is narrow and deliberate: an enum value the `LEVEL_KEYS`/`STATUS_KEYS` maps do not recognise falls back to the title-cased enum, and a scheme added to `schemes.json` without codes falls back to its English prose.
-- **Non-English wording quality is still unreviewed by a native speaker** — now across 618 keys × 8 languages rather than 530. Parity, placeholder integrity and identical-to-English are all script-verified; *naturalness* is not. Two real errors have already been found by eye (Tamil `money.left` read "moderate money", Malayalam `elig.bdo.funds` had a duplicated word), which is evidence there are more.
+- **Non-English wording quality is still unreviewed by a native speaker** — now across 627 keys × 8 languages rather than 530. Parity, placeholder integrity and identical-to-English are all script-verified; *naturalness* is not. Two real errors have already been found by eye (Tamil `money.left` read "moderate money", Malayalam `elig.bdo.funds` had a duplicated word), which is evidence there are more.
 - **The print PDF layout and the `api.js` timeout path still need a manual click-through.** The driver below covers page rendering, not `window.print()` output or a stalled backend.
 - ~~**Mobile is not pixel-verified.** Desktop widths only.~~ **CLOSED 7 Sept 2026** — see "Phones" below. All ten routes now pass a measured audit at 360 / 390 / 412 px. What is still unverified there: landscape orientation, real touch scrolling on a physical device, and the on-screen keyboard covering a focused input.
 
@@ -851,6 +851,30 @@ Five things are load-bearing:
 
 Built CSS **42.38 → 42.86 kB** (gzip 9.05 → 9.09). Verified after: **171 tests**, `parity4` **618 keys** all checks passed (no dictionary key was touched — the product name is `APP_NAME`, not a translated string), `keycheck` PASS 0/0/0, `glyph-audit` exactly the 3 documented hits, lint and build clean with all 7 chunks, and every browser gate: `manual-audit` 3 modes 0 problems, `drive` **36/36**, `mobile-audit` **40/40**, `text-align` 30 loads / 193 row / 30 column / 0 findings (`--broken` exit 1, 30 `RAGGED-ROW`), `lang-layout` **96/0**, `field-align` **96/0**, `print-audit` 0 across 3 renders, `brand-mark` 2 modes 0 (regions 13, worstEdge 12.8), `hero-art` 3 modes 0 (mean ΔL\* 21.5, 100% present, worst 5.47:1), `motion-audit` 0, `scroll-audit` 33 hops + back + anchor 0.
 
+### The funding gap counted, 23 Sept 2026 (branch `fix/advice-correctness`)
+
+**`funding_gap` was computed and then ignored by every piece of advice.** `financial_service` has returned it since defect 4, `/report` printed it, and nothing downstream read it. So someone with **₹0 of capital against a ₹5 lakh plan** could be told "Your business situation looks positive", advised to "consider controlled expansion", and have their repayment pressure computed on an EMI that did not include the loan the plan would need. This is the ranking rule's first item, *the advice is correct for the inputs it is given*, so it outranked everything else on the branch.
+
+What changed, by service:
+
+| Service | Change |
+|---|---|
+| `risk_service.py` | the gap is priced as a new loan (`estimate_monthly_repayment`, 12% / 60 months, annuity) and added to the entered EMI; the band is taken on the total. Returns the terms (`monthly_emi`, `estimated_new_emi`, `total_monthly_emi`, the two assumptions) and `risk_level_without_new_loan`. `_REASONS` is keyed on `(band, has_new_loan)`, so a gap-driven band gets a `rsn.gap*` sentence that says the loan was counted |
+| `mvp_service.py` | `good` now also requires `funding_gap <= 0`. A profitable, feasible plan with a gap small enough to repay reads `attention_needed` / `sum.needsFunding` / `nxt.arrangeGap` (medium). When risk is `high` **only because of** the gap's loan (`estimated_new_emi > 0` and `risk_level_without_new_loan != "high"`), the next step is `nxt.gapTooLarge` rather than `nxt.reducePressure`, which would point at a debt that does not exist yet |
+| `advisory_service.py` | takes `funding_gap`; withholds `adv.maintainExpand` and `adv.healthyMargin` while it is positive (expansion advice to someone short of their plan's money is advice to borrow more), and appends `adv.fundingGap` |
+| `analysis_service.py` | passes `funding_gap` to both |
+
+Four things are load-bearing:
+
+- **`existing_debt` is deliberately excluded from the pressure figure.** It is the outstanding principal of the loan whose monthly repayment the reader already entered as `monthly_emi`; adding it would count one loan twice. It is still accepted and still unused, which is the honest state until a question asks for its own EMI.
+- **12% over 60 months is an assumption, and the page says so.** `ch.pressureIncludesNew` ("This counts a loan for the money still needed, worked out at {rate}% a year over {years} years. A real loan can cost more or less.") is printed under the pressure chart on `/analysis` and `/advisory` and under the figures on `/report`. The rate and tenure come from the response (`assumed_interest_rate_percent`, `assumed_tenure_months`), not from the frontend, so the note cannot disagree with the arithmetic. `/analysis` and `/report` also print the estimated payment as its own row (`an.newLoanEmi`), because a pressure figure that includes a loan the reader never mentioned otherwise reads as wrong.
+- **The rows and notes sit inside `<details>`, and `drive.mjs` cannot see them.** It reads `innerText`, which skips the body of a closed `<details>`. They were verified with a one-off probe on port 9369 that opens every disclosure first: 3 fixtures × {en, hi, mr} × 3 pages, row and note present exactly when `estimated_new_emi > 0`, no leaked key. If a future change lives inside a disclosure, verify it the same way.
+- **The demo case changed outcome, correctly.** The documented tailoring/Lucknow payload has ₹50,000 capital against a ₹1,00,000 plan, so it now reads **20.75% low** (₹2,000 + ₹1,112 against ₹15,000) and **`attention_needed`** rather than 13.33% and `good`. `case_good.json` was regenerated by `refresh-cases.mjs` and carries the same outcome. A payload that should demo as `good` needs `available_capital >= initial_investment`.
+
+**Known and not fixed here, because it is a different rule:** the pressure figure is EMI ÷ *business* surplus built on *expected* revenue. RBI's microfinance directions (2022, para 55) cap repayments at 50% of monthly **household** income and exclude expected income from the activity being financed. So a reader with an MFI loan can see "low" for a household that fails the lender's own test. Closing that needs a household-income question, which the journey does not ask.
+
+Dictionaries **618 → 627** (`backendStrings.js` +7: `adv.fundingGap`, `rsn.gapBelow30`, `rsn.gap30to50`, `rsn.gapAbove50`, `sum.needsFunding`, `nxt.gapTooLarge`, `nxt.arrangeGap`; `resultStrings.js` +2: `an.newLoanEmi`, `ch.pressureIncludesNew`), × 8 languages, unreviewed by a native speaker like the rest. Tests **171 → 181**. Verified: `parity4` 627 all checks passed, `keycheck` 0/0/0, lint and build clean with 7 chunks (CSS unchanged at 42.86 kB), `refresh-cases` regenerated, `drive` 36/36, the details probe all ok, `print-audit` 0 across 3 renders, `mobile-audit` 40/40, `text-align` 0, `lang-layout` 96/0.
+
 ### The scheme expansion, 7 Sept 2026
 
 On the brief "add more schemes — Block/Taluka/Circle, Village/Urban Local Body, Regional, District, Sub-District, State/UT, Central". What landed:
@@ -861,7 +885,7 @@ On the brief "add more schemes — Block/Taluka/Circle, Village/Urban Local Body
 - **Tier grouping on `/schemes`** under `lvl.*` headings with `lvlnote.*` office notes, and a `sch.runBy` badge on the flat lists on `/analysis` and `/report`.
 - **`tools/parity4.mjs`** — the 4-file, 8-language, 5-check parity verifier. It is the only thing that catches a cross-file key collision.
 - **`tools/verify/refresh-cases.mjs`** — regenerates the driver's fixtures, which had gone stale and were masking exactly this kind of change.
-- **151 tests** (was 135; **171 now**, after the 8 Sept audit and the 9 Sept optimization pass), including `test_the_seven_levels_are_all_reachable_from_real_input`, which sweeps 8 (category, state) pairs and asserts every tier is reachable — so a tier with no UI heading would be caught as dead data.
+- **151 tests** (was 135; **181 now**, after the 8 Sept audit, the 9 Sept optimization pass and the 23 Sept funding-gap fix), including `test_the_seven_levels_are_all_reachable_from_real_input`, which sweeps 8 (category, state) pairs and asserts every tier is reachable — so a tier with no UI heading would be caught as dead data.
 
 ### Safest demo configuration
 
@@ -875,7 +899,7 @@ Give the location step a village name, a market type and a customer description 
 
 Two consequences. **Say "six of the seven tiers" on the day**, which is what the demo doc and `00_START_HERE.md` already say — do not promise seven from one screen. And `test_the_seven_levels_are_all_reachable_from_real_input` is not contradicted by this: it sweeps 8 (category, state) pairs and asserts each tier appears somewhere in the **union**, which is the right assertion for "no tier is dead data" and says nothing about one request. If showing all seven ever becomes a requirement, the fix is a dataset change — a state scheme for a North-Eastern or border state — not a matcher change.
 
-Verified end to end on 8 Sept 2026 with `tailoring` / Uttar Pradesh / Lucknow / `location_type: rural`, investment 100000, revenue 30000, operating expenses 18000, capital 50000, expenses 15000, EMI 2000: **200**, 7 top-level keys, `funding_gap` 50000, `profit_margin_percent` 50, `estimated_roi_percent` 144.0, `risk_level` low at 13.33%, 1 market row at `match_level: "district"`, and **14 schemes — 3 at 100, 11 at 90** — with populated `match_reasons` and `eligibility_rules`, across tiers `{state 2, district 3, central 4, sub_district 1, block 2, local_body 2}`.
+Verified end to end on 8 Sept 2026 with `tailoring` / Uttar Pradesh / Lucknow / `location_type: rural`, investment 100000, revenue 30000, operating expenses 18000, capital 50000, expenses 15000, EMI 2000: **200**, 7 top-level keys, `funding_gap` 50000, `profit_margin_percent` 50, `estimated_roi_percent` 144.0, `risk_level` low at **20.75%** (re-measured 23 Sept 2026: the entered ₹2,000 EMI plus ₹1,112 for a loan covering the ₹50,000 gap, against a ₹15,000 surplus — it read 13.33% while the gap was ignored), `mvp_summary.status` **`attention_needed`** with `sum.needsFunding` / `nxt.arrangeGap` (it read `good` for the same reason), 1 market row at `match_level: "district"`, and **14 schemes — 3 at 100, 11 at 90** — with populated `match_reasons` and `eligibility_rules`, across tiers `{state 2, district 3, central 4, sub_district 1, block 2, local_body 2}`.
 
 **Two figures in that sentence were stale and are now measured, so quote it rather than an older note.** It said "2 at 100, 12 at 90" and `estimated_roi_percent: 126.0`. The score split is **3/11** — ODOP names Uttar Pradesh, so it scores 100 like the two state schemes do, and counting only the `state`-tier ones misses it. The ROI figure came from a payload whose inputs were never written down, which is exactly why they are spelled out above: `estimated_roi_percent` is `(revenue − operating expenses) × 12 / investment × 100`, so it is meaningless without all three.
 
@@ -983,7 +1007,7 @@ Still unverified on phones: landscape orientation, real touch scrolling on physi
 ## Tests
 
 ```bash
-cd backend && ../.venv/Scripts/python.exe -m pytest tests -q     # 171 passed in ~0.6s
+cd backend && ../.venv/Scripts/python.exe -m pytest tests -q     # 181 passed in ~1s
 ```
 
 Backend only — there are no frontend tests. `test_frontend_contract.py` and `test_mvp_api_contract.py` pin the response shape by subscripting every key, so **removing or renaming a response key raises `KeyError` and fails them** — that is intended, and it is the fastest way to check whether a contract change is safe. Note the corollary: they assert only that the documented keys are *present*, so **adding** keys passes silently. Run the suite after any service or schema edit.

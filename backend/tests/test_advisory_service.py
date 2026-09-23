@@ -136,3 +136,33 @@ def test_an_uncomputable_margin_does_not_crash_and_gives_no_margin_advice():
     assert not any("margin" in item for item in result["recommendations"])
     assert "adv.improveMargin" not in result["recommendation_codes"]
     assert "adv.healthyMargin" not in result["recommendation_codes"]
+
+
+def test_a_funding_gap_replaces_the_expansion_advice():
+    # Profitable with a 40% margin would normally be told to expand. Short of
+    # the money the plan needs, that is advice to borrow more.
+    result = generate_advice(
+        financial_status="profitable",
+        profit_margin_percent=40,
+        available_capital=50000,
+        funding_gap=100000,
+    )
+
+    assert result["recommendation_codes"] == ["adv.fundingGap"]
+    assert len(result["recommendations"]) == len(result["recommendation_codes"])
+
+
+def test_a_funding_gap_follows_the_loss_advice():
+    result = generate_advice(
+        financial_status="loss",
+        profit_margin_percent=-20,
+        available_capital=5000,
+        funding_gap=100000,
+    )
+
+    assert result["recommendation_codes"] == [
+        "adv.reduceExpenses",
+        "adv.fundingGap",
+        "adv.improveMargin",
+        "adv.cashReserve",
+    ]
