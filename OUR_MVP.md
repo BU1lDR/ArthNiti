@@ -493,7 +493,9 @@ annual_operating_surplus  = monthly_operating_surplus × 12
 estimated_roi_percent     = annual_operating_surplus / initial_investment × 100 (null when investment is 0)
 feasibility_status        = feasible (>0) | break_even (=0) | not_feasible (<0)
 
-pressure_ratio_percent    = monthly_emi / monthly_profit × 100
+estimated_new_emi         = funding_gap priced as a new loan, 12% a year over 60 months
+                            (standard annuity, whole rupees; 0 when there is no gap)
+pressure_ratio_percent    = (monthly_emi + estimated_new_emi) / monthly_profit × 100
                             <30 low · 30–50 moderate · >50 high
                             surplus ≤ 0 → high, ratio null
 
@@ -505,7 +507,7 @@ scheme match_score        = 60 (kind of work matches)
                             shown as fit_basis ("state" / "region" / "national"), never as a %
 ```
 
-**Three fields come back `null`, and that is a feature, not a gap** — it means *"we could not compute this"*, which is a different statement from zero. `profit_margin_percent` and `operating_margin_percent` when revenue is 0 (a margin needs revenue to be a share *of*, and printing `0%` there would read as break-even when it is actually a loss), `estimated_roi_percent` when investment is 0, and `pressure_ratio_percent` when there is no positive surplus. **The UI prints "Not available" for all four.** This matters on stage because `Number(null)` is `0` in JavaScript, so a careless formatter turns "could not compute" into a confident, reassuring `0%` — that has been a live bug twice.
+**Four fields come back `null`, and that is a feature, not a gap** — it means *"we could not compute this"*, which is a different statement from zero. `profit_margin_percent` and `operating_margin_percent` when revenue is 0 (a margin needs revenue to be a share *of*, and printing `0%` there would read as break-even when it is actually a loss), `estimated_roi_percent` when investment is 0, and `pressure_ratio_percent` when there is no positive surplus. **The UI prints "Not available" for all four.** This matters on stage because `Number(null)` is `0` in JavaScript, so a careless formatter turns "could not compute" into a confident, reassuring `0%` — that has been a live bug twice.
 
 ## Two different expense questions — do not mix them up
 
@@ -881,7 +883,6 @@ For future production: entrepreneurs assisted · plans generated · financial-li
 | Port conflict — a stray uvicorn or Vite process | `netstat` + `taskkill` before starting (§6) |
 | `localhost` vs `127.0.0.1` mismatch (uvicorn binds IPv4; `vite preview` may bind `[::1]`) | Try both; pass `--host 127.0.0.1` |
 | A judge asks whether this is an official portal — **the on-screen notice is gone** | Answer verbally, and know the answer in advance (§17) |
-| PMEGP's official link may not open from the venue network | Click every link you plan to open, beforehand (§13) |
 | Screenshots at the top of `screenshots/` are stale — old *Sahyog* branding | Recapture before circulating (§11) |
 
 ## Project risks
