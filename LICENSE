@@ -1,0 +1,38 @@
+अर्थNiti — Proprietary Software Licence
+
+Copyright (c) 2026 Aryan Verma. All rights reserved.
+
+1. Ownership. This software, including its source code, object code,
+   documentation, design, user-interface text and translations, and the
+   curated scheme dataset in backend/app/data/schemes.json (together, "the
+   Software"), is the property of Aryan Verma ("the Owner").
+
+2. No licence granted by access. Access to this repository or to a copy of
+   the Software does not grant any licence. No person may use, copy, modify,
+   merge, publish, distribute, sublicense, sell or deploy the Software, in
+   whole or in part, except under a separate written agreement signed by
+   the Owner.
+
+3. Evaluation. A person to whom the Owner has given access for evaluation
+   may run the Software privately to evaluate it, for the period and purpose
+   the Owner permits, and must delete their copies when that permission
+   ends.
+
+4. Third-party components. The Software depends on open-source packages
+   that are licensed by their own authors under their own terms. Those terms
+   are not changed by this licence. See THIRD_PARTY_NOTICES.md.
+
+5. Third-party data. Government scheme descriptions are summaries of
+   publicly available information and are not endorsed by, or affiliated
+   with, any government body. Market data obtained from Open Government Data
+   sources is used under the Government Open Data Licence - India (GODL) and
+   carries the attribution that licence requires. See DATA_SOURCES.md.
+
+6. No warranty. The Software is provided "as is", without warranty of any
+   kind, express or implied, including warranties of merchantability,
+   fitness for a particular purpose and non-infringement. Its output is
+   guidance, not financial, legal or eligibility advice. In no event shall
+   the Owner be liable for any claim, damages or other liability arising
+   from the Software or its use.
+
+For licensing enquiries, contact the Owner: aryanverma102007@gmail.com

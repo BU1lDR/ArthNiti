@@ -1,21 +1,21 @@
 # अर्थNiti
 
-Hyper-local business advice and financial structuring for rural micro-entrepreneurs. Our entry for Smart India Hackathon 2026.
+Hyper-local business advice and financial structuring for rural micro-entrepreneurs. We built it for Smart India Hackathon 2026 and now keep it going as a standalone project.
 
 Someone running a small business in a village — a tailor, a weaver, a woman keeping four buffaloes — opens this on a cheap Android phone, answers nineteen plain questions in their own language, and gets four things back:
 
 - whether the business actually makes money
 - how risky the loan repayment looks
-- which government schemes they're genuinely eligible for, from Central ministries down to the Gram Panchayat counter
+- which government schemes cover their kind of work where they live, from Central ministries down to the Gram Panchayat counter (it checks the kind of work and the place, not full eligibility)
 - a one-page sheet to print and carry to a bank
 
 Eight Indian languages, with dialect-aware phrasing layered on top. Thirty real schemes across all seven administrative tiers.
 
-Our next milestone is the internal college round on **11 September 2026**. This is prototype work built to be judged by a panel, not production software, and the rest of this file tries not to pretend otherwise.
+**Where it stands.** We built this for the SIH 2026 internal college round, held on 14 September 2026, and weren't selected. The project continues on its own now, as a portfolio piece and, mainly, as a product to sell to businesses that work with real users. It belongs to Aryan Verma and is proprietary. See [LICENSE](LICENSE); this is not open source, even though the repo may be shared. It is still a prototype, not production software, and the rest of this file tries not to pretend otherwise. Anything below about "the demo" or "the round" is how the build was used for the hackathon, not a current goal.
 
 ## Two things to know before you read the code
 
-**There is no LLM in here.** Every number and every sentence the user sees comes out of hand-written Python in `backend/app/services/` — plain `if`/`else`, nothing more. No SDK, no API key, no inference call anywhere in the repo. We think that's a defensible position for this round and `OUR_MVP.md` §15 makes the argument, but please don't describe the app as using generative AI. If someone asks you to "improve the AI", find out first whether they mean wire up a real model or sharpen the rules.
+**There is no LLM in here.** Every number and every sentence the user sees comes out of hand-written Python in `backend/app/services/` — plain `if`/`else`, nothing more. No SDK, no API key, no inference call anywhere in the repo. That's a deliberate choice, and `OUR_MVP.md` §15 makes the argument for it, but please don't describe the app as using generative AI. If someone asks you to "improve the AI", find out first whether they mean wire up a real model or sharpen the rules.
 
 There's no database either. All client state lives in the browser's `sessionStorage`.
 
@@ -121,7 +121,7 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 | `frontend/src/data/indiaLocations.js` | 36 states and UTs, 768 districts |
 | `frontend/src/services/api.js` | the only network call in the app |
 | `frontend/src/index.css` | design tokens, the `.ui-*` system, and the print stylesheet |
-| `tools/` | 23 verification scripts — [tools/README.md](tools/README.md) explains them |
+| `tools/` | 24 scripts, nearly all of them verifiers — [tools/README.md](tools/README.md) explains them |
 | `presentation/` | empty for now. Saad and Tripti |
 
 ## How it fits together
@@ -175,7 +175,7 @@ node tools/keycheck.mjs    # the other half: does every key the code asks for ac
 
 ## Checking your work
 
-Lint, build and pytest can't see a leaked translation key, a `null%`, a page that scrolls sideways under a thumb, a `₹30,000` that wrapped into `₹30,00 / 0`, a logo that prints invisible, a transition that silently does nothing, a route that opens halfway down the page, or a footer column whose heading starts 50px below its neighbours'. We've shipped every one of those. The 23 scripts in `tools/` are what catch them — [tools/README.md](tools/README.md) has the full guide and the traps.
+Lint, build and pytest can't see a leaked translation key, a `null%`, a page that scrolls sideways under a thumb, a `₹30,000` that wrapped into `₹30,00 / 0`, a logo that prints invisible, a transition that silently does nothing, a route that opens halfway down the page, or a footer column whose heading starts 50px below its neighbours'. We've shipped every one of those. The scripts in `tools/` are what catch them — [tools/README.md](tools/README.md) has the full guide and the traps.
 
 From a fresh clone, in this order:
 
@@ -196,8 +196,11 @@ Run the browser verifiers after any UI change, and `refresh-cases.mjs` after tou
 |---|---|---|
 | this file | the front door | you've just cloned the repo |
 | [CLAUDE.md](CLAUDE.md) | the code view: every trap, every reason, every measured figure | you're about to edit something |
-| [OUR_MVP.md](OUR_MVP.md) | the product view: demo script, judge answers, what's built and what isn't | you're presenting, or you need the team split |
+| [OUR_MVP.md](OUR_MVP.md) | the product view: what's built and what isn't, and the team split. It also still carries the hackathon's demo script and judge answers | you need the product picture or the team split |
 | [tools/README.md](tools/README.md) | the verification suite | a verifier failed, or you're writing a new one |
+| [LICENSE](LICENSE) | proprietary licence: all rights reserved by the owner | before you copy, share or deploy any of it |
+| [DATA_SOURCES.md](DATA_SOURCES.md) | where every dataset and image came from, what licence it's under, and which ones are still unresolved | you're adding data or an image, or a buyer asks |
+| [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) | licences of every npm and Python dependency, generated by `node tools/third-party-notices.mjs` | a dependency changed (re-run the script) |
 
 Three files in the repo are stale and we've left them alone rather than half-fixing them: `docs/frontend_integration.md` claims CORS allows two fixed origins (it's a regex) and that the response has five sections (seven), `frontend/README.md` is untouched Vite boilerplate, and `docs/requirements.txt` is one line of prose with nothing to do with `backend/requirements.txt`.
 
@@ -229,9 +232,9 @@ Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`
 
 ## What this doesn't do
 
-Written down so nobody gets caught out by a question at the round:
+These are the current limits, written down so nobody overclaims:
 
-- No LLM, no database, no authentication. All three are deliberate for this milestone.
+- No LLM, no database, no authentication. All three were deliberate for the hackathon build. Whether they stay that way depends on what the project gets used for next.
 - The non-English wording hasn't been checked by a native speaker. Parity, placeholders and identical-to-English are all script-verified; *naturalness* isn't. We've already caught two real mistakes by eye, which suggests there are more.
 - Dialect coverage is 9 of 30 varieties, each a handful of phrases.
 - The market data is illustrative, all of it Uttar Pradesh, and the UI says so on the page. Everywhere else gets an empty market section.

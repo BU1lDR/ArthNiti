@@ -1,16 +1,16 @@
-# अर्थNiti — SIH 2026 MVP
+# अर्थNiti — MVP
 ## Shared team context: what we actually built
 
 > **Purpose:** the single shared context document for all six team members and their AI assistants.
 > **Rule:** this file describes the MVP **as it exists in the repository**. When you change the build, change this file in the same commit. Anything not yet built is labelled **PLANNED** — never write a planned thing as though it works.
 > **Engineering detail lives in [CLAUDE.md](CLAUDE.md)** — exact file paths, response keys, thresholds, known traps. This file is the product/team view; CLAUDE.md is the code view. If they disagree, CLAUDE.md is newer.
 
-**Status as of 8 September 2026 — presentation is 11 September 2026 (3 days out).**
+**Status as of 23 September 2026.** We built this for the SIH 2026 internal college round, held on 14 September 2026 after being moved from 11 September, and we were **not selected**. The project continues on its own. The owner, Aryan Verma, decided its direction on 23 September 2026: it is a portfolio piece, and mainly a product to sell to businesses that serve real users. The project and the scheme data belong to the owner and the code is proprietary (see `LICENSE`). The hyperlocal claim stays, backed by real sourced data rather than the illustrative rows, and DPDP compliance is in scope. CLAUDE.md, "Decided by the owner", has the details and the two questions still open. The table below still describes the build accurately. Sections 16, 17, 19 (demo risks), 20 and 25 were written for the round and are kept as history.
 
 | | |
 |---|---|
 | Project name | **अर्थNiti** (frozen) |
-| Phase | Working prototype, feature-frozen except polish |
+| Phase | Working prototype. The hackathon ended, so the feature freeze no longer applies. It continues as a standalone project |
 | Backend | Runs. 8 routers, 171 passing tests |
 | Frontend | Runs. 10 routes plus a catch-all, full journey works end to end |
 | Integration | Done — one API call carries the whole journey |
@@ -18,7 +18,7 @@
 | Languages | 8 UI languages + a dialect phrase layer. **Backend prose is translated too** — see §2.6 |
 | LLM / AI model | **None. Zero model calls.** See §15 |
 | Database | **None.** Answers persist in the browser tab (`sessionStorage`) only — see §8 |
-| Presentation | Owned by Saad + Tripti, in progress |
+| Presentation | Delivered at the 14 September round (Saad + Tripti) |
 
 ---
 
@@ -754,6 +754,8 @@ Preferred response shape:
 
 # 16. Presentation Structure
 
+> **History (round-era).** This section was written for the SIH 2026 internal round, held on 14 September 2026, which we were not selected from. It is kept because it records the thinking behind the build. It is not a current plan.
+
 Recommended 8–10 slides:
 
 1. Title — **अर्थNiti**
@@ -806,6 +808,8 @@ Have a fallback: a saved PDF of `/report` and a current set of screenshots, in c
 ---
 
 # 17. Judge Questions to Prepare For
+
+> **History (round-era).** This section was written for the SIH 2026 internal round, held on 14 September 2026, which we were not selected from. It is kept because it records the thinking behind the build. It is not a current plan.
 
 ## "Why AI? Where is the AI?"
 Answer honestly, and lead with the design decision — see §15. Then: the *AI-driven* framing of the problem statement is the roadmap — natural-language input, dialect-level paraphrasing, conversational explanation — layered on an engine whose arithmetic stays deterministic. Do not claim a model is running. **And do not let this question also answer "is it multilingual?"** — the eight-language output is built and is deliberately *not* model-generated.
@@ -862,7 +866,7 @@ For future production: entrepreneurs assisted · plans generated · financial-li
 
 # 19. Risk Register (current)
 
-## Demo risks — the ones that can bite on the 11th
+## Demo risks — the ones that could bite at the round (history)
 
 | Risk | Mitigation |
 |---|---|
@@ -894,6 +898,8 @@ For future production: entrepreneurs assisted · plans generated · financial-li
 ---
 
 # 20. Daily Team Ritual
+
+> **History (round-era).** This section was written for the SIH 2026 internal round, held on 14 September 2026, which we were not selected from. It is kept because it records the thinking behind the build. It is not a current plan.
 
 Four days left. Keep it tight.
 
@@ -1022,13 +1028,15 @@ In rough order of value per unit of effort:
 3. **Prefer verified data over impressive-looking fake data**, and label anything indicative.
 4. Prefer one polished workflow over many unfinished features.
 5. Integrate early; the contract is shared.
-6. **No new features before the 11th.** Fixes and rehearsal only.
+6. ~~**No new features before the 11th.** Fixes and rehearsal only.~~ The round is over, so this rule no longer applies.
 7. If a feature cannot be demonstrated clearly in under 60 seconds, question whether it belongs.
 8. **Never make the demo look more capable than the build.** An honest gap is defensible; a discovered overclaim is not.
 
 ---
 
-# 25. Remaining Work Before 11 September
+# 25. Remaining Work Before the Round (history)
+
+> **History (round-era).** This section was written for the SIH 2026 internal round, held on 14 September 2026, which we were not selected from. It is kept because it records the thinking behind the build. It is not a current plan.
 
 Ordered by demo impact. **Fixes and rehearsal only — no new features.** Three days left.
 
@@ -1072,7 +1080,7 @@ Any AI assistant reading this file should:
 - Keep financial calculations deterministic and unit-tested. Never move arithmetic into a model.
 - **Never widen scheme eligibility** to make output look more complete (§9, §21).
 - Guard on the raw value before printing a number. The backend sends `null` for anything it could not compute, and `Number(null)` is `0` — a naive guard turns "could not compute" into a confident, favourable `0%`. This has been a live bug twice.
-- Prefer changes that make the demo path work end to end and read clearly on a projector over refactors and infrastructure. The milestone is **11 September 2026**.
+- The hackathon is over, so the old rule — "prefer the demo path over refactors and infrastructure" — is retired. Work in this order: correct advice first, then honest claims, then a build a fresh clone can reproduce and verify, then polish. CLAUDE.md carries the full status line.
 - **Ask for explicit confirmation before any action that changes the GitHub repository** — push, PR, branch or tag creation or deletion, releases, settings. Local commits when requested are fine. Approval for one push does not carry to the next. Six people share this repo.
 - Run `pytest` after any service or schema edit; run `npm run lint` and `npm run build` after any frontend edit; run `node tools/parity4.mjs` after touching any dictionary; run `node tools/verify/refresh-cases.mjs` after any backend change, or the browser drivers will keep passing against last week's response.
 - Clean up any server you start (§6).
@@ -1080,10 +1088,12 @@ Any AI assistant reading this file should:
 
 ---
 
-# 27. Current Status — 9 September 2026
+# 27. Status Snapshot — 9 September 2026 (before the round)
 
-**Phase:** working prototype, feature-frozen except polish
-**Time to presentation:** 2 days (11 September 2026)
+> Kept as a dated snapshot. The build figures in it are still accurate. The phase and countdown lines are history, and the outbound scheme URLs it mentions were removed on 10 September.
+
+**Phase (then):** working prototype, feature-frozen except polish
+**Time to presentation (then):** the round was then scheduled for 11 September 2026; it was later moved to the 14th
 **Branch:** `before-main`
 
 | | |

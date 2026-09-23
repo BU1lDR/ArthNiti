@@ -1,8 +1,24 @@
-# अर्थNiti — SIH 2026 MVP
+# अर्थNiti — MVP
 
-**Project statement:** "AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs."
+**Project statement:** "AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs." That is the SIH 2026 problem statement, quoted as issued. The build has no AI in it — see below.
 
-**Milestone:** internal college round presentation, **14 September 2026**. This is demo-driven prototype work judged by a panel — not production software. Prefer changes that make the demo path work end to end and read clearly on a projector over refactors and infrastructure.
+**Status:** built for the SIH 2026 internal college round, which was held on 14 September 2026 after being moved from 11 September. **The team was not selected.** The project now continues as a standalone project. It is still a prototype, not production software. The rule that used to stand here — "prefer changes that make the demo path work on a projector over refactors and infrastructure" — **no longer applies**. Work in this order:
+
+1. the advice is correct for the inputs it is given;
+2. nothing on screen claims more than the code can back;
+3. a fresh clone can reproduce and verify the build;
+4. polish.
+
+**Decided by the owner, 23 September 2026:**
+
+- **Purpose: a portfolio piece, and mainly a product to sell to businesses that serve real users** (B2B — NBFCs, MFIs, SHG federations, CSC operators and the like). So **real people will act on the output**, through a client's staff or directly. That makes correctness, data honesty, DPDP compliance and security requirements, not polish.
+- **Ownership: the project belongs to the owner, Aryan Verma**, and so does the scheme data and its upkeep. The repo is proprietary, not open source — see `LICENSE`. Teammates' contributions (Manjeet, Netra) need a written assignment before any sale; until then that is an open legal item, not a code one.
+- **The hyperlocal claim stays, backed by real data.** The illustrative market rows are to be replaced with sourced, dated, licensed data, and `match_level` stays the honesty marker for how local a figure really is.
+- **DPDP compliance is in scope.** In a B2B deployment the client business is the Data Fiduciary and we are its Data Processor.
+
+**Still open:** whether an on-screen non-affiliation line comes back or the government look goes, and what `/login` becomes (a real auth branch exists; no decision on the page itself).
+
+Read the sections below that mention the round, the judges or the demo as **history**. They explain why the code is the way it is. They are not current goals.
 
 **Repo:** `https://github.com/BU1lDR/SIH_2026` (**private**).
 
@@ -42,13 +58,13 @@ Three docs now have to move together, and they have different jobs — do not me
 |---|---|---|
 | `README.md` | front door: what it is, how to run it, where things live | a teammate with a fresh clone, or anyone opening the repo |
 | `CLAUDE.md` (this file) | code view: every trap, every reason, every measured figure | whoever is editing the code next |
-| `OUR_MVP.md` | product/team view: demo script, judge answers, team split | the team, and the round itself |
+| `OUR_MVP.md` | product/team view: what is built, the product position, team split (its demo script and judge answers are round-era history) | the team |
 
 **The README states numbers, and a stale number there is worse than none**, because it is the first thing anyone reads and nothing verifies it. The counts it carries — languages, dictionary keys, schemes, tiers, routes, endpoints, tests, verifier scripts, states/districts — are exactly the ones this file has already had stale **twice** (see the "344 keys / 186 keys" note and the response-table note). So when a count changes, grep for it: `grep -rn "<the number>" README.md CLAUDE.md OUR_MVP.md`. The measured commands are `node tools/parity4.mjs` (key count), `cd backend && ../.venv/Scripts/python.exe -m pytest tests -q` (test count), and `ls tools/*.mjs tools/verify/*.mjs | wc -l` (script count).
 
 ### The "AI" is currently 100% deterministic rules
 
-Every number and every sentence the user sees is produced by hand-written Python `if`/`else` in `backend/app/services/`. There is no model call. This is defensible for the round — `OUR_MVP.md` §15 states the position and the LLM boundary for when a model *is* added, and §17 turns it into judge answers — but **do not describe the current build as using an LLM**, and if asked to "improve the AI", clarify whether the ask is to wire up a real model or to improve the rules.
+Every number and every sentence the user sees is produced by hand-written Python `if`/`else` in `backend/app/services/`. There is no model call. This is a deliberate position, not a gap. `OUR_MVP.md` §15 sets it out, along with where the line falls between rules and a model if one is ever added, and §17 has the answers prepared for the judges on this point. But **do not describe the current build as using an LLM**, and if asked to "improve the AI", clarify whether the ask is to wire up a real model or to improve the rules.
 
 ---
 

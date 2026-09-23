@@ -1,6 +1,6 @@
 # `tools/` — the verification suite
 
-23 zero-dependency scripts that check things `npm run lint`, `npm run build` and
+24 zero-dependency scripts that check things `npm run lint`, `npm run build` and
 `pytest` structurally cannot see: a leaked translation key, a `null%`, a page that
 scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, a logo
 that prints invisible, a transition that silently does nothing, a route that opens
@@ -97,6 +97,7 @@ node tools/verify/hero-vibrance.mjs  # a tuning instrument; exits 0 either way
 node tools/verify/art-contrast.mjs   # RETIRED — exits 2 by design
 node tools/assetgen.mjs              # regenerates the brand PNGs (needs Vite)
 node tools/merge-err-keys.mjs        # one-shot dictionary helper
+node tools/third-party-notices.mjs   # regenerates THIRD_PARTY_NOTICES.md (needs .venv + node_modules)
 ```
 
 ## Four traps that will cost you an hour each
