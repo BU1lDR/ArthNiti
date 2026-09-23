@@ -124,7 +124,7 @@ def serves_location(scheme, location_type):
 
     The exact counterpart of serves_state, for the same reason: PM SVANidhi
     requires "a town or city area covered by an urban local body", and offering
-    it to a village farmer as a 90% match costs them a wasted trip. RSETI, the
+    it to a village farmer as a match costs them a wasted trip. RSETI, the
     Gram Panchayat counter, the block rural-livelihoods desk and the Vibrant
     Villages Programme are the mirror case — each says "rural" or "village" in
     its own eligibility text and was being offered to urban entrepreneurs.
@@ -195,7 +195,12 @@ def _score_normalized(scheme_categories, scheme_states, phrases, user_state):
     )
 
     if not matched_categories:
-        return {"score": 0, "reasons": [], "reason_codes": []}
+        return {
+            "score": 0,
+            "reasons": [],
+            "reason_codes": [],
+            "fit_basis": None,
+        }
 
     score = 60
     reasons.append(
@@ -212,26 +217,54 @@ def _score_normalized(scheme_categories, scheme_states, phrases, user_state):
 
     # Geography. A scheme that names the entrepreneur's own state scores higher
     # than one open to the whole country: with thirty schemes in the file, a
-    # single +40 for both put almost every match on exactly 100, and a
-    # percentage that is always 100 tells the reader nothing.
+    # single +40 for both put almost every match on exactly 100.
+    #
+    # `fit_basis` is the same branch as a word, and it is what the UI prints.
+    # The score is only ever 90 or 100, it checks no eligibility rule, and a
+    # reader shown "90% match" takes it for a 90% chance of qualifying, which
+    # nothing here computes. So the score stays for the sort and for API
+    # callers, and the enum says what the difference between the two values
+    # actually is. It is set in the same branch as the sentence and the
+    # +40 / +30, so the three cannot drift apart.
     #
     # Neither sentence says who *runs* the scheme, because the states list does
     # not know: a regional scheme naming eight states is still central. The
     # scheme's `level` carries that, and the UI groups by it.
-    if user_state and user_state in scheme_states:
+    #
+    # A list that names the reader's state splits two ways on its LENGTH. One
+    # state named is "state" ("made for your state" is true of it). More than
+    # one is "region": UNNATI names eight North-Eastern states and Vibrant
+    # Villages six border ones, and telling an Assam reader that UNNATI is made
+    # for their state claims a precision the list does not have. Both keep the
+    # +40 — being on a short list is the same kind of fit either way — so the
+    # split changes the words and never the sort.
+    fit_basis = None
+    named_states = scheme_states - {"all"}
+
+    if user_state and user_state in named_states:
         score += 40
-        reasons.append(
-            "This scheme covers your state in particular."
-        )
-        reason_codes.append({"code": "why.stateSpecific", "categories": []})
+        if len(named_states) == 1:
+            fit_basis = "state"
+            reasons.append("This scheme is only for your state.")
+            reason_codes.append({"code": "why.stateSpecific", "categories": []})
+        else:
+            fit_basis = "region"
+            reasons.append(
+                "This scheme is only for some states, and yours is one of them."
+            )
+            reason_codes.append({"code": "why.regionSpecific", "categories": []})
     elif "all" in scheme_states:
         score += 30
-        reasons.append(
-            "This scheme is available in your state."
-        )
+        fit_basis = "national"
+        reasons.append("This scheme is for every state, including yours.")
         reason_codes.append({"code": "why.stateAvailable", "categories": []})
 
-    return {"score": score, "reasons": reasons, "reason_codes": reason_codes}
+    return {
+        "score": score,
+        "reasons": reasons,
+        "reason_codes": reason_codes,
+        "fit_basis": fit_basis,
+    }
 
 
 def calculate_match_details(
@@ -340,7 +373,7 @@ def match_schemes(
         # Availability is decided here rather than in the scorer, which stays a
         # pure explainer of fit. A scheme that names a specific set of states is
         # simply not on offer outside them, and showing a Uttar Pradesh-only
-        # subsidy to a Kerala entrepreneur as a "60% match" is worse than not
+        # subsidy to a Kerala entrepreneur as a partial match is worse than not
         # showing it: they would spend a trip to the block office on it.
         if not _state_is_served(entry["states"], user_state):
             continue
@@ -376,7 +409,16 @@ def match_schemes(
                     "scheme_id": scheme.get("id", ""),
                     "description": scheme["description"],
                     "support_type": scheme["support_type"],
+                    # Kept for the sort and for API callers. The UI never prints
+                    # it as a percentage; it prints fit_basis instead.
                     "match_score": details["score"],
+                    # "state" when the scheme's own states list names only the
+                    # reader's state, "region" when it names theirs among
+                    # several (both score 100), "national" when it is for
+                    # every state (score 90). It says why a scheme is on the
+                    # list, not whether the reader qualifies: no eligibility
+                    # rule is checked anywhere in this file.
+                    "fit_basis": details["fit_basis"],
                     "match_reasons": details["reasons"],
                     "match_reason_codes": details["reason_codes"],
                     # list(...) rather than the file's own list object. The loader

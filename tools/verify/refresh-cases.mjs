@@ -94,9 +94,14 @@ for (const [name, form] of Object.entries(CASES)) {
   const levels = [...new Set(schemes.map((s) => s.level))]
   const scores = [...new Set(schemes.map((s) => s.match_score))]
   const coded = schemes.filter((s) => s.description_code).length
+  // What the cards and the scheme-fit chart actually print. A fixture where
+  // every scheme has one basis cannot exercise the chart, which needs two.
+  const fit = {}
+  for (const s of schemes) fit[s.fit_basis ?? 'none'] = (fit[s.fit_basis ?? 'none'] || 0) + 1
   console.log(
     `${name.padEnd(6)} lang=${LANG_CODE[profile.language]} schemes=${String(schemes.length).padStart(2)}` +
     ` coded=${coded} scores=${JSON.stringify(scores)} market=${(result.market_context || []).length}` +
-    `\n       levels=${JSON.stringify(levels)}`,
+    `\n       levels=${JSON.stringify(levels)}` +
+    `\n       fit=${JSON.stringify(fit)}`,
   )
 }

@@ -14,9 +14,11 @@ export default function SchemesPage() {
   const result = applicationData?.result
   const schemes = Array.isArray(result?.scheme_matches) ? result.scheme_matches : []
 
-  // One bar per distinct match score, with the number of schemes at that score as
-  // the length. The gate is the emptiness of the list, so it cannot drift from
-  // the data — see schemeFitItems in Charts.jsx for why the chart is grouped.
+  // One bar per fit basis (your state alone / a few states including yours /
+  // all of India), with the number of schemes of that kind as the length. The
+  // gate is the emptiness of the list, so it cannot drift from the data — see
+  // schemeFitItems in chartData.js for why the chart is grouped, and why it is
+  // not by score.
   //
   // This section used to be unreachable. It carried a `scored.length <= 6` cap on
   // top of the distinct-score test, and no category in any state returns between
@@ -200,16 +202,18 @@ function SchemeCard({ scheme, index, t, bt }) {
             </div>
           </div>
           {/* Backend prose, translated via the scheme's description_code. The
-              scheme NAME above stays English: it is the name on the official
-              portal the user is sent to. */}
+              scheme NAME above stays English: it is the scheme's own official
+              name, the one the office that runs it will recognise. */}
           {scheme.description && <p className="mt-4 leading-7 text-[var(--color-text-muted)]">{bt.schemeDescription(scheme)}</p>}
         </div>
 
-        {hasNumber(scheme.match_score) && (
-          <div className="shrink-0 rounded-2xl bg-[var(--color-surface-soft)] px-5 py-4 text-center" aria-label={t('sc.matchPct', { n: scheme.match_score })}>
-            <p className="text-3xl font-extrabold text-[var(--color-primary-strong)]">{scheme.match_score}%</p>
-            <p className="mt-1 text-sm font-bold text-[var(--color-text)]">{t('sc.match')}</p>
-          </div>
+        {/* Why the scheme is on the list, in words. This box used to print the
+            match score as a big "90%", which a reader takes for a 90% chance of
+            qualifying; the score is 60 + 40 or 60 + 30 and checks no
+            eligibility rule. The label is plain text, so it needs no aria-label
+            of its own. */}
+        {bt.schemeFit(scheme) && (
+          <p className="shrink-0 rounded-2xl bg-[var(--color-surface-soft)] px-4 py-3 text-sm font-bold text-[var(--color-primary-strong)] sm:max-w-[12rem] sm:text-center">{bt.schemeFit(scheme)}</p>
         )}
       </div>
 
@@ -221,7 +225,7 @@ function SchemeCard({ scheme, index, t, bt }) {
 
       {Array.isArray(scheme.match_reasons) && scheme.match_reasons.length > 0 && (
         <SchemeSection title={t('sc.why')}>
-          <BulletList items={bt.schemeReasons(scheme)} />
+          <BulletList items={bt.schemeReasons(scheme)} marker="check" />
         </SchemeSection>
       )}
 
@@ -231,6 +235,7 @@ function SchemeCard({ scheme, index, t, bt }) {
           {Array.isArray(scheme.eligibility_rules) && scheme.eligibility_rules.length > 0 && (
             <div>
               <h3 className="font-bold text-[var(--color-text)]">{t('sc.eligibility')}</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{t('sc.eligUnchecked')}</p>
               <div className="mt-3"><BulletList items={bt.schemeEligibility(scheme)} /></div>
             </div>
           )}
@@ -264,12 +269,19 @@ function SchemeSection({ title, children }) {
   )
 }
 
-function BulletList({ items }) {
+// The tick is for statements that are TRUE of this reader: the reasons the
+// scheme is on their list. Eligibility rules and documents get a plain bullet,
+// because nothing here checks a rule against the reader's details, and a tick
+// beside "You must be over 18" reads as "you are".
+const BULLET_MARKERS = { check: '✓', plain: '•' }
+
+function BulletList({ items, marker = 'plain' }) {
+  const glyph = BULLET_MARKERS[marker] || BULLET_MARKERS.plain
   return (
     <ul className="space-y-3">
       {items.map((item, index) => (
         <li key={index} className="flex min-w-0 gap-3 leading-7 text-[var(--color-text-muted)]">
-          <span className="mt-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-soft)] text-xs font-bold text-[var(--color-primary-strong)]" aria-hidden="true">✓</span>
+          <span className="mt-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-soft)] text-xs font-bold text-[var(--color-primary-strong)]" aria-hidden="true">{glyph}</span>
           <span className="min-w-0">{item}</span>
         </li>
       ))}
@@ -277,9 +289,3 @@ function BulletList({ items }) {
   )
 }
 
-// Guards the RAW value, not Number.isFinite alone: the backend sends null for
-// anything it could not compute, and Number(null) is 0, which would turn "no
-// score" into a confident 0% bar. A genuine 0 still passes and still prints.
-function hasNumber(value) {
-  return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
-}

@@ -18,6 +18,7 @@
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
 const DEBUG_PORT = 9222
@@ -107,6 +108,39 @@ const RESULTS = {
 }
 
 const RESULT_ROUTES = ['/analysis', '/schemes', '/advisory', '/report']
+
+// --- the scheme-card check ----------------------------------------------------
+// Every scheme card must print what its fit_basis says (sc.fitState /
+// sc.fitRegion / sc.fitNational in the page's language) and must never print its
+// match score as a percentage. The score is 60 + 40 or 60 + 30 and checks no
+// eligibility rule, so "90%" reads as a 90% chance of qualifying. This lives in
+// the main gate rather than in a one-off probe because it is a standing rule.
+//
+// It has to open every <details> first: the page text above is innerText,
+// which skips the body of a closed <details>, so a percentage re-added inside
+// a disclosure would pass everything else in this script.
+const CARD_ROUTES = ['/analysis', '/schemes', '/report']
+const FIT_KEYS = { state: 'sc.fitState', region: 'sc.fitRegion', national: 'sc.fitNational' }
+const { RESULT_STRINGS } = await import(pathToFileURL(resolve('frontend/src/i18n/resultStrings.js')).href)
+// Same per-key English fallback as t(), so a key missing in one language is
+// judged against the English the page would really print.
+const fitText = (lang, basis) => RESULT_STRINGS[lang]?.[FIT_KEYS[basis]] ?? RESULT_STRINGS.en[FIT_KEYS[basis]]
+// Score-shaped only: a scheme's own prose legitimately carries percentages
+// (PM Vishwakarma's "5% interest"), and the score is only ever 90 or 100.
+const SCORE_PCT = /(?<![\d.,-])(90|100)\s*%/
+
+// Runs in the page. For each scheme name, finds its heading, walks up to the
+// card that holds it, and returns that card's text with every <details> open.
+const cardProbe = (names) => `(() => {
+  document.querySelectorAll('details').forEach((d) => { d.open = true })
+  const names = ${JSON.stringify(names)}
+  const heads = [...document.querySelectorAll('h2, h3')]
+  return names.map((name) => {
+    const h = heads.find((el) => el.textContent.trim() === name)
+    const card = h && h.closest('section.ui-card, .ui-card-soft, div.rounded-2xl.border')
+    return card ? { found: true, text: card.innerText } : { found: false }
+  })
+})()`
 const ALL_ROUTES = ['/', '/login', '/profile', '/business', '/location', '/finance', ...RESULT_ROUTES, '/no-such-page']
 
 // case, language, routes
@@ -285,7 +319,7 @@ async function main() {
           if (text.includes(bad)) problems.push(`BAD TOKEN: "${bad}"`)
         }
         // Lowercase enum values and backend field names must never reach screen.
-        for (const raw of ['attention_needed', 'break_even', 'not_feasible', 'profit_margin', 'match_level', 'pressure_ratio']) {
+        for (const raw of ['attention_needed', 'break_even', 'not_feasible', 'profit_margin', 'match_level', 'pressure_ratio', 'fit_basis']) {
           if (text.includes(raw)) problems.push(`RAW ENUM/FIELD ON SCREEN: "${raw}"`)
         }
 
@@ -302,12 +336,35 @@ async function main() {
           }
         }
 
-        report.push({ tag, route, caseName, lang, rendered, chars: text.length, bars: barCount, unitCharts: unitCount, problems })
+        // After the text dump and the screenshot, because it opens every
+        // <details> and both of those should show the page as a reader lands on it.
+        const schemes = RESULTS[caseName]?.scheme_matches || []
+        let cardsChecked = 0
+        if (CARD_ROUTES.includes(route) && schemes.length > 0) {
+          const cards = await cdp.evaluate(cardProbe(schemes.map((s) => s.name)))
+          cards.forEach((card, i) => {
+            const scheme = schemes[i]
+            if (!card.found) { problems.push(`SCHEME CARD NOT FOUND: ${scheme.name}`); return }
+            cardsChecked++
+            const pct = SCORE_PCT.exec(card.text)
+            if (pct) problems.push(`SCORE AS PERCENT on ${scheme.name}: "${pct[0]}"`)
+            const want = fitText(lang, scheme.fit_basis)
+            if (!want || !card.text.includes(want)) problems.push(`FIT LABEL MISSING on ${scheme.name} (fit_basis=${scheme.fit_basis})`)
+            for (const other of Object.keys(FIT_KEYS)) {
+              if (other !== scheme.fit_basis && card.text.includes(fitText(lang, other))) {
+                problems.push(`WRONG FIT LABEL on ${scheme.name}: ${other} for ${scheme.fit_basis}`)
+              }
+            }
+          })
+        }
+
+        report.push({ tag, route, caseName, lang, rendered, chars: text.length, bars: barCount, unitCharts: unitCount, cardsChecked, problems })
         if (problems.length) findings.push({ tag, problems })
 
         console.log(
           `${problems.length ? 'FAIL' : 'ok  '}  ${tag.padEnd(32)} ${String(text.length).padStart(5)}c ` +
             `bars=${String(barCount).padStart(2)} coins=${unitCount}` +
+            (cardsChecked ? ` cards=${cardsChecked}` : '') +
             (problems.length ? '  ' + problems.join(' | ') : ''),
         )
       }
@@ -316,6 +373,9 @@ async function main() {
     writeFileSync(`${OUT}/report.json`, JSON.stringify({ report, findings }, null, 2))
     console.log(`\n${report.length} page loads, ${findings.length} with problems.`)
     console.log(`Text dumps and PNGs in ${OUT}`)
+    // Exit 1 on any finding, so a caller that checks the status sees it. It
+    // used to exit 0 either way, and only report.json said otherwise.
+    process.exitCode = findings.length ? 1 : 0
   } finally {
     edge.kill()
     spawn('taskkill', ['/F', '/T', '/IM', 'msedge.exe'], { stdio: 'ignore' })

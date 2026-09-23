@@ -78,6 +78,41 @@ function levelNote(level, t) {
   return t(`lvlnote.${LEVEL_KEYS[normalise(level)] || 'other'}`)
 }
 
+// Why a scheme is on the reader's list, as the scorer decided it. `fit_basis` is
+// a backend enum set in the same branch as the +40 / +30 in scheme_service.py:
+// "state" when the scheme's own states list names the reader's state and no
+// other, "region" when it names theirs among several (UNNATI's eight
+// North-Eastern states, Vibrant Villages' six border ones), "national" when it
+// is for every state.
+//
+// This is what the card prints INSTEAD of the score. The score is only ever 90
+// or 100 and it checks no eligibility rule, so "90% match" read as a 90% chance
+// of qualifying, which nothing in the backend computes. The label says the one
+// true thing the difference between the two numbers means. Do not bring the
+// percentage back as a badge, a chart label or an aria-label.
+const FIT_KEYS = {
+  state: 'sc.fitState',
+  region: 'sc.fitRegion',
+  national: 'sc.fitNational',
+}
+
+// Narrowest list first, the same way the backend's sort puts score 100 above
+// score 90 (state and region both score 100), so the chart and the card list
+// agree about what comes first.
+export const FIT_ORDER = ['state', 'region', 'national']
+
+// A missing basis prints nothing: the backend sends null only when neither
+// geography branch ran, and no real request reaches that. An unknown one
+// title-cases rather than vanishing or printing a dotted key, the same contract
+// levelLabel follows.
+export function fitLabel(basis, t) {
+  const raw = normalise(basis)
+  if (!raw) return ''
+  const key = FIT_KEYS[raw]
+  if (key) return t(key)
+  return raw.replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 // A scheme's own prose is keyed by its id. The backend sends the key outright as
 // description_code / support_type_code; deriving it from `scheme_id` is the
 // fallback for a scheme row that has an id but no explicit code. Neither one
@@ -131,6 +166,11 @@ export function useBackendText() {
     levelLabel: (level) => levelLabel(level, t),
 
     levelNote: (level) => levelNote(level, t),
+
+    // Not tBackend, for the same reason as schemeLevel: fit_basis is an enum,
+    // not a sentence. Empty string when the backend sent none, so a caller can
+    // gate on the result and render nothing.
+    schemeFit: (scheme) => fitLabel(scheme?.fit_basis, t),
 
     schemeDescription: (scheme) =>
       tBackend(schemeKey(scheme, 'description', scheme?.description_code), scheme?.description),

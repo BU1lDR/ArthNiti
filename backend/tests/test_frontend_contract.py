@@ -118,6 +118,10 @@ def test_frontend_contract_scheme_matches():
         assert isinstance(scheme["description"], str)
         assert isinstance(scheme["support_type"], str)
         assert isinstance(scheme["match_score"], (int, float))
+        # What the card is labelled with. The score is never printed as a
+        # percentage any more: it checks no eligibility rule and only 90 and
+        # 100 are reachable, so "90% match" claimed a precision nothing had.
+        assert scheme["fit_basis"] in ("state", "region", "national")
         assert isinstance(scheme["match_reasons"], list)
         assert isinstance(scheme["eligibility_rules"], list)
         assert isinstance(scheme["documents"], list)

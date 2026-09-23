@@ -11,7 +11,7 @@
 |---|---|
 | Project name | **अर्थNiti** (frozen) |
 | Phase | Working prototype. The hackathon ended, so the feature freeze no longer applies. It continues as a standalone project |
-| Backend | Runs. 8 routers, 181 passing tests |
+| Backend | Runs. 8 routers, 187 passing tests |
 | Frontend | Runs. 10 routes plus a catch-all, full journey works end to end |
 | Integration | Done — one API call carries the whole journey |
 | Datasets | 30 government schemes across 7 tiers, 9 market rows (illustrative) |
@@ -52,7 +52,7 @@ Of the ten questions the blueprint set out to answer, here is where the MVP actu
 | 4 | How much money do I need? | **Built** — `funding_gap` |
 | 5 | How much from my own capital? | **Built** — available capital is an input and shown against the gap |
 | 6 | How much external financing is appropriate? | **Partial** — we show the gap and the repayment risk, but no suggested loan amount or EMI scenarios |
-| 7 | Which support schemes are relevant? | **Built** — 30 schemes across 7 tiers of government, scored with reasons |
+| 7 | Which support schemes are relevant? | **Built** — 30 schemes across 7 tiers of government, matched with reasons |
 | 8 | Can I safely afford the repayment? | **Built** — repayment-pressure ratio → low / moderate / high |
 | 9 | What documents do I need? | **Built** — per-scheme document list |
 | 10 | What should I do next? | **Built** — ranked recommendations + printable report |
@@ -83,7 +83,7 @@ Of the ten questions the blueprint set out to answer, here is where the MVP actu
    - **8 languages** — English, Hindi, Tamil, Telugu, Malayalam, Kannada, Marathi, Bengali — each listed in its own script with a sample line, so a reader who cannot read English can find their own language. **Hindi is the default**, not English.
    - **The generated advice and the scheme text change with it.** Every sentence a Python service composes carries a translation code beside it, and the frontend resolves the code to the reader's language. So do not say "the labels are translated" — the *output* is. On stage this is the single strongest moment in the walkthrough, and a **result** page is a better place to show it than a form page.
    - **A dialect phrase layer** on top: 30 varieties listed, of which **9 carry curated phrase overrides** for the highest-visibility strings (the greeting, the call to action, the words for money). Anything not overridden falls through to the language, so every dialect is a fully usable UI. Say **"dialect-aware phrasing"** — not "translated into Bhojpuri".
-   - **What is still English, say this if asked:** an enum value the label maps do not recognise falls back to a title-cased English word; a scheme added to `schemes.json` without codes falls back to its English prose; digits stay Latin and money stays `en-IN`-grouped on purpose, because that is what is printed on Indian currency and on government forms; and **the non-English wording has not been reviewed by a native speaker** (627 keys × 8 languages — parity and placeholders are script-verified, naturalness is not).
+   - **What is still English, say this if asked:** an enum value the label maps do not recognise falls back to a title-cased English word; a scheme added to `schemes.json` without codes falls back to its English prose; digits stay Latin and money stays `en-IN`-grouped on purpose, because that is what is printed on Indian currency and on government forms; and **the non-English wording has not been reviewed by a native speaker** (629 keys × 8 languages — parity and placeholders are script-verified, naturalness is not).
 7. **Responsible — DELIVERED.** A non-positive surplus short-circuits to `high` risk. Nothing in the app recommends borrowing a specific amount. Scheme cards carry a verify-with-the-authority disclaimer, and every market row is labelled *"Prototype estimate / illustrative data"*.
 
 ---
@@ -117,8 +117,8 @@ Ten frontend routes, plus a catch-all for typo'd URLs:
 /analysis       Money, business health, risk, LOCAL MARKET, observations, next steps,
                 schemes — with charts (coins, bars) beside every figure
 /schemes        Scheme cards grouped by the office that runs them, outward from
-                Delhi to the reader's own panchayat: score, reasons, eligibility,
-                documents, official link
+                Delhi to the reader's own panchayat: why it is listed, reasons,
+                eligibility (marked as not checked against you), documents
 /advisory       The recommendations, expanded
 /report         Print/PDF-ready one-page summary of everything
     ↓
@@ -131,7 +131,7 @@ The whole assessment is one HTTP request. That is deliberate: fewer moving parts
 
 **Tailoring (or Handicrafts) · Uttar Pradesh · Lucknow.**
 
-Measured against the live backend on 8 September 2026, this fills *every* section on screen and shows the widest spread of government tiers: **14 scheme matches across 6 of the 7 tiers**, both reachable scores (100 for a scheme that names Uttar Pradesh, 90 for one open nationwide) so the grouping reads as deliberate, plus a **district-level** market row. Food Processing is equally safe (16 matches). **Agriculture is now safe too** — 11 matches across 5 tiers, and it is arguably the better story since it was a dead end until 7 September — but it has no market row, so `/analysis` shows that section's empty state.
+Measured against the live backend on 8 September 2026, this fills *every* section on screen and shows the widest spread of government tiers: **14 scheme matches across 6 of the 7 tiers**, both of the fit labels Uttar Pradesh can show ("Made for your state" for a scheme that names only Uttar Pradesh, "For all of India" for one open nationwide) so the scheme-fit chart renders, plus a **district-level** market row. Food Processing is equally safe (16 matches). **Agriculture is now safe too** — 11 matches across 5 tiers, and it is arguably the better story since it was a dead end until 7 September — but it has no market row, so `/analysis` shows that section's empty state.
 
 The one tier no Uttar Pradesh pick reaches is `regional`: UNNATI is North-East-only and Vibrant Villages is border-block-only.
 
@@ -160,8 +160,8 @@ Risk                           LOW            loan payments are 20.75% of surplu
 Business health                FEASIBLE       operating surplus ₹12,000/mo,
                                               operating margin 40%, ROI 144%
 Government support             14 schemes across 6 of the 7 tiers
-                                 3 at 100%  MYUVA (UP), VSSY (UP), ODOP (UP)
-                                11 at  90%  PM Vishwakarma, PMMY, PMEGP, Stand-Up
+                                 3 state    MYUVA (UP), VSSY (UP), ODOP (UP)
+                                11 national PM Vishwakarma, PMMY, PMEGP, Stand-Up
                                             India, DIC, RSETI, Tehsil counter, BDO,
                                             BLBC, CSC, Gram Panchayat
 Local market                   1 row, match_level "district" — Lucknow tailoring,
@@ -174,7 +174,7 @@ Overall status                 attention_needed  → "Decide how you will cover 
 
 Those are the numbers to have in your head on stage. If a figure on screen disagrees with this table, something regressed — check before presenting.
 
-**Note the score split, because it is the point of showing a percentage at all.** 100 means the scheme names Uttar Pradesh specifically; 90 means it is open nationwide. Only those two values are reachable, by design — say "matched on your kind of work, then on your state", never "scored by a model".
+**Note the fit split, and do not call it a percentage.** Each card says "Made for your state" (the scheme names only Uttar Pradesh) or "For all of India". A third label, "For a few states, including yours", is for a scheme that names the reader's state among several (UNNATI in the North East, Vibrant Villages in the border states); it scores 100 like a one-state scheme and cannot appear for Uttar Pradesh. Behind them the score is 100 or 90, the only two values reachable, and it checks no eligibility rule, so the page no longer prints it as "90% match" (changed 23 September 2026), which reads as a 90% chance of qualifying. The demo block above shows the `fit_basis` value behind each label. Say "listed for your kind of work, then for your state, and the rules still have to be checked at the office", never "scored by a model" and never "you qualify".
 
 **Avoid on stage:** a typed-in *Other* that resembles nothing in the dataset — that is the only input left that matches zero schemes, and §21 explains why that is correct rather than broken. *Retail* and *Services* match 11 and 13 schemes but have no market row, so the market section shows its empty state.
 
@@ -233,14 +233,14 @@ Framing that must stay: अर्थNiti is a **decision-support prototype, not 
 
 **This tier axis is the product point, not a data-volume boast.** `/schemes` groups the cards by the office that runs each one, outward from Delhi to the reader's own panchayat, and each heading carries a line naming the building they would physically walk into — *"The block office near you. Its staff come to villages."* A tier label alone teaches a rural reader nothing; the pairing is what makes 30 schemes usable instead of overwhelming.
 
-**Scoring is transparent and only two values are reachable:** **+60 if the kind of work matches**, then **+40 if the scheme names the entrepreneur's own state (→ 100)** or **+30 if it is open nationwide (→ 90)**. No category match returns 0 and the scheme is dropped entirely. The 40/30 split exists because a flat +40 for both put almost every one of 30 matches on exactly 100, and a percentage that is always 100 tells the reader nothing.
+**Scoring is transparent and only two values are reachable:** **+60 if the kind of work matches**, then **+40 if the scheme names the entrepreneur's own state (→ 100)** or **+30 if it is open nationwide (→ 90)**. No category match returns 0 and the scheme is dropped entirely. The 40/30 split exists because a flat +40 for both put almost every one of 30 matches on exactly 100, and a score that is always 100 tells the reader nothing. **The score is never shown as a percentage** (as of 23 September 2026): it checks no eligibility rule, so the card prints `fit_basis` instead, as "Made for your state", "For a few states, including yours" or "For all of India", and the eligibility list says the rules have not been checked against the reader's answers.
 
-**Availability is decided before scoring, on two independent gates.** A scheme naming a specific list of states is dropped outright for anyone outside it, and a scheme serving only rural (or only urban) settlements is dropped for the other. Showing a Uttar Pradesh–only subsidy to a Kerala entrepreneur as a "60% match" is *worse* than not showing it — they would spend a trip to the block office on it. 20 of the 30 are `states: ["ALL"]`; the rest name their state.
+**Availability is decided before scoring, on two independent gates.** A scheme naming a specific list of states is dropped outright for anyone outside it, and a scheme serving only rural (or only urban) settlements is dropped for the other. Showing a Uttar Pradesh–only subsidy to a Kerala entrepreneur as a partial match is *worse* than not showing it — they would spend a trip to the block office on it. 20 of the 30 are `states: ["ALL"]`; the rest name their state.
 
 **No scheme card links out to a government website, and that is a deliberate removal — 10 September 2026.** Every scheme used to carry its own portal URL and the cards rendered it as a button; the owner's instruction was to take them out, because an unaffiliated student prototype deep-linking a reader into a government service is not ours to do. It was removed end to end rather than hidden: the field is gone from the dataset, the Pydantic model, the API response and both pages, and the four tests that used to assert its presence now assert its **absence**, so a future re-add fails a gate instead of shipping quietly. What the card gives the reader instead is the office that runs the scheme, by name and by tier — which is where an application is actually made. `last_verified` stays, because it says when we transcribed the *rules*.
 
 ## Feature 7 — Explainability · **BUILT**
-`match_reasons[]` per scheme ("Your kind of work is supported by this scheme (listed as …)", "This scheme is available in your state."), a `reason` sentence on risk, `observations[]` on business analysis, `match_level` provenance on every market row, and a source label on every price. **Every one of those sentences also carries a translation code**, so the explanation appears in the reader's own language rather than only the labels around it (§2.6).
+`match_reasons[]` per scheme ("Your kind of work is supported by this scheme (listed as …)", "This scheme is for every state, including yours.", "This scheme is only for your state." or "This scheme is only for some states, and yours is one of them."), a `reason` sentence on risk, `observations[]` on business analysis, `match_level` provenance on every market row, and a source label on every price. **Every one of those sentences also carries a translation code**, so the explanation appears in the reader's own language rather than only the labels around it (§2.6).
 
 ## Feature 8 — Risk Indicator · **BUILT**
 `pressure_ratio = (monthly_emi + estimated_new_emi) / monthly_surplus × 100` → **below 30% low, 30–50% moderate, above 50% high**. `estimated_new_emi` is the funding gap priced as a new loan at an assumed 12% a year over 60 months, and the page prints that assumption beside the figure; it is 0 when the entrepreneur already has the money. `existing_debt` is not added, because its repayment is the EMI they entered. Non-positive surplus short-circuits to `high` with a null ratio and the sentence "There is no positive monthly surplus available for repayment."
@@ -339,7 +339,7 @@ backend/app/
   core/data_loader.py     loads JSON from app/data by absolute path (cwd-independent)
   data/                   schemes.json (30 schemes, 7 tiers), market_data.json (9 rows)
   gen_schemes.py          the generator that produced schemes.json — provenance, not runtime
-backend/tests/            25 files, 181 tests
+backend/tests/            25 files, 187 tests
 ```
 
 The planned `models/`, `calculations/` and `ai/` directories **do not exist**. Calculations live in `services/`; there are no ORM models because there is no database; there is no `ai/` because there is no model call.
@@ -369,7 +369,7 @@ npm run build        # production build into frontend/dist
 npm run lint         # ESLint 10
 
 # Tests — run from ./backend
-../.venv/Scripts/python.exe -m pytest tests -q      # 181 passed in about a second
+../.venv/Scripts/python.exe -m pytest tests -q      # 187 passed in about a second
 
 # Translation-key parity — from the repo root, no server needed
 node tools/parity4.mjs                        # 4 files × 8 languages, 5 checks
@@ -424,7 +424,7 @@ Measured against a live response on 8 September 2026. **Every `*_code` field is 
 | `risk_analysis` | `pressure_ratio_percent`, `risk_level`, `risk_level_without_new_loan`, `reason`, **`reason_code`**, `monthly_emi`, `estimated_new_emi`, `total_monthly_emi`, `assumed_interest_rate_percent`, `assumed_tenure_months` |
 | `business_analysis` | `business_type`, `initial_investment`, `expected_monthly_revenue`, `monthly_operating_expenses`, `monthly_operating_surplus`, `operating_margin_percent`, `annual_operating_surplus`, `estimated_roi_percent`, `feasibility_status`, `observations[]`, **`observation_codes[]`** |
 | `market_context` | list of `{state, district, business_category, indicative_price, demand_indicator, seasonality, source, last_verified, match_level, local_context:{village, market_type, customers}, `**`seasonality_code`**`, `**`source_code`**`}` |
-| `scheme_matches` | list of `{name, `**`level`**`, `**`scheme_id`**`, description, support_type, match_score, match_reasons[], eligibility_rules[], documents[], last_verified, `**`description_code`**`, `**`support_type_code`**`, `**`match_reason_codes[]`**`, `**`eligibility_codes[]`**`, `**`document_codes[]`**`}` |
+| `scheme_matches` | list of `{name, `**`level`**`, `**`scheme_id`**`, description, support_type, match_score, **`fit_basis`**, match_reasons[], eligibility_rules[], documents[], last_verified, `**`description_code`**`, `**`support_type_code`**`, `**`match_reason_codes[]`**`, `**`eligibility_codes[]`**`, `**`document_codes[]`**`}` |
 | `advisory` | `recommendations[]`, **`recommendation_codes[]`** |
 | `mvp_summary` | `status`, `simple_message`, **`message_code`**, `next_step`, **`next_step_code`**, `priority`, `language`, `preferred_dialect`, `literacy_level`, `entrepreneur_type`, `location_type` |
 
@@ -502,6 +502,7 @@ scheme match_score        = 60 (kind of work matches)
                             + 30 (scheme is open nationwide)  → 90
                             no category match → 0, scheme dropped entirely
                             wrong state or wrong settlement type → dropped BEFORE scoring
+                            shown as fit_basis ("state" / "region" / "national"), never as a %
 ```
 
 **Three fields come back `null`, and that is a feature, not a gap** — it means *"we could not compute this"*, which is a different statement from zero. `profit_margin_percent` and `operating_margin_percent` when revenue is 0 (a margin needs revenue to be a share *of*, and printing `0%` there would read as break-even when it is actually a loss), `estimated_roi_percent` when investment is 0, and `pressure_ratio_percent` when there is no positive surplus. **The UI prints "Not available" for all four.** This matters on stage because `Number(null)` is `0` in JavaScript, so a careless formatter turns "could not compute" into a confident, reassuring `0%` — that has been a live bug twice.
@@ -598,7 +599,7 @@ Kept as a record, because the day numbers appear in earlier notes and stand-ups.
 | Day 5 — **AI integration**, full happy path end-to-end | **Half done.** The end-to-end path works. The LLM was never connected |
 | Day 6 — hyperlocal + personalization | **Done**, then found to be broken: `market_context` was computed and silently discarded by the UI. Fixed 7 Sept |
 | Day 7 — UX, explainability, responsible framing | **Done.** Disclosures, source labels, disclaimers, plain-language copy |
-| Day 8 — testing + demo scenarios | **Partial.** 181 backend tests; no frontend *unit* tests, but 16 browser drivers that assert on rendered output; one polished scenario rather than three |
+| Day 8 — testing + demo scenarios | **Partial.** 187 backend tests; no frontend *unit* tests, but 16 browser drivers that assert on rendered output; one polished scenario rather than three |
 | Day 9 — polish + presentation | **In progress.** 7 Sept: a full defect sweep — 10 numbered defects plus 7 more, all fixed. 8 Sept: the government-style redesign, the translation layer, and a second audit closing 46 findings |
 | Day 10 — rehearsal + final build | **Pending.** §25 |
 
@@ -625,7 +626,7 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 - [x] At least 2–3 business categories work — 8 do
 - [x] One polished demo persona works (§3)
 - [x] Sources recorded with verification dates
-- [x] 181 backend tests pass; lint and production build are clean; translation-key parity clean across 627 keys × 8 languages
+- [x] 187 backend tests pass; lint and production build are clean; translation-key parity clean across 629 keys × 8 languages
 - [x] No API keys to protect (there are none)
 - [x] **State survives a page refresh** — closed 8 Sept via `sessionStorage` (§8)
 - [x] **Output is in the reader's own language**, including the generated advice (§2.6)
@@ -641,7 +642,7 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 
 | Driver | The one question it asks |
 |---|---|
-| `drive.mjs` | Did the right text render? 36 page loads across 7 passes |
+| `drive.mjs` | Did the right text render, and does every scheme card show its fit label and never its score as a percentage? 36 page loads across 7 passes; exits 1 on a finding |
 | `mobile-audit.mjs` | Can a thumb use it? 10 routes × 3 phone widths, overflow / tap size / clipping |
 | `print-audit.mjs` | Does the PDF read correctly whichever theme the laptop was in? |
 | `lang-layout.mjs` | Does switching language change the *layout*, not just the words? 8 languages × 6 routes × 2 widths |
@@ -661,7 +662,7 @@ The scripts are tracked in `tools/`; `screenshots/` stays gitignored and holds o
 ## Still not verified
 - **Phone landscape orientation, real touch scrolling on physical hardware, and the on-screen keyboard covering a focused input.** Emulation cannot answer these; borrow a phone.
 - **The `api.js` 20-second timeout path** — stop the backend mid-request and confirm the message reads as a sentence.
-- **Non-English wording quality.** Parity, placeholders and "no string left identical to English" are all script-verified across 627 keys × 8 languages. **Naturalness is not** — no native speaker has reviewed it, and two real errors have already been found by eye, which is evidence there are more. Say this if asked; do not claim professional translation.
+- **Non-English wording quality.** Parity, placeholders and "no string left identical to English" are all script-verified across 629 keys × 8 languages. **Naturalness is not** — no native speaker has reviewed it, and two real errors have already been found by eye, which is evidence there are more. Say this if asked; do not claim professional translation.
 
 ---
 
@@ -677,7 +678,7 @@ SIH_2026/
 │   │   ├── services/         all business logic
 │   │   ├── core/             data_loader.py
 │   │   └── data/             schemes.json (30), market_data.json (9)
-│   ├── tests/                25 files, 181 tests
+│   ├── tests/                25 files, 187 tests
 │   ├── gen_schemes.py        provenance for schemes.json, not runtime
 │   └── requirements.txt
 │
@@ -698,7 +699,7 @@ SIH_2026/
 │
 ├── docs/                     frontend_integration.md, requirements.txt
 ├── presentation/             empty — Saad + Tripti
-├── tools/                     tracked — 21 verification scripts, 16 of them in verify/
+├── tools/                     tracked — 24 scripts, nearly all verifiers, 18 of them in verify/
 ├── screenshots/              gitignored, 8.1 GB — their output only: PNGs, report.json,
 │                             Edge profiles, plus 27 stale PNGs (do not circulate)
 ├── .venv/                    Python 3.14.6, gitignored
@@ -719,7 +720,7 @@ Differences from the plan worth knowing: no `.env.example` (nothing needs one), 
 
 ## What to say instead
 
-> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested — 181 tests. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. The AI-driven part of the problem statement is where this goes next: natural-language input, dialect-level paraphrasing, and a conversational 'why?' layer on top of the same engine — with the arithmetic staying in code."
+> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested — 187 tests. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. The AI-driven part of the problem statement is where this goes next: natural-language input, dialect-level paraphrasing, and a conversational 'why?' layer on top of the same engine — with the arithmetic staying in code."
 
 This is a strong position, honestly held. Do not weaken it by overclaiming.
 
@@ -820,10 +821,10 @@ Answer honestly, and lead with the design decision — see §15. Then: the *AI-d
 ## "Is it actually in Hindi, or just the buttons?"
 **All of it** — the labels, the generated advice, the risk explanation and the scheme text, in 8 languages, with Hindi as the default rather than English. Show it rather than saying it: switch language while standing on `/analysis`. The mechanism is a translation code emitted beside every sentence the engine composes, resolved against dictionaries we wrote — so it cannot drift the way a paraphrasing model would.
 
-Then volunteer the limits, because they are the credible part: 30 dialects are listed and **9 carry curated phrase overrides**, which is dialect-aware phrasing rather than dialect translation; digits and money stay in Latin script on purpose, matching Indian currency and government forms; and **no native speaker has reviewed the wording** — parity and placeholders are script-verified across 627 keys, naturalness is not.
+Then volunteer the limits, because they are the credible part: 30 dialects are listed and **9 carry curated phrase overrides**, which is dialect-aware phrasing rather than dialect translation; digits and money stay in Latin script on purpose, matching Indian currency and government forms; and **no native speaker has reviewed the wording** — parity and placeholders are script-verified across 629 keys, naturalness is not.
 
 ## "How do you prevent hallucinations?"
-There is nothing to hallucinate. Every number comes from a unit-tested formula; every scheme fact comes from a structured dataset transcribed from an official source with a verification date and a link the judge can open. When we do add a model, it will be allowed to rephrase and explain, never to calculate or to decide eligibility (§15).
+There is nothing to hallucinate. Every number comes from a unit-tested formula; every scheme fact comes from a structured dataset transcribed from an official source with a verification date. The source is kept on record internally; the app deliberately does not link out to government portals (the links were removed on 10 September 2026). When we do add a model, it will be allowed to rephrase and explain, never to calculate or to decide eligibility (§15).
 
 ## "How is this different from ChatGPT?"
 ChatGPT does not know the indicative price of handicrafts in Lucknow, cannot tell you whether *your* EMI fits *your* surplus, and will not tell you when it has no data for your district. अर्थNiti combines structured entrepreneur input, a district-level dataset, deterministic financial calculation, rule-based scheme matching with visible reasons, and a printable next-step plan — and it says out loud when a number is a state-level fallback rather than local.
@@ -861,7 +862,7 @@ Answer it straight: no chat, no EMI scenarios or break-even units, no suggested 
 
 # 18. Product Success Metrics
 
-For the prototype: time to generate an advisory plan (currently one request, sub-second) · journey completion · correctness of financial calculations (181 tests) · correctness of scheme matching (8 of the 9 category buttons match, 11–16 schemes each; only a typed-in *Other* is correctly empty) · translation coverage (627 keys × 8 languages at full parity, script-verified) · explanation quality · number of actionable recommendations · demo reliability.
+For the prototype: time to generate an advisory plan (currently one request, sub-second) · journey completion · correctness of financial calculations (187 tests) · correctness of scheme matching (8 of the 9 category buttons match, 11–16 schemes each; only a typed-in *Other* is correctly empty) · translation coverage (629 keys × 8 languages at full parity, script-verified) · explanation quality · number of actionable recommendations · demo reliability.
 
 For future production: entrepreneurs assisted · plans generated · financial-literacy improvement · successful formal-finance connections · business survival and growth · **reduction in inappropriate borrowing** — the metric that matters most and the reason the risk indicator exists.
 
@@ -1102,14 +1103,14 @@ Any AI assistant reading this file should:
 | | |
 |---|---|
 | **MVP status** | **Working end to end.** 10 routes plus a catch-all, one API call, 7 populated result sections |
-| **Backend** | 8 routers · 181 tests passing in under 1s |
-| **Frontend** | Lint clean · production build clean · translation parity clean (627 keys × 8 languages) |
+| **Backend** | 8 routers · 187 tests passing in under 1s |
+| **Frontend** | Lint clean · production build clean · translation parity clean (629 keys × 8 languages) |
 | **Data** | 30 schemes across 7 tiers (official sources, 29 of 30 URLs verified 7 Sept) · 9 market rows (illustrative, UP only) |
 | **AI integration** | **None, by decision.** Deterministic rules engine (§15) |
 | **Database** | **None.** The journey persists in the browser tab (`sessionStorage`) and nowhere else |
 | **Language output** | **8 languages, Hindi by default, including the generated advice** (§2.6) |
 | **Interface** | Government-style chrome, 2 accessibility switches (dark theme, 3-step text scale), hand-rolled charts, an instruction manual, a light motion layer that honours `prefers-reduced-motion` |
-| **Verification** | 181 backend tests · 22 zero-dependency scripts in `tools/`, 16 of them driving a browser over CDP · phone widths, print output, motion and scroll-on-navigation all measured clean |
+| **Verification** | 187 backend tests · 24 zero-dependency scripts in `tools/`, 17 of them driving a browser over CDP · phone widths, print output, motion and scroll-on-navigation all measured clean |
 | **Known defects** | 17 found and fixed 7 Sept (10 numbered + 7 more); **46 findings closed in the 8 Sept audit**. See CLAUDE.md |
 | **Still open** | Translations unreviewed by a native speaker · dialect phrases on 9 of 30 varieties · 1 scheme URL unverified from our network · phone landscape and physical touch untested |
 | **Presentation** | In progress — Saad + Tripti. `presentation/` is still empty |

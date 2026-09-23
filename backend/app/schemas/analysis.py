@@ -39,6 +39,10 @@ class UnifiedAnalysisResponse(BaseModel):
     risk_analysis: dict
     business_analysis: dict
     market_context: list[dict]
+    # Untyped on purpose, so every key match_schemes builds reaches the UI --
+    # including fit_basis, which is what each scheme card is labelled with. If
+    # this is ever given a typed model, declare fit_basis on it: a response_model
+    # drops an undeclared key silently, which is how match_level once vanished.
     scheme_matches: list[dict]
     advisory: dict
     mvp_summary: dict

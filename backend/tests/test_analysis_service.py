@@ -182,3 +182,53 @@ def test_unified_analysis_preserves_input_values():
     assert business["initial_investment"] == 75000
     assert business["expected_monthly_revenue"] == 25000
     assert business["monthly_operating_expenses"] == 12000
+
+
+def test_every_fit_basis_is_reachable_through_the_real_pipeline():
+    """
+    fit_basis is what every scheme card is labelled with, so all three values
+    have to come out of a real request, not just out of the scorer called by
+    hand. Swept through run_unified_analysis rather than match_schemes for that
+    reason.
+
+    Uttar Pradesh tailoring is the documented demo case and carries "state" and
+    "national" in one response (the two UP state schemes and ODOP name only
+    Uttar Pradesh; PMMY, PMEGP and the rest are for every state). Assam carries
+    "region", from UNNATI, which names all eight North-Eastern states. A state
+    with no scheme of its own carries only "national", and the card must never
+    claim otherwise.
+    """
+    common = dict(
+        available_capital=50000,
+        monthly_expenses=15000,
+        expected_monthly_revenue=30000,
+        monthly_emi=2000,
+        initial_investment=100000,
+        monthly_operating_expenses=18000,
+        location_type="rural",
+    )
+
+    demo = run_unified_analysis(
+        business_category="tailoring", state="Uttar Pradesh", **common
+    )["scheme_matches"]
+
+    assert {match["fit_basis"] for match in demo} == {"state", "national"}
+
+    for match in demo:
+        assert match["match_score"] == (100 if match["fit_basis"] == "state" else 90)
+
+    north_east = run_unified_analysis(
+        business_category="tailoring", state="Assam", **common
+    )["scheme_matches"]
+
+    assert {match["fit_basis"] for match in north_east} == {"region", "national"}
+
+    for match in north_east:
+        assert match["match_score"] == (100 if match["fit_basis"] == "region" else 90)
+
+    elsewhere = run_unified_analysis(
+        business_category="tailoring", state="Punjab", **common
+    )["scheme_matches"]
+
+    assert elsewhere
+    assert {match["fit_basis"] for match in elsewhere} == {"national"}

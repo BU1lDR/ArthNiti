@@ -63,7 +63,7 @@ node tools/verify/glyph-audit.mjs   # decorative glyphs missing aria-hidden
 Need the **Vite dev server** on 5173:
 
 ```bash
-node tools/verify/drive.mjs          # 7 passes, 36 page loads — the main gate
+node tools/verify/drive.mjs          # 7 passes, 36 page loads + scheme cards — the main gate; exits 1 on a finding
 node tools/verify/mobile-audit.mjs   # 360/390/412 px, 40 page loads
 node tools/verify/lang-layout.mjs    # 8 languages x 6 routes x 2 widths = 96 loads
 node tools/verify/field-align.mjs    # form controls sharing a grid row, 96 loads

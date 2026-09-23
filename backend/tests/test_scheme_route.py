@@ -40,7 +40,15 @@ def test_scheme_match_route():
     # 90, not 100: PMMY is open across India rather than run for this one
     # state, and the two score differently on purpose.
     assert pmmy["match_score"] == 90
+    assert pmmy["fit_basis"] == "national"
     assert pmmy["level"] == "central"
+
+    # The route has no response_model, so nothing filters the key -- but it must
+    # still be on every match, since this is a public endpoint too.
+    assert all(
+        match["fit_basis"] in ("state", "region", "national")
+        for match in data["matches"]
+    )
 
 
 def test_scheme_match_route_no_match():

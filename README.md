@@ -71,7 +71,7 @@ taskkill //F //T //PID <pid>          # yes, doubled slashes, that's Git Bash
 ### The other commands
 
 ```bash
-cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 181 tests, about a second
+cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 187 tests, about a second
 cd frontend && npm run build                                   # → frontend/dist
 cd frontend && npm run lint                                    # ESLint 10
 cd frontend && npm run preview                                 # serves the build on 4173
@@ -94,13 +94,13 @@ Landing, then an optional login, then four questions pages, then four result pag
 | 3 | `/location` | state → district (cascading), village, rural/semi-urban/urban, market type, customers |
 | 4 | `/finance` | capital in hand, household + business costs, EMI. Submitting here fires the only API call in the app |
 | | `/analysis` | profit, margin, risk, feasibility, local market rows, charts |
-| | `/schemes` | matched schemes, grouped by administrative tier |
+| | `/schemes` | schemes listed for your work and state, grouped by administrative tier |
 | | `/advisory` | recommendations and a next step |
 | | `/report` | the printable one-page sheet |
 
 Anything else hits a 404 page. Nothing enforces the order, since the nav links straight to any step — so `/finance` can be submitted empty, which comes back as a 422 that we render as a readable sentence rather than a stack trace.
 
-For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Uttar Pradesh / Lucknow**. Those fill every section on the page: 14–16 schemes spread across 6 of the 7 tiers, both match scores showing, and a district-level market row. Fill in the village name, market type and customer description on the location step too, since all three get printed back. Switch language on a *result* page rather than a form page if you can — the generated advice and the scheme text change too, not just the labels, and that's the moment that lands.
+For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Uttar Pradesh / Lucknow**. Those fill every section on the page: 14–16 schemes spread across 6 of the 7 tiers, both of the fit labels Uttar Pradesh can show ("Made for your state" and "For all of India"), and a district-level market row. Fill in the village name, market type and customer description on the location step too, since all three get printed back. Switch language on a *result* page rather than a form page if you can — the generated advice and the scheme text change too, not just the labels, and that's the moment that lands.
 
 ## Where things are
 
@@ -112,7 +112,7 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 | `backend/app/services/` | all the business logic. Pure functions, no classes, no I/O |
 | `backend/app/core/data_loader.py` | cached JSON loading. What it hands back is shared, so treat it as read-only |
 | `backend/app/data/` | `schemes.json` (30 schemes), `market_data.json` (9 rows) |
-| `backend/tests/` | 25 files, 181 tests |
+| `backend/tests/` | 25 files, 187 tests |
 | `frontend/src/App.jsx` | the shell, all the chrome, 10 routes and a catch-all |
 | `frontend/src/pages/` | 9 page components |
 | `frontend/src/components/` | `Button`, `BrandMark`, `BrandWordmark`, `InstructionManual`, `Charts`, `chartData` |
@@ -152,7 +152,9 @@ Thirty schemes in `backend/app/data/schemes.json`, covering every tier:
 | `block` | 3 | BDO / NRLM SHG desk, Block Level Bankers' Committee, ATMA block unit |
 | `local_body` | 3 | Gram Panchayat trade licence, Common Service Centre, PM SVANidhi |
 
-We filter on eligibility *before* scoring, on two axes: the entrepreneur's state, and whether they work rural, semi-urban or urban. Showing a UP-only subsidy to someone in Kerala as a "60% match" is worse than showing nothing at all, because they'd spend a day travelling to the block office over it.
+We filter on availability *before* scoring, on two axes: the entrepreneur's state, and whether they work rural, semi-urban or urban. Showing a UP-only subsidy to someone in Kerala as a partial match is worse than showing nothing at all, because they'd spend a day travelling to the block office over it.
+
+The score is 60 for the kind of work plus 40 if the scheme names your state, or 30 if it is open everywhere. It checks no eligibility rule (age, income, loan size and so on), so the UI never prints it as a percentage. Each card says **"Made for your state"** (the scheme names only your state), **"For a few states, including yours"** (it names yours among several, as UNNATI does for the eight North-Eastern states) or **"For all of India"** instead, from the `fit_basis` field, and the eligibility list carries a line saying those rules have not been checked against the reader's answers. `match_score` stays in the API for sorting.
 
 `market_data.json` has 9 rows, and it's worth being blunt about how thin that is. All nine are Uttar Pradesh — five Lucknow, four Varanasi — across five categories. A missing district row falls back to a state row where one exists, so 35 of the 36 states and UTs land on the market section's empty state. That's a data coverage limit rather than a bug, and it's the real reason UP/Lucknow is the safe demo location.
 
@@ -162,7 +164,7 @@ Every row is labelled `"Prototype estimate / illustrative data"`, and the UI pri
 
 Eight: `en`, `hi`, `ta`, `te`, `ml`, `kn`, `mr`, `bn`. The default is **Hindi**, not English, because that's who this is for. English is the fallback.
 
-627 distinct keys across 4 dictionary files, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
+629 distinct keys across 4 dictionary files, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
 
 The dialect layer is a curated set of phrases, not a translation. Nine of the thirty listed varieties override a handful of the most visible strings. In the demo, say "dialect-aware phrasing" — not "translated into Bhojpuri".
 
@@ -182,7 +184,7 @@ From a fresh clone, in this order:
 ```bash
 node tools/parity4.mjs                 # no server, about a second, best signal per second
 node tools/verify/refresh-cases.mjs    # needs the BACKEND up — generates the test fixtures
-node tools/verify/drive.mjs            # needs VITE — the main gate, 36 page loads
+node tools/verify/drive.mjs            # needs VITE — the main gate, 36 page loads; exits 1 on a finding
 node tools/verify/mobile-audit.mjs     # needs VITE — phone widths, 40 page loads
 ```
 

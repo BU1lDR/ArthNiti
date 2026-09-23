@@ -165,12 +165,13 @@ function AnalysisPage() {
     ? Math.min(10, Math.max(0, Math.round(Number(margin) / 10)))
     : 0
 
-  // Grouped by score, and gated by the helper returning an empty list. This page
-  // used to draw one bar per scheme with no gate at all, while /schemes computed
-  // the same chart behind a gate written precisely to stop it — so the demo path
-  // rendered 16 bars of two lengths here, and a category where every match scores
-  // 90 rendered a dozen identical full-length bars reading as a perfect fit for
-  // every one of them. Both pages now call the one helper.
+  // Grouped by fit basis (your state alone / a few states including yours / all
+  // of India), and gated by the helper returning an empty list. This page used
+  // to draw one bar per scheme with no gate at all, while /schemes computed the
+  // same chart behind a gate written precisely to stop it — so the demo path
+  // rendered 16 bars of two lengths here, and a category where every match was
+  // nationwide rendered a dozen identical full-length bars reading as a perfect
+  // fit for every one of them. Both pages now call the one helper.
   const fitItems = schemeFitItems(schemes, t)
 
   return (
@@ -571,9 +572,12 @@ function SchemeCard({ scheme, t, bt }) {
         <h3 className="min-w-0 break-words font-bold text-[var(--color-text)]">
           {scheme.name || t('sc.name')}
         </h3>
-        {hasNumber(scheme.match_score) && (
+        {/* Why it is on the list, in words, not the score as a percentage: the
+            score checks no eligibility rule, so "90% match" read as a chance of
+            qualifying that nothing computes. */}
+        {bt.schemeFit(scheme) && (
           <span className="shrink-0 rounded-full bg-[var(--color-surface-soft)] px-3 py-1 text-xs font-bold text-[var(--color-primary-strong)]">
-            {t('sc.matchPct', { n: Number(scheme.match_score) })}
+            {bt.schemeFit(scheme)}
           </span>
         )}
       </div>
@@ -624,6 +628,14 @@ function SchemeCard({ scheme, t, bt }) {
       {Array.isArray(scheme.eligibility_rules) && scheme.eligibility_rules.length > 0 && (
         <p className="mt-3 break-words text-xs leading-5 text-[var(--color-text-muted)]">
           <span className="font-bold text-[var(--color-text)]">{t('sc.eligibility')}:</span> {bt.schemeEligibility(scheme).join(' · ')}
+        </p>
+      )}
+
+      {/* The rules above are the scheme's own, transcribed. Nothing compares
+          them with the reader's answers, so the card says so beside them. */}
+      {Array.isArray(scheme.eligibility_rules) && scheme.eligibility_rules.length > 0 && (
+        <p className="mt-1 break-words text-xs leading-5 text-[var(--color-text-muted)]">
+          {t('sc.eligUnchecked')}
         </p>
       )}
 

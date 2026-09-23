@@ -75,8 +75,9 @@ const en = {
 
   // Why a scheme matched.
   'why.categorySupported': 'This scheme supports your kind of work ({categories}).',
-  'why.stateAvailable': 'This scheme is available in your state.',
-  'why.stateSpecific': 'This scheme covers your state in particular.',
+  'why.stateAvailable': 'This scheme is for every state, including yours.',
+  'why.stateSpecific': 'This scheme is only for your state.',
+  'why.regionSpecific': 'This scheme is only for some states, and yours is one of them.',
 
   // The wording schemes use for a kind of work. Kept plain, because it is read
   // inside the sentence above.
@@ -131,8 +132,9 @@ const hi = {
   'nxt.maintainDiscipline': 'पैसे को जैसे सँभाल रहे हैं वैसे ही सँभालते रहें, और खर्च पर नज़र रखें।',
 
   'why.categorySupported': 'यह योजना आपके जैसे काम को मदद देती है ({categories})।',
-  'why.stateAvailable': 'यह योजना आपके राज्य में मिलती है।',
-  'why.stateSpecific': 'यह योजना खास आपके राज्य के लिए चलती है।',
+  'why.stateAvailable': 'यह योजना हर राज्य के लिए है, आपके राज्य के लिए भी।',
+  'why.stateSpecific': 'यह योजना केवल आपके राज्य के लिए है।',
+  'why.regionSpecific': 'यह योजना कुछ ही राज्यों के लिए है, और आपका राज्य उनमें से एक है।',
 
 
 
@@ -181,8 +183,9 @@ const ta = {
   'nxt.maintainDiscipline': 'பணத்தை இப்போது கையாளுவது போலவே தொடருங்கள், செலவைக் கவனித்து வாருங்கள்.',
 
   'why.categorySupported': 'உங்கள் வகையான வேலைக்கு இந்தத் திட்டம் உதவுகிறது ({categories}).',
-  'why.stateAvailable': 'இந்தத் திட்டம் உங்கள் மாநிலத்தில் கிடைக்கிறது.',
-  'why.stateSpecific': 'இந்தத் திட்டம் குறிப்பாக உங்கள் மாநிலத்திற்கானது.',
+  'why.stateAvailable': 'இந்தத் திட்டம் உங்கள் மாநிலம் உட்பட எல்லா மாநிலங்களிலும் கிடைக்கிறது.',
+  'why.stateSpecific': 'இந்தத் திட்டம் உங்கள் மாநிலத்துக்கு மட்டுமே.',
+  'why.regionSpecific': 'இந்தத் திட்டம் சில மாநிலங்களுக்கு மட்டுமே; உங்கள் மாநிலம் அவற்றில் ஒன்று.',
 
 
 
@@ -231,8 +234,9 @@ const te = {
   'nxt.maintainDiscipline': 'డబ్బును ఇప్పుడు నిర్వహిస్తున్నట్టే కొనసాగించండి, ఖర్చుపై కన్ను ఉంచండి.',
 
   'why.categorySupported': 'మీ లాంటి పనికి ఈ పథకం సహాయం చేస్తుంది ({categories}).',
-  'why.stateAvailable': 'ఈ పథకం మీ రాష్ట్రంలో అందుబాటులో ఉంది.',
-  'why.stateSpecific': 'ఈ పథకం ప్రత్యేకంగా మీ రాష్ట్రం కోసం నడుస్తుంది.',
+  'why.stateAvailable': 'ఈ పథకం మీ రాష్ట్రంతో సహా అన్ని రాష్ట్రాల్లో అందుబాటులో ఉంది.',
+  'why.stateSpecific': 'ఈ పథకం మీ రాష్ట్రానికి మాత్రమే.',
+  'why.regionSpecific': 'ఈ పథకం కొన్ని రాష్ట్రాలకు మాత్రమే, మీ రాష్ట్రం వాటిలో ఒకటి.',
 
 
 
@@ -281,8 +285,9 @@ const ml = {
   'nxt.maintainDiscipline': 'പണം ഇപ്പോൾ കൈകാര്യം ചെയ്യുന്നതുപോലെ തുടരുക, ചെലവിൽ കണ്ണ് വയ്ക്കുക.',
 
   'why.categorySupported': 'നിങ്ങളുടേതുപോലുള്ള ജോലിക്ക് ഈ പദ്ധതി സഹായം നൽകുന്നു ({categories}).',
-  'why.stateAvailable': 'ഈ പദ്ധതി നിങ്ങളുടെ സംസ്ഥാനത്ത് ലഭ്യമാണ്.',
-  'why.stateSpecific': 'ഈ പദ്ധതി പ്രത്യേകിച്ച് നിങ്ങളുടെ സംസ്ഥാനത്തിനുള്ളതാണ്.',
+  'why.stateAvailable': 'ഈ പദ്ധതി നിങ്ങളുടേത് ഉൾപ്പെടെ എല്ലാ സംസ്ഥാനങ്ങളിലും ലഭ്യമാണ്.',
+  'why.stateSpecific': 'ഈ പദ്ധതി നിങ്ങളുടെ സംസ്ഥാനത്തിന് മാത്രമാണ്.',
+  'why.regionSpecific': 'ഈ പദ്ധതി ചില സംസ്ഥാനങ്ങൾക്ക് മാത്രമാണ്, നിങ്ങളുടെ സംസ്ഥാനം അവയിലൊന്നാണ്.',
 
 
 
@@ -331,8 +336,9 @@ const kn = {
   'nxt.maintainDiscipline': 'ಹಣವನ್ನು ಈಗ ನಿಭಾಯಿಸುತ್ತಿರುವಂತೆಯೇ ಮುಂದುವರಿಸಿ, ಖರ್ಚಿನ ಮೇಲೆ ಕಣ್ಣಿಡಿ.',
 
   'why.categorySupported': 'ನಿಮ್ಮಂತಹ ಕೆಲಸಕ್ಕೆ ಈ ಯೋಜನೆ ನೆರವು ನೀಡುತ್ತದೆ ({categories}).',
-  'why.stateAvailable': 'ಈ ಯೋಜನೆ ನಿಮ್ಮ ರಾಜ್ಯದಲ್ಲಿ ಸಿಗುತ್ತದೆ.',
-  'why.stateSpecific': 'ಈ ಯೋಜನೆ ವಿಶೇಷವಾಗಿ ನಿಮ್ಮ ರಾಜ್ಯಕ್ಕಾಗಿಯೇ ನಡೆಯುತ್ತದೆ.',
+  'why.stateAvailable': 'ಈ ಯೋಜನೆ ನಿಮ್ಮ ರಾಜ್ಯವೂ ಸೇರಿ ಎಲ್ಲಾ ರಾಜ್ಯಗಳಲ್ಲಿ ಸಿಗುತ್ತದೆ.',
+  'why.stateSpecific': 'ಈ ಯೋಜನೆ ನಿಮ್ಮ ರಾಜ್ಯಕ್ಕೆ ಮಾತ್ರ.',
+  'why.regionSpecific': 'ಈ ಯೋಜನೆ ಕೆಲವು ರಾಜ್ಯಗಳಿಗೆ ಮಾತ್ರ, ನಿಮ್ಮ ರಾಜ್ಯ ಅವುಗಳಲ್ಲಿ ಒಂದು.',
 
 
 
@@ -381,8 +387,9 @@ const mr = {
   'nxt.maintainDiscipline': 'पैसे आता जसे सांभाळत आहात तसेच सांभाळत राहा, आणि खर्चावर लक्ष ठेवा।',
 
   'why.categorySupported': 'तुमच्यासारख्या कामाला ही योजना मदत करते ({categories})।',
-  'why.stateAvailable': 'ही योजना तुमच्या राज्यात मिळते।',
-  'why.stateSpecific': 'ही योजना खास तुमच्या राज्यासाठी चालते।',
+  'why.stateAvailable': 'ही योजना तुमच्या राज्यासह प्रत्येक राज्यासाठी आहे।',
+  'why.stateSpecific': 'ही योजना फक्त तुमच्या राज्यासाठी आहे।',
+  'why.regionSpecific': 'ही योजना काही राज्यांसाठीच आहे, आणि तुमचे राज्य त्यांपैकी एक आहे।',
 
 
 
@@ -431,8 +438,9 @@ const bn = {
   'nxt.maintainDiscipline': 'টাকা এখন যেভাবে সামলাচ্ছেন সেভাবেই চালিয়ে যান, আর খরচের দিকে নজর রাখুন।',
 
   'why.categorySupported': 'আপনার মতো কাজে এই প্রকল্প সাহায্য করে ({categories})।',
-  'why.stateAvailable': 'এই প্রকল্প আপনার রাজ্যে পাওয়া যায়।',
-  'why.stateSpecific': 'এই প্রকল্প বিশেষ করে আপনার রাজ্যের জন্য চলে।',
+  'why.stateAvailable': 'এই প্রকল্প আপনার রাজ্য সহ সব রাজ্যের জন্য।',
+  'why.stateSpecific': 'এই প্রকল্প কেবল আপনার রাজ্যের জন্য।',
+  'why.regionSpecific': 'এই প্রকল্প কেবল কয়েকটি রাজ্যের জন্য, আর আপনার রাজ্য সেগুলির একটি।',
 
 
 
