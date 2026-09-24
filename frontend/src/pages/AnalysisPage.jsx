@@ -5,6 +5,7 @@ import { BarGroup, BarRow, UnitChart } from '../components/Charts'
 import { schemeFitItems } from '../components/chartData'
 import { useI18n } from '../i18n/LanguageContext'
 import { useBackendText } from '../i18n/backendText'
+import { APP_NAME } from '../i18n/brand'
 
 function AnalysisPage() {
   const { applicationData } = useApp()
@@ -345,9 +346,12 @@ function AnalysisPage() {
       <section className="ui-card mt-6 p-5 sm:p-8">
         <SectionHeading icon="📍" title={t('an.marketHeading')} subtitle={t('an.marketSub')} />
         {market.length > 0 ? (
-          <div className="mt-5 grid gap-4">
-            {market.map((row, index) => <MarketCard key={index} row={row} t={t} bt={bt} />)}
-          </div>
+          <>
+            <div className="mt-5 grid gap-4">
+              {market.map((row, index) => <MarketCard key={index} row={row} t={t} bt={bt} />)}
+            </div>
+            <MarketSources rows={market} t={t} />
+          </>
         ) : (
           <p className="mt-5 break-words text-sm leading-6 text-[var(--color-text-muted)]">
             {t('mk.noData')}
@@ -509,50 +513,128 @@ function DetailRow({ label, value }) {
 
 function MarketCard({ row, t, bt }) {
   const context = row.local_context || {}
-  // Say plainly whose district the numbers come from. A state-level fallback
-  // presented as local data would be the wrong kind of confident.
+  // Say plainly whose figures these are. A state-level figure presented as
+  // local data would be the wrong kind of confident.
   const provenance = row.match_level === 'district'
     ? t('mk.fromDistrict', { district: formatText(row.district, t) })
-    : t('mk.fromState', { district: formatText(row.district, t) })
+    : t('mk.fromState', { state: formatText(row.state, t) })
+  // A state row carries district "" by design, so the heading names the place
+  // the figure actually describes rather than printing "Not available".
+  const place = formatText(row.scope === 'state' ? row.state : row.district, t)
+  const isPrice = row.metric === 'wholesale_price_per_kg'
+  const isCount = row.metric === 'registered_units'
+  const source = bt.marketSource(row)
+  const note = bt.marketNote(row)
+  // The window sentence names four figures. Printed with any one missing it
+  // would read "up to Not available", so it is all four or nothing.
+  const hasWindow = hasNumber(row.n_days) && row.last_reported && hasNumber(row.price_low) && hasNumber(row.price_high)
 
   return (
     <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-5">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        {/* The category is a picker value and has a key; the district is a proper
-            noun and does not, so it stays on formatText. */}
-        <h3 className="break-words font-bold text-[var(--color-text)]">
-          {choiceText(row.business_category, t)} · {formatText(row.district, t)}
-        </h3>
-        {row.demand_indicator && (
-          <span className="shrink-0 rounded-full bg-[var(--color-accent)] px-3 py-1 text-xs font-bold text-[var(--color-text)]">
-            {demandText(row.demand_indicator, t)}
-          </span>
-        )}
-      </div>
+      {/* The crop and the category have keys; the place is a proper noun and
+          does not, so it stays on formatText. */}
+      <h3 className="break-words font-bold text-[var(--color-text)]">
+        {isPrice ? bt.commodityName(row) || choiceText(row.business_category, t) : choiceText(row.business_category, t)} · {place}
+      </h3>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div>
-          <p className="text-xs font-semibold text-[var(--color-text-muted)]">{t('mk.price')}</p>
-          <p className="mt-1 text-xl font-bold text-[var(--color-text)]">{formatCurrency(row.indicative_price, t)}</p>
+      {isPrice && (
+        <div className="mt-4 min-w-0">
+          <p className="text-xl font-bold text-[var(--color-text)]">{formatPrice(row.indicative_price, t)}</p>
+          {/* A sentence of its own, not a "label: figure" pair: a colon wedged
+              between a translated label and a number is English punctuation in
+              every other script. */}
+          <p className="mt-1 break-words text-xs font-semibold text-[var(--color-text-muted)]">{t('mk.price')}</p>
+          {hasWindow && (
+            <p className="mt-3 break-words text-sm leading-6 text-[var(--color-text)]">
+              {t('mk.priceWindow', {
+                n: Number(row.n_days).toLocaleString('en-IN'),
+                date: formatDate(row.last_reported),
+                low: formatPrice(row.price_low, t),
+                high: formatPrice(row.price_high, t),
+              })}
+            </p>
+          )}
+          {hasNumber(row.n_markets) && (
+            <p className="mt-1 break-words text-sm leading-6 text-[var(--color-text-muted)]">
+              {t('mk.priceMarkets', { markets: Number(row.n_markets).toLocaleString('en-IN') })}
+            </p>
+          )}
+          {/* Only ever true or absent. The fetch sets it when the newest report
+              is more than a week old, and an old price read as today's is the
+              one way this figure misleads. */}
+          {row.stale === true && (
+            <p className="ui-notice ui-notice-warn mt-3 break-words">{t('mk.stale')}</p>
+          )}
         </div>
-        {context.market_type && (
-          <div>
-            <p className="text-xs font-semibold text-[var(--color-text-muted)]">{t('mk.whereSell')}</p>
-            <p className="mt-1 text-sm font-bold text-[var(--color-text)]">{choiceListText(context.market_type, t)}</p>
-          </div>
-        )}
-      </div>
-
-      {/* seasonality and source are backend prose, translated through their
-          seasonality_code / source_code. The three near-identical festival
-          wordings in market_data.json deliberately share one code. */}
-      {row.seasonality && (
-        <p className="mt-4 break-words text-sm leading-6 text-[var(--color-text)]">{bt.seasonality(row)}</p>
       )}
 
+      {isCount && (
+        <div className="mt-4 min-w-0 space-y-2">
+          {/* A null count is suppressed, not zero: under 10 units is withheld so
+              a figure cannot point at one identifiable business. */}
+          {row.count_suppressed ? (
+            <p className="break-words text-sm leading-6 text-[var(--color-text)]">
+              {t('mk.countSuppressed', { district: place })}
+            </p>
+          ) : hasNumber(row.count) && (
+            <p className="break-words text-sm leading-6 text-[var(--color-text)]">
+              {t('mk.count', { count: Number(row.count).toLocaleString('en-IN'), district: place })}
+            </p>
+          )}
+          {!row.count_suppressed && hasNumber(row.share_percent) && hasNumber(row.district_total) && (
+            <p className="break-words text-sm leading-6 text-[var(--color-text-muted)]">
+              {t('mk.countShare', {
+                share: Number(row.share_percent).toLocaleString('en-IN', { maximumFractionDigits: 1 }),
+                total: Number(row.district_total).toLocaleString('en-IN'),
+                district: place,
+              })}
+            </p>
+          )}
+          {/* Only the per-unit list lets one business carry several kinds of
+              work. The Ministry's own aggregate counts each business once. */}
+          {row.source_code === 'src.udyamList' && (
+            <p className="break-words text-xs leading-5 text-[var(--color-text-muted)]">{t('mk.countMulti')}</p>
+          )}
+          {note && (
+            <p className="break-words text-xs leading-5 text-[var(--color-text-muted)]">{note}</p>
+          )}
+        </div>
+      )}
+
+      {context.market_type && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold text-[var(--color-text-muted)]">{t('mk.whereSell')}</p>
+          <p className="mt-1 text-sm font-bold text-[var(--color-text)]">{choiceListText(context.market_type, t)}</p>
+        </div>
+      )}
+
+      {/* source is backend prose, translated through source_code. */}
       <p className="mt-3 break-words text-xs leading-5 text-[var(--color-text-muted)]">
-        {provenance} {row.source ? t('mk.source', { source: bt.marketSource(row) }) : ''} {row.last_verified ? t('mk.checked', { date: row.last_verified }) : ''}
+        {provenance} {source ? t('mk.source', { source }) : ''} {row.last_verified ? t('mk.checked', { date: formatDate(row.last_verified) }) : ''}
       </p>
+    </div>
+  )
+}
+
+// Printed once under the cards, not per card. GODL-India makes the attribution
+// mandatory, so it is shown wherever the figures are, and never inside a
+// <details>, which prints collapsed. The attribution is the licence's own form
+// of words naming the dataset as published, so it stays English and is marked
+// lang="en". Plain text with no link: the outbound government links were removed
+// on 10 Sept 2026 and the URLs inside the sentence are part of the citation.
+function MarketSources({ rows, t }) {
+  const attributions = [...new Set(
+    rows.map((row) => row.provenance?.attribution).filter((text) => typeof text === 'string' && text.trim()),
+  )]
+
+  return (
+    <div className="ui-card-soft mt-5 min-w-0 p-5">
+      <h3 className="break-words font-bold text-[var(--color-text)]">{t('mk.sourcesHeading')}</h3>
+      {attributions.map((text) => (
+        <p key={text} lang="en" className="mt-2 break-words text-xs leading-5 text-[var(--color-text-muted)]">{text}</p>
+      ))}
+      <p className="mt-3 break-words text-xs leading-5 text-[var(--color-text-muted)]">{t('mk.notEndorsed', { app: APP_NAME })}</p>
+      <p className="mt-1 break-words text-xs leading-5 text-[var(--color-text-muted)]">{t('mk.warranty')}</p>
     </div>
   )
 }
@@ -574,9 +656,11 @@ function SchemeCard({ scheme, t, bt }) {
         </h3>
         {/* Why it is on the list, in words, not the score as a percentage: the
             score checks no eligibility rule, so "90% match" read as a chance of
-            qualifying that nothing computes. */}
+            qualifying that nothing computes. No shrink-0: the row wraps, but a
+            flex item that cannot shrink stays max-content wide on its own line,
+            and the longer translations then push past a 360px card. */}
         {bt.schemeFit(scheme) && (
-          <span className="shrink-0 rounded-full bg-[var(--color-surface-soft)] px-3 py-1 text-xs font-bold text-[var(--color-primary-strong)]">
+          <span className="min-w-0 max-w-full break-words rounded-2xl bg-[var(--color-surface-soft)] px-3 py-1 text-xs font-bold text-[var(--color-primary-strong)]">
             {bt.schemeFit(scheme)}
           </span>
         )}
@@ -679,24 +763,12 @@ function riskText(value, t) {
   return key ? t(key) : t('risk.unknown')
 }
 
-// demand_indicator is a lowercase backend value ('high' / 'medium' in
-// market_data.json today). Whole phrases, not a '{level} demand' template:
-// slotting an English level word into a translated noun printed "Medium मांग".
-// Anything unrecognised falls back to the bare label rather than leaking the raw
-// value or building half a sentence.
-const DEMAND_KEYS = { high: 'mk.demandHigh', medium: 'mk.demandMedium', low: 'mk.demandLow' }
-
-function demandText(value, t) {
-  const key = DEMAND_KEYS[String(value === undefined || value === null ? '' : value).trim().toLowerCase()]
-  return key ? t(key) : t('mk.demandLabel')
-}
-
 // The picker values ('tailoring', 'weekly') are English on purpose — they are
 // what the request carries and what the scheme matcher keys off — so the label
 // is mapped back to the same key the picker used. Anything with no key falls
 // through to formatText, which still prints it: that is how a district name and
 // a free-typed 'other' trade reach the screen in the user's own words, and how a
-// market row for 'poultry' (no picker button, no key) still reads sensibly.
+// market row in a category with no picker button still reads sensibly.
 const CHOICE_KEYS = {
   retail: 'cat.retail', 'food processing': 'cat.food', handicrafts: 'cat.handicrafts', tailoring: 'cat.tailoring',
   agriculture: 'cat.agriculture', dairy: 'cat.dairy', services: 'cat.services', manufacturing: 'cat.manufacturing', other: 'cat.other',
@@ -732,6 +804,29 @@ function formatCurrency(value, t) {
   // that carry their own copy of this formatter.
   const amount = Number(value)
   return (amount < 0 ? '-₹' : '₹') + Math.abs(amount).toLocaleString('en-IN')
+}
+
+// A mandi price is per kg and carries paise, so it cannot go through
+// formatCurrency, which drops them. Two decimals whenever there are paise —
+// ₹26.90, never ₹26.9, which reads as a different price — and none on a whole
+// rupee figure. Same null guard and sign-before-symbol rule as formatCurrency.
+function formatPrice(value, t) {
+  if (!hasNumber(value)) return t('common.notAvailable')
+  const amount = Number(value)
+  const abs = Math.abs(amount)
+  const digits = Number.isInteger(abs)
+    ? abs.toLocaleString('en-IN')
+    : abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return (amount < 0 ? '-₹' : '₹') + digits
+}
+
+// yyyy-mm-dd from the backend becomes dd/mm/yyyy, the order printed on Indian
+// forms. Split as a string rather than parsed with new Date(): that reads a bare
+// date as UTC midnight, which is the previous evening anywhere west of Greenwich
+// and a timezone-dependent answer everywhere. Anything else prints as sent.
+function formatDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value ?? '').trim())
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : value
 }
 
 // The backend sends null for percentages it could not compute (no surplus to

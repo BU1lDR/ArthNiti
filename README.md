@@ -30,7 +30,7 @@ You'll need:
 | npm | 11.16.0 | |
 | Edge | whatever's current | only for the browser verifiers |
 
-Nothing to configure. No `.env`, no API key to request, no database to provision.
+Nothing to configure to run it. No database to provision, and no `.env` or API key unless you want to refresh the market data from data.gov.in. That needs your own key in `.env` (copy `.env.example`); see [tools/README.md](tools/README.md).
 
 `.venv/` and `node_modules/` are gitignored, so a fresh clone has neither. Set both up once, from the repo root:
 
@@ -71,13 +71,13 @@ taskkill //F //T //PID <pid>          # yes, doubled slashes, that's Git Bash
 ### The other commands
 
 ```bash
-cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 187 tests, about a second
+cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 323 tests, about a second
 cd frontend && npm run build                                   # → frontend/dist
 cd frontend && npm run lint                                    # ESLint 10
 cd frontend && npm run preview                                 # serves the build on 4173
 ```
 
-The `cd backend` in front of pytest matters. Run it from the repo root and you get 25 collection errors, because the tests import `app.*` and there's no `pyproject.toml` or `conftest.py` putting `backend/` on the path. It looks like a broken suite and it's just the working directory.
+The `cd backend` in front of pytest matters. Run it from the repo root and you get 26 collection errors, because the tests import `app.*` and there's no `pyproject.toml` or `conftest.py` putting `backend/` on the path. It looks like a broken suite and it's just the working directory.
 
 There's no CI, no Makefile and no Dockerfile. The commands above are the whole story.
 
@@ -100,7 +100,7 @@ Landing, then an optional login, then four questions pages, then four result pag
 
 Anything else hits a 404 page. Nothing enforces the order, since the nav links straight to any step — so `/finance` can be submitted empty, which comes back as a 422 that we render as a readable sentence rather than a stack trace.
 
-For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Uttar Pradesh / Lucknow**. Those fill every section on the page: 14–16 schemes spread across 6 of the 7 tiers, both of the fit labels Uttar Pradesh can show ("Made for your state" and "For all of India"), and a district-level market row. Fill in the village name, market type and customer description on the location step too, since all three get printed back. Switch language on a *result* page rather than a form page if you can — the generated advice and the scheme text change too, not just the labels, and that's the moment that lands.
+For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Uttar Pradesh / Lucknow**. Those fill every section on the page: 14–16 schemes spread across 6 of the 7 tiers, both of the fit labels Uttar Pradesh can show ("Made for your state" and "For all of India"), and a district-level market row: how many businesses in Lucknow have registered that kind of work. Agriculture in Lucknow shows three mandi wholesale prices instead. Fill in the village name, market type and customer description on the location step too, since all three get printed back. Switch language on a *result* page rather than a form page if you can — the generated advice and the scheme text change too, not just the labels, and that's the moment that lands.
 
 ## Where things are
 
@@ -111,8 +111,8 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 | `backend/app/schemas/` | Pydantic request and response models |
 | `backend/app/services/` | all the business logic. Pure functions, no classes, no I/O |
 | `backend/app/core/data_loader.py` | cached JSON loading. What it hands back is shared, so treat it as read-only |
-| `backend/app/data/` | `schemes.json` (30 schemes), `market_data.json` (9 rows) |
-| `backend/tests/` | 25 files, 187 tests |
+| `backend/app/data/` | `schemes.json` (30 schemes), `market_data.json` (20 rows from data.gov.in, Lucknow and Varanasi), `market_data.provenance.json` (how the last fetch ran) |
+| `backend/tests/` | 26 test files, 323 tests |
 | `frontend/src/App.jsx` | the shell, all the chrome, 10 routes and a catch-all |
 | `frontend/src/pages/` | 9 page components |
 | `frontend/src/components/` | `Button`, `BrandMark`, `BrandWordmark`, `InstructionManual`, `Charts`, `chartData` |
@@ -121,7 +121,7 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 | `frontend/src/data/indiaLocations.js` | 36 states and UTs, 768 districts |
 | `frontend/src/services/api.js` | the only network call in the app |
 | `frontend/src/index.css` | design tokens, the `.ui-*` system, and the print stylesheet |
-| `tools/` | 24 scripts, nearly all of them verifiers — [tools/README.md](tools/README.md) explains them |
+| `tools/` | 28 `.mjs` files, nearly all of them verifiers, plus the market data fetch and its maps — [tools/README.md](tools/README.md) explains them |
 | `presentation/` | empty for now. Saad and Tripti |
 
 ## How it fits together
@@ -156,15 +156,15 @@ We filter on availability *before* scoring, on two axes: the entrepreneur's stat
 
 The score is 60 for the kind of work plus 40 if the scheme names your state, or 30 if it is open everywhere. It checks no eligibility rule (age, income, loan size and so on), so the UI never prints it as a percentage. Each card says **"Made for your state"** (the scheme names only your state), **"For a few states, including yours"** (it names yours among several, as UNNATI does for the eight North-Eastern states) or **"For all of India"** instead, from the `fit_basis` field, and the eligibility list carries a line saying those rules have not been checked against the reader's answers. `match_score` stays in the API for sorting.
 
-`market_data.json` has 9 rows, and it's worth being blunt about how thin that is. All nine are Uttar Pradesh — five Lucknow, four Varanasi — across five categories. A missing district row falls back to a state row where one exists, so 35 of the 36 states and UTs land on the market section's empty state. That's a data coverage limit rather than a bug, and it's the real reason UP/Lucknow is the safe demo location.
+`market_data.json` has 20 rows, all government open data from data.gov.in, fetched on 24 September 2026. It's worth being blunt about how thin the coverage is: two districts, Lucknow and Varanasi, both in Uttar Pradesh. Agriculture gets three mandi wholesale prices per district, from Agmarknet. The other seven kinds of work get a count of businesses registered on Udyam, the Ministry of MSME's list. Poultry has nothing yet. Every other district lands on the market section's empty state. There's no state-level row to fall back to, because a Lucknow figure says nothing about Kanpur. That's a data coverage limit rather than a bug, and it's the real reason UP/Lucknow is the safe demo location.
 
-Every row is labelled `"Prototype estimate / illustrative data"`, and the UI prints that label on the page where the reader can see it. Leave it there. Being honest about where the numbers come from is part of the pitch, not clutter to tidy away.
+Both datasets are used under the Government Open Data Licence – India. Below the market cards the page prints each dataset's attribution once, in English, then two lines in the reader's language: that the publishers don't endorse the app, and that open data can have errors and gaps. Leave all three there. The licence requires the attribution, and being honest about where the numbers come from is part of the product, not clutter to tidy away. [DATA_SOURCES.md](DATA_SOURCES.md) has the method, the provenance and what's still unresolved.
 
 ## Languages
 
 Eight: `en`, `hi`, `ta`, `te`, `ml`, `kn`, `mr`, `bn`. The default is **Hindi**, not English, because that's who this is for. English is the fallback.
 
-629 distinct keys across 4 dictionary files, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
+648 distinct keys across 4 dictionary files, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
 
 The dialect layer is a curated set of phrases, not a translation. Nine of the thirty listed varieties override a handful of the most visible strings. In the demo, say "dialect-aware phrasing" — not "translated into Bhojpuri".
 
@@ -188,7 +188,7 @@ node tools/verify/drive.mjs            # needs VITE — the main gate, 36 page l
 node tools/verify/mobile-audit.mjs     # needs VITE — phone widths, 40 page loads
 ```
 
-Step two isn't optional. Those fixtures are deliberately untracked, and five of the browser drivers can't run without them.
+Step two isn't optional. Those fixtures are deliberately untracked, and eight of the browser drivers can't run without them.
 
 Run the browser verifiers after any UI change, and `refresh-cases.mjs` after touching the services, the schemas or `schemes.json`.
 
@@ -239,7 +239,7 @@ These are the current limits, written down so nobody overclaims:
 - No LLM, no database, no authentication. All three were deliberate for the hackathon build. Whether they stay that way depends on what the project gets used for next.
 - The non-English wording hasn't been checked by a native speaker. Parity, placeholders and identical-to-English are all script-verified; *naturalness* isn't. We've already caught two real mistakes by eye, which suggests there are more.
 - Dialect coverage is 9 of 30 varieties, each a handful of phrases.
-- The market data is illustrative, all of it Uttar Pradesh, and the UI says so on the page. Everywhere else gets an empty market section.
+- The market data covers two districts, Lucknow and Varanasi. Everywhere else gets an empty market section. The business counts can't be fetched again as they were, because the Udyam list is live. And a price is marked stale when the data is fetched, not when the page loads, so the file needs refreshing at least weekly.
 - Nothing enforces the order of the journey, and the result pages can't be deep-linked from a cold tab.
 - Untested on phones: landscape, real touch scrolling on physical hardware, and the on-screen keyboard covering a focused input.
 - A typed-in "Other" business category matches no schemes. That's correct, and there's an empty state for it.

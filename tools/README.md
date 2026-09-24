@@ -1,7 +1,7 @@
 # `tools/` — the verification suite
 
-24 zero-dependency scripts that check things `npm run lint`, `npm run build` and
-`pytest` structurally cannot see: a leaked translation key, a `null%`, a page that
+28 zero-dependency `.mjs` files. Most of them check things `npm run lint`,
+`npm run build` and `pytest` structurally cannot see: a leaked translation key, a `null%`, a page that
 scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, a logo
 that prints invisible, a transition that silently does nothing, a route that opens
 halfway down the page, a footer column whose heading starts 50px below its
@@ -18,7 +18,7 @@ directories and PNGs. The scripts were 317 KB of that. They now live here, track
 |---|---|
 | **Node** | 24 or newer. The browser drivers use a **global `WebSocket`**, which is what makes them dependency-free. On Node 22 they fail with `WebSocket is not defined`. |
 | **Edge** | Must be installed at the default Windows location. The drivers speak Chrome DevTools Protocol to it. Nothing is installed for you. |
-| **Working directory** | **Always the repo root.** Every path in every script resolves against `process.cwd()`, not against the script's own location. `cd tools && node verify/drive.mjs` will not work. |
+| **Working directory** | **Always the repo root.** Every path in every script resolves against `process.cwd()`, not against the script's own location. `cd tools && node verify/drive.mjs` will not work. The one exception is `fetch-market-data.mjs`, which resolves its paths from its own location. |
 | **Servers** | Most need one up. See the table below — starting the wrong one silently measures the wrong thing. |
 
 ```bash
@@ -31,9 +31,9 @@ cd frontend && npm run dev      # Vite, port 5173
 
 The fixtures the browser drivers seed `sessionStorage` from are **deliberately not
 tracked** — they are backend-derived and go stale silently, so they are generated
-rather than committed. That means a fresh clone has none, and five of the drivers
-(`drive`, `lang-layout`, `mobile-audit`, `motion-audit`, `print-audit`) cannot run
-until you make them.
+rather than committed. That means a fresh clone has none, and eight of the drivers
+(`drive`, `lang-layout`, `market-ui`, `mobile-audit`, `motion-audit`, `print-audit`,
+`scroll-audit`, `text-align`) cannot run until you make them.
 
 ```bash
 cd frontend && npm install && cd ..        # 1. deps
@@ -45,8 +45,9 @@ node tools/verify/drive.mjs                # 4. the main gate, 36 page loads
 ```
 
 Step 3 creates `screenshots/` itself if it is absent, so you do not need to
-`mkdir` anything. Expect `good` to report **14 schemes, scores [100,90], 1 market
-row, 6 tiers** — if it does not, the backend changed and the figures in CLAUDE.md
+`mkdir` anything. Expect `good` to report **14 schemes, scores [100,90], 6 tiers,
+fit {state 3, national 11}, and 1 market row, a `registered_units` count** — if it
+does not, the backend changed and the figures in CLAUDE.md
 need re-measuring, not the script.
 
 ## The scripts
@@ -58,6 +59,7 @@ node tools/parity4.mjs        # i18n key parity, 4 files x 8 languages, 5 checks
 node tools/keycheck.mjs       # key USE vs key definition (the other half of parity4)
 node tools/svgcheck.mjs       # every SVG loads and paints
 node tools/verify/glyph-audit.mjs   # decorative glyphs missing aria-hidden
+node --test tools/verify/market-lib-test.mjs   # the market fetch's logic, 185 tests, no network or key
 ```
 
 Need the **Vite dev server** on 5173:
@@ -76,6 +78,13 @@ node tools/verify/hero-geom.mjs      # backdrop edge vs the content sitting on i
 node tools/verify/brand-mark.mjs     # the lotus mark in both themes
 node tools/verify/manual-audit.mjs   # wordmark + book icon + manual dialog
 node tools/verify/error-banner.mjs   # the /finance error banner in 8 languages
+```
+
+Starts **its own Vite** on 5179, so it does not need yours (pass
+`--url=http://localhost:5173` to use yours instead). Needs `case_good.json`:
+
+```bash
+node tools/verify/market-ui.mjs      # market cards + the sources block, 36 loads, 8 languages
 ```
 
 Need the **backend** on 8000:
@@ -98,9 +107,19 @@ node tools/verify/art-contrast.mjs   # RETIRED — exits 2 by design
 node tools/assetgen.mjs              # regenerates the brand PNGs (needs Vite)
 node tools/merge-err-keys.mjs        # one-shot dictionary helper
 node tools/third-party-notices.mjs   # regenerates THIRD_PARTY_NOTICES.md (needs .venv + node_modules)
+node tools/fetch-market-data.mjs     # refreshes market_data.json from data.gov.in (see below)
 ```
 
-## Four traps that will cost you an hour each
+`fetch-market-data.mjs` is a dry run unless you pass `--write`: it fetches, checks
+every row and prints what would change. It needs your own data.gov.in key in
+`.env` (copy `.env.example`); it never prints the key. `--sample` uses the public
+sample key, never reads `.env` and never writes. The usual refresh is
+`node tools/fetch-market-data.mjs --write --resume`, then `refresh-cases.mjs` and
+the gates. It is the only script here that goes to the internet, and
+`market-lib.mjs` beside it is the library it and `market-lib-test.mjs` share, not
+a script to run.
+
+## Five traps that will cost you an hour each
 
 **Run `refresh-cases.mjs` after any backend change.** `drive.mjs` seeds
 `sessionStorage` from three captured JSON responses. Those go stale **silently** —
@@ -130,13 +149,24 @@ netstat -ano | grep -E ':8000|:5173|:4173'
 taskkill //F //T //PID <pid>     # doubled slashes under Git Bash
 ```
 
+**Fifteen browser scripts can leave a headless Edge running.** `drive`,
+`mobile-audit` and `market-ui` find their own Edge by its profile path and kill it
+by PID. The other fifteen (`assetgen`, `svgcheck`, `brand-mark`, `error-banner`,
+`field-align`, `hero-art`, `hero-geom`, `hero-vibrance`, `lang-layout`, `load-perf`,
+`manual-audit`, `motion-audit`, `print-audit`, `scroll-audit`, `text-align`) call only
+`edge.kill()`, which misses the process Edge relaunches itself as. `hero-geom` and
+`text-align` have also hung after writing a clean `report.json`. Treat `report.json`
+as the authority, find a leftover by its debug port (`netstat -ano | grep :9355`),
+and kill it by PID. Never kill by image name: `taskkill /IM msedge.exe` also closes
+your own browser and any gate running beside this one.
+
 ## Two things worth knowing about the design
 
 **Each browser script uses its own CDP port and its own profile directory**, so two
 can run at once: `drive` 9222, `mobile-audit` 9333, `hero-art` 9337, `brand-mark`
 9339, `manual-audit` 9341, `lang-layout` 9343, `error-banner` 9347, `field-align`
 9351, `hero-geom` 9355, `print-audit` 9359, `hero-vibrance` 9361, `load-perf` 9363,
-`motion-audit` 9365, `scroll-audit` 9367, `text-align` 9371 — plus `assetgen` 9377
+`motion-audit` 9365, `scroll-audit` 9367, `text-align` 9371, `market-ui` 9373 — plus `assetgen` 9377
 and `svgcheck` 9378, which drive a browser without being gates. 9369 is left free on
 purpose: it was a throwaway probe's port, and the next one-off should reuse it rather
 than take a number a gate might want.
@@ -155,13 +185,14 @@ transitions were inert for a full day while every script in this directory passe
 A clean result from an inert check is indistinguishable from a clean result from a
 working one.
 
-Four scripts have that refuter built in as a flag, and each **must exit 1** with it:
+Five scripts have that refuter built in as a flag, and each **must exit 1** with it:
 
 ```bash
 node tools/verify/motion-audit.mjs --broken   # 29 findings across 10 kinds
 node tools/verify/field-align.mjs  --broken
 node tools/verify/scroll-audit.mjs --broken   # 33 findings, one per hop
 node tools/verify/text-align.mjs   --broken   # 30 findings, one per load
+node tools/verify/market-ui.mjs    --broken   # 456 caught; exit 2 means one defect went uncaught
 ```
 
 `scroll-audit` also carries the check in-band: a hop whose source page could not

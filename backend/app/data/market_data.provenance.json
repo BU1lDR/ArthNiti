@@ -1,0 +1,45 @@
+{
+  "fetched_at": "2026-09-24T16:59:11+05:30",
+  "script_sha256": "52634a9123c0fb15cccac45f96fd196557bf3da582cb21051787f01bc226c5b5",
+  "crosswalk_version": 1,
+  "nic_map_version": 1,
+  "commodities_version": 1,
+  "window_days": 60,
+  "districts_attempted": [
+    {
+      "state": "Uttar Pradesh",
+      "district": "Lucknow"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "district": "Varanasi"
+    }
+  ],
+  "districts_succeeded": [
+    {
+      "state": "Uttar Pradesh",
+      "district": "Lucknow",
+      "source": "agmarknet"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "district": "Lucknow",
+      "source": "udyam"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "district": "Varanasi",
+      "source": "agmarknet"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "district": "Varanasi",
+      "source": "udyam"
+    }
+  ],
+  "districts_failed": [],
+  "rows_by_metric": {
+    "wholesale_price_per_kg": 6,
+    "registered_units": 14
+  }
+}

@@ -113,6 +113,27 @@ export function fitLabel(basis, t) {
   return raw.replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+// The crop a mandi price row is about. `commodity_id` is a stable id the fetch
+// tool writes (tools/market-commodities.json holds the list), and the row's
+// `commodity` is the English name beside it. Keyed on the id, not the name,
+// because the id is what cannot drift; keycheck compares this map against both
+// the data file and that list, so a commodity added there without an entry here
+// fails the check rather than printing English inside a translated card.
+// Deliberately not `commodity_code`: keycheck reads every *_code field as a
+// translation code.
+const COMMODITY_KEYS = {
+  wheat: 'cmd.wheat',
+  paddy_common: 'cmd.paddyCommon',
+  potato: 'cmd.potato',
+  onion: 'cmd.onion',
+  tomato: 'cmd.tomato',
+  ginger_green: 'cmd.gingerGreen',
+  green_chilli: 'cmd.greenChilli',
+  garlic: 'cmd.garlic',
+  mustard: 'cmd.mustard',
+  coriander_leaves: 'cmd.corianderLeaves',
+}
+
 // A scheme's own prose is keyed by its id. The backend sends the key outright as
 // description_code / support_type_code; deriving it from `scheme_id` is the
 // fallback for a scheme row that has an id but no explicit code. Neither one
@@ -152,9 +173,19 @@ export function useBackendText() {
     // if the list were somehow empty there is no code to copy.
     nextStep: (summary) => tBackend(summary?.next_step_code, summary?.next_step),
 
-    seasonality: (row) => tBackend(row?.seasonality_code, row?.seasonality),
-
     marketSource: (row) => tBackend(row?.source_code, row?.source),
+
+    // Not tBackend: the commodity is a name the fetch chose from a fixed list,
+    // not a sentence. An unknown id falls back to the English name the row
+    // carries, then to nothing, so a caller never prints a dotted key.
+    commodityName: (row) => {
+      const key = COMMODITY_KEYS[normalise(row?.commodity_id)]
+      return key ? t(key) : row?.commodity || ''
+    },
+
+    // Optional on a row, as a pair: note_code and note are both present or
+    // both absent. Empty when there is none, so a caller can gate on it.
+    marketNote: (row) => tBackend(row?.note_code, row?.note),
 
     // Not tBackend: `level` is an enum the backend chose, not a sentence it
     // wrote, so there is no English prose to fall back to — the label comes from

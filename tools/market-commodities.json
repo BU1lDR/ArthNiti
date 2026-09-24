@@ -1,0 +1,14 @@
+{ "version": 1, "unit_source": "Rs/quintal",
+  "order_note": "The order of this list is the display order: when a district reports more than three of these crops, the first three not marked stale are shown. Staples first.",
+  "commodities": [
+  {"id":"wheat","source_name":"Wheat","code":1,"kg_band":[10,80],"cmd":"cmd.wheat","en":"Wheat"},
+  {"id":"paddy_common","source_name":"Paddy(Common)","code":2,"kg_band":[10,80],"varieties":["Common"],"cmd":"cmd.paddyCommon","en":"Paddy"},
+  {"id":"potato","source_name":"Potato","code":24,"kg_band":[3,60],"cmd":"cmd.potato","en":"Potato"},
+  {"id":"onion","source_name":"Onion","code":23,"kg_band":[5,120],"cmd":"cmd.onion","en":"Onion"},
+  {"id":"tomato","source_name":"Tomato","code":78,"kg_band":[3,150],"cmd":"cmd.tomato","en":"Tomato"},
+  {"id":"ginger_green","source_name":"Ginger(Green)","code":103,"kg_band":[10,400],"cmd":"cmd.gingerGreen","en":"Green ginger"},
+  {"id":"green_chilli","source_name":"Green Chilli","code":87,"kg_band":[5,300],"cmd":"cmd.greenChilli","en":"Green chilli"},
+  {"id":"garlic","source_name":"Garlic","code":25,"kg_band":[10,500],"cmd":"cmd.garlic","en":"Garlic"},
+  {"id":"mustard","source_name":"Mustard","code":12,"kg_band":[20,150],"cmd":"cmd.mustard","en":"Mustard seed"},
+  {"id":"coriander_leaves","source_name":"Coriander(Leaves)","code":43,"kg_band":[5,400],"cmd":"cmd.corianderLeaves","en":"Coriander leaves"}
+], "excluded_note": "Dals, rice, wood, firewood and fish are left out: processed goods, non-food, or not priced per kg the way a grower sells." }

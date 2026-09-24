@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from market_fixtures import synthetic_market  # noqa: F401
 
 
 client = TestClient(app)
@@ -185,17 +186,35 @@ def test_frontend_contract_translation_codes_travel_with_their_prose():
     assert summary["next_step_code"] is None or isinstance(summary["next_step_code"], str)
 
 
-def test_frontend_contract_market_rows_carry_translation_codes():
-    response = client.post(
-        "/api/analysis/run",
-        json={**VALID_PAYLOAD, "state": "Uttar Pradesh", "district": "Lucknow"},
-    )
+def test_frontend_contract_market_rows_carry_translation_codes(synthetic_market):
+    # The rows come from the synthetic fixture, because market_data.json changes
+    # with every fetch and could be []. Without them this loop could pass vacuously.
+    # Handicrafts is there because its row carries a note; tailoring's does not.
+    rows = []
+    for category in ("tailoring", "handicrafts"):
+        response = client.post(
+            "/api/analysis/run",
+            json={
+                **VALID_PAYLOAD,
+                "business_category": category,
+                "state": "Uttar Pradesh",
+                "district": "Lucknow",
+            },
+        )
 
-    assert response.status_code == 200
+        assert response.status_code == 200
+        rows += response.json()["market_context"]
 
-    for row in response.json()["market_context"]:
-        assert isinstance(row["seasonality_code"], str)
+    assert len(rows) == 2, "expected the Lucknow tailoring and handicrafts rows"
+    assert any("note" in row for row in rows)
+
+    for row in rows:
         assert isinstance(row["source_code"], str)
+        # A note is optional, but when it is there it carries a code too.
+        if "note" in row:
+            assert isinstance(row["note_code"], str)
+        # No source backs a demand level or a season, so neither is sent.
+        assert not {"seasonality", "seasonality_code", "demand_indicator"} & set(row)
 
 
 def test_frontend_contract_scheme_translation_codes():

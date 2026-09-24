@@ -1,0 +1,9 @@
+{ "version": 1, "nic_edition": "NIC 2008", "categories": {
+  "food processing": {"include": ["10","11"], "exclude": ["1050"]},
+  "handicrafts": {"include": ["1312","1313","1392","1393","1399","1512","1520","1629","2393","3211","3212","3240","3290"], "note_code": "mknote.ourGrouping"},
+  "tailoring": {"include": ["1410"]},
+  "retail": {"include": ["47"]},
+  "services": {"include": ["4520","4540","49-96"], "note_code": "mknote.ourGrouping"},
+  "manufacturing": {"include": ["10-33"]},
+  "dairy": {"include": ["1050"], "emit_if_count_at_least": 10, "note_code": "mknote.dairyProducts"}
+}}

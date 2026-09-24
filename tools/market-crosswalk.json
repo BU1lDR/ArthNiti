@@ -1,0 +1,6 @@
+{ "version": 1,
+  "aliases": { "district": {"faizabad":"Ayodhya","allahabad":"Prayagraj","kheri":"Lakhimpur Kheri"}, "state": {"keralam":"Kerala"} },
+  "entries": [
+    {"state":"Uttar Pradesh","district":"Lucknow","lgd_state":9,"lgd_district":162,"udyam_district":"LUCKNOW","agmarknet_state":"Uttar Pradesh","agmarknet_district":["Lucknow"],"origin":"manual"},
+    {"state":"Uttar Pradesh","district":"Varanasi","lgd_state":9,"lgd_district":187,"udyam_district":"VARANASI","agmarknet_state":"Uttar Pradesh","agmarknet_district":["Varanasi"],"origin":"manual"}
+  ] }

@@ -1,6 +1,8 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.market_service import get_market_context
+from market_fixtures import synthetic_market  # noqa: F401
 
 
 client = TestClient(app)
@@ -35,8 +37,11 @@ def test_advisory_recommendation_endpoint():
     assert len(data["advisory"]["recommendations"]) > 0
 
 
-def test_advisory_recommendation_with_market_context():
+def test_advisory_recommendation_with_market_context(synthetic_market):
 
+    # market_data.json changes with every fetch, so the rows come from the
+    # synthetic fixture. The route must pass them through as the service
+    # returns them, nulls and provenance included.
     response = client.post(
         "/api/advisory/recommend",
         json={
@@ -46,7 +51,7 @@ def test_advisory_recommendation_with_market_context():
             "monthly_emi": 5000,
             "state": "Uttar Pradesh",
             "district": "Lucknow",
-            "business_category": "dairy"
+            "business_category": "tailoring"
         }
     )
 
@@ -55,8 +60,7 @@ def test_advisory_recommendation_with_market_context():
     data = response.json()
 
     assert "market_context" in data
-    assert len(data["market_context"]) == 1
-    assert data["market_context"][0]["state"] == "Uttar Pradesh"
+    assert data["market_context"], "expected the Lucknow tailoring row"
+    assert data["market_context"] == get_market_context("Uttar Pradesh", "Lucknow", "tailoring")
+    assert [row["match_level"] for row in data["market_context"]] == ["district"]
     assert data["market_context"][0]["district"] == "Lucknow"
-    assert data["market_context"][0]["business_category"] == "dairy"
-    assert data["market_context"][0]["indicative_price"] == 55.0

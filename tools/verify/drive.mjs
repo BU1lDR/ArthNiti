@@ -15,7 +15,7 @@
 // which on a signed-in profile is a sync-confirmation dialog.
 //
 // Run from the repo root:  node tools/verify/drive.mjs
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -29,6 +29,38 @@ const OUT = resolve('screenshots/verify/out')
 const PROFILE_DIR = resolve('screenshots/verify/edge-profile')
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// --- how our Edge dies -----------------------------------------------------------
+// By PID and nothing else. This used to finish with `taskkill /IM msedge.exe`,
+// which also closed whatever Edge the person running the gate had open. The
+// msedge.exe we spawn relaunches itself through a compatibility layer and exits
+// within a second, so its PID alone is not enough: --edge-skip-compat-layer-
+// relaunch stops that at the source, and ownEdgePids() is the fallback, finding
+// the browser process that carries OUR profile path and no --type= (every
+// renderer, GPU and utility child carries one; taskkill /T takes those with it).
+// The path is anchored at a quote, a space or the end, because this profile dir
+// is a prefix of thirteen other scripts' dirs (edge-profile-mobile, -print, ...),
+// and a bare substring match would kill a gate running beside this one.
+// Same technique as market-ui.mjs.
+let edge = null
+function ownEdgePids() {
+  const script =
+    "$p = [regex]::Escape($env:DRIVE_EDGE_PROFILE) + '(?=[\"\\s]|$)'; " +
+    "Get-CimInstance Win32_Process -Filter \"name='msedge.exe'\" | Where-Object { $_.CommandLine -and " +
+    "$_.CommandLine -match $p -and $_.CommandLine -notmatch '--type=' } | ForEach-Object { $_.ProcessId }"
+  const r = spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    env: { ...process.env, DRIVE_EDGE_PROFILE: PROFILE_DIR },
+    encoding: 'utf8',
+  })
+  return (r.stdout || '').split(/\s+/).filter((s) => /^\d+$/.test(s)).map(Number)
+}
+function killOwnEdge() {
+  const kill = (pid) => spawnSync('taskkill', ['/F', '/T', '/PID', String(pid)], { stdio: 'ignore' })
+  // A spawned PID that has already exited is skipped: it may belong to something else by now.
+  if (edge && edge.exitCode === null && edge.signalCode === null) kill(edge.pid)
+  edge = null
+  for (const pid of ownEdgePids()) kill(pid)
+}
 
 // --- the form answers that go with each captured backend response -------------
 const FORMS = {
@@ -238,10 +270,11 @@ async function main() {
   mkdirSync(OUT, { recursive: true })
   mkdirSync(PROFILE_DIR, { recursive: true })
 
-  const edge = spawn(EDGE, [
+  edge = spawn(EDGE, [
     '--headless=new',
     `--remote-debugging-port=${DEBUG_PORT}`,
     `--user-data-dir=${PROFILE_DIR}`,
+    '--edge-skip-compat-layer-relaunch',
     '--remote-allow-origins=*',
     '--window-size=1440,1600',
     '--disable-gpu',
@@ -312,14 +345,14 @@ async function main() {
 
         // A t() key that exists in no dictionary falls through to the key
         // itself, so an invented key shows up in the rendered text verbatim.
-        const rawKeys = [...new Set(text.match(/\b(?:common|nav|res|st|risk|f|an|ch|mk|sc|sch|ad|rp|login|nf|landing|profile|business|location|finance|money|cat|market|area|greeting)\.[a-zA-Z_][a-zA-Z0-9_]*/g) || [])]
+        const rawKeys = [...new Set(text.match(/\b(?:common|nav|res|st|risk|f|an|ch|mk|sc|sch|ad|rp|login|nf|landing|profile|business|location|finance|money|cat|market|area|greeting|cmd|mknote|src)\.[a-zA-Z_][a-zA-Z0-9_]*/g) || [])]
         if (rawKeys.length) problems.push('UNTRANSLATED KEY LEAKED: ' + rawKeys.join(', '))
 
         for (const bad of ['null%', 'NaN', 'undefined', '[object Object]', 'Infinity', '₹null', '₹NaN', '₹undefined']) {
           if (text.includes(bad)) problems.push(`BAD TOKEN: "${bad}"`)
         }
         // Lowercase enum values and backend field names must never reach screen.
-        for (const raw of ['attention_needed', 'break_even', 'not_feasible', 'profit_margin', 'match_level', 'pressure_ratio', 'fit_basis']) {
+        for (const raw of ['attention_needed', 'break_even', 'not_feasible', 'profit_margin', 'match_level', 'pressure_ratio', 'fit_basis', 'wholesale_price_per_kg', 'registered_units', 'count_suppressed']) {
           if (text.includes(raw)) problems.push(`RAW ENUM/FIELD ON SCREEN: "${raw}"`)
         }
 
@@ -377,13 +410,12 @@ async function main() {
     // used to exit 0 either way, and only report.json said otherwise.
     process.exitCode = findings.length ? 1 : 0
   } finally {
-    edge.kill()
-    spawn('taskkill', ['/F', '/T', '/IM', 'msedge.exe'], { stdio: 'ignore' })
+    killOwnEdge()
   }
 }
 
 main().catch((err) => {
   console.error('DRIVER ERROR:', err.message)
-  spawn('taskkill', ['/F', '/T', '/IM', 'msedge.exe'], { stdio: 'ignore' })
+  killOwnEdge()
   process.exit(1)
 })

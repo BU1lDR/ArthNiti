@@ -21,8 +21,10 @@ DATA_DIR = BASE_DIR / "data"
 # this. Every caller gets the same list, so a caller that mutates it corrupts the
 # data for every later request in the process -- and it would corrupt it
 # *silently*, since the file on disk is still correct and a restart makes the
-# symptom vanish. No service does: market_service builds a fresh dict per row
-# with {**row}, and scheme_service copies the lists it puts into a response.
+# symptom vanish. No service does: market_service deep-copies every row it
+# returns through _detached() (a sourced row carries nested provenance, so the
+# old top-level {**row} copy was no longer enough), and scheme_service copies
+# the lists it puts into a response.
 # test_a_response_cannot_poison_the_cached_scheme_dataset and
 # test_a_response_cannot_poison_the_cached_market_rows pin that, one per file.
 # Treat what comes back as read-only.

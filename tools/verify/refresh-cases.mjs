@@ -98,9 +98,15 @@ for (const [name, form] of Object.entries(CASES)) {
   // every scheme has one basis cannot exercise the chart, which needs two.
   const fit = {}
   for (const s of schemes) fit[s.fit_basis ?? 'none'] = (fit[s.fit_basis ?? 'none'] || 0) + 1
+  // Which kind of market row each fixture carries. A price row and a count row
+  // render different branches of MarketCard, so a fixture holding only one kind
+  // leaves the other unexercised by every verifier that seeds from it.
+  const market = result.market_context || []
+  const metrics = {}
+  for (const r of market) metrics[r.metric ?? 'none'] = (metrics[r.metric ?? 'none'] || 0) + 1
   console.log(
     `${name.padEnd(6)} lang=${LANG_CODE[profile.language]} schemes=${String(schemes.length).padStart(2)}` +
-    ` coded=${coded} scores=${JSON.stringify(scores)} market=${(result.market_context || []).length}` +
+    ` coded=${coded} scores=${JSON.stringify(scores)} market=${market.length} ${JSON.stringify(metrics)}` +
     `\n       levels=${JSON.stringify(levels)}` +
     `\n       fit=${JSON.stringify(fit)}`,
   )

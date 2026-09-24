@@ -16,11 +16,11 @@
 // a stable code beside every sentence they build, and `tBackend` in
 // LanguageContext turns the code into text — so advisory recommendations,
 // business observations, the risk reason, scheme descriptions, eligibility and
-// seasonality all follow the chosen language now, not just our own labels.
+// the market-data notes all follow the chosen language now, not just our own labels.
 //
 // Two things are still English regardless of language, and both are data rather
-// than prose: scheme names (PMEGP, PMMY — proper nouns that appear that way on
-// the official portal a user would be sent to) and the district names in
+// than prose: scheme names (PMEGP, PMMY — proper nouns, written the way the
+// schemes' own documents write them) and the district names in
 // data/indiaLocations.js (the Latin spelling printed on official documents).
 // Digits and money stay Latin and 'en-IN'-grouped for the same reason.
 //
@@ -109,7 +109,7 @@ const en = {
   'landing.offerEyebrow': 'What we offer',
   'landing.offerTitle': 'From idea to action.',
   'landing.f1.title': 'Hyper local insights',
-  'landing.f1.text': 'Advice shaped by your village, district, customers and market.',
+  'landing.f1.text': 'Government figures for your district where we have them: wholesale mandi prices, and how many businesses have registered work like yours.',
   'landing.f2.title': 'Financial clarity',
   'landing.f2.text': 'Understand whether the business looks sustainable and where money is going.',
   'landing.f3.title': 'Government support',
@@ -343,7 +343,7 @@ const hi = {
   'landing.offerEyebrow': 'हम क्या देते हैं',
   'landing.offerTitle': 'सोच से काम तक।',
   'landing.f1.title': 'आपके इलाके की जानकारी',
-  'landing.f1.text': 'आपके गाँव, ज़िले, ग्राहकों और बाज़ार के हिसाब से सलाह।',
+  'landing.f1.text': 'जहाँ हमारे पास हैं, वहाँ आपके ज़िले के सरकारी आंकड़े: मंडी के थोक दाम, और आपके जैसा काम कितने कारोबारों ने दर्ज कराया है।',
   'landing.f2.title': 'पैसों की साफ़ तस्वीर',
   'landing.f2.text': 'समझें कि काम टिकाऊ लगता है या नहीं और पैसा कहाँ जा रहा है।',
   'landing.f3.title': 'सरकारी सहायता',
@@ -551,7 +551,7 @@ const ta = {
   'landing.offerEyebrow': 'நாங்கள் தருவது',
   'landing.offerTitle': 'எண்ணத்திலிருந்து செயலுக்கு.',
   'landing.f1.title': 'உங்கள் பகுதித் தகவல்',
-  'landing.f1.text': 'உங்கள் கிராமம், மாவட்டம், வாடிக்கையாளர், சந்தை அடிப்படையில் ஆலோசனை.',
+  'landing.f1.text': 'எங்களிடம் இருக்கும் இடங்களில் உங்கள் மாவட்டத்துக்கான அரசு எண்கள்: மண்டியின் மொத்த விற்பனை விலைகள், உங்களைப் போன்ற வேலையை எத்தனை தொழில்கள் பதிவு செய்துள்ளன என்பது.',
   'landing.f2.title': 'பணத்தில் தெளிவு',
   'landing.f2.text': 'தொழில் நிலைத்து நிற்குமா, பணம் எங்கே செல்கிறது என்று புரிந்துகொள்ளுங்கள்.',
   'landing.f3.title': 'அரசு உதவி',
@@ -762,7 +762,7 @@ const te = {
   'landing.offerEyebrow': 'మేము అందించేది',
   'landing.offerTitle': 'ఆలోచన నుంచి ఆచరణ వరకు.',
   'landing.f1.title': 'మీ ప్రాంత సమాచారం',
-  'landing.f1.text': 'మీ గ్రామం, జిల్లా, కస్టమర్లు, మార్కెట్ ఆధారంగా సలహా.',
+  'landing.f1.text': 'అందుబాటులో ఉన్న చోట మీ జిల్లాకు ప్రభుత్వ అంకెలు: మండీ టోకు ధరలు, మీలాంటి పనిని ఎన్ని వ్యాపారాలు నమోదు చేసుకున్నాయి అనేది.',
   'landing.f2.title': 'డబ్బు విషయంలో స్పష్టత',
   'landing.f2.text': 'వ్యాపారం నిలుస్తుందా, డబ్బు ఎక్కడికి పోతోందో అర్థం చేసుకోండి.',
   'landing.f3.title': 'ప్రభుత్వ సహాయం',
@@ -970,7 +970,7 @@ const ml = {
   'landing.offerEyebrow': 'ഞങ്ങൾ നൽകുന്നത്',
   'landing.offerTitle': 'ആശയത്തിൽ നിന്ന് പ്രവൃത്തിയിലേക്ക്.',
   'landing.f1.title': 'പ്രാദേശിക വിവരങ്ങൾ',
-  'landing.f1.text': 'നിങ്ങളുടെ ഗ്രാമം, ജില്ല, ഇടപാടുകാർ, ചന്ത എന്നിവ അടിസ്ഥാനമാക്കിയ ഉപദേശം.',
+  'landing.f1.text': 'ഞങ്ങളുടെ കൈയിലുള്ളിടത്ത് നിങ്ങളുടെ ജില്ലയുടെ സർക്കാർ കണക്കുകൾ: മണ്ടിയിലെ മൊത്തവിലകൾ, നിങ്ങളുടേത് പോലുള്ള ജോലി എത്ര സംരംഭങ്ങൾ രജിസ്റ്റർ ചെയ്തിട്ടുണ്ട് എന്നതും.',
   'landing.f2.title': 'പണത്തിൽ വ്യക്തത',
   'landing.f2.text': 'സംരംഭം നിലനിൽക്കുമോ, പണം എവിടെ പോകുന്നു എന്നു മനസ്സിലാക്കുക.',
   'landing.f3.title': 'സർക്കാർ സഹായം',
@@ -1178,7 +1178,7 @@ const kn = {
   'landing.offerEyebrow': 'ನಾವು ನೀಡುವುದು',
   'landing.offerTitle': 'ಆಲೋಚನೆಯಿಂದ ಕ್ರಿಯೆಗೆ.',
   'landing.f1.title': 'ಸ್ಥಳೀಯ ಮಾಹಿತಿ',
-  'landing.f1.text': 'ನಿಮ್ಮ ಹಳ್ಳಿ, ಜಿಲ್ಲೆ, ಗ್ರಾಹಕರು, ಮಾರುಕಟ್ಟೆ ಆಧರಿಸಿದ ಸಲಹೆ.',
+  'landing.f1.text': 'ನಮ್ಮಲ್ಲಿ ಇರುವ ಕಡೆ ನಿಮ್ಮ ಜಿಲ್ಲೆಯ ಸರ್ಕಾರಿ ಅಂಕಿಗಳು: ಮಂಡಿಯ ಸಗಟು ದರಗಳು, ಮತ್ತು ನಿಮ್ಮಂತಹ ಕೆಲಸವನ್ನು ಎಷ್ಟು ವ್ಯವಹಾರಗಳು ನೋಂದಾಯಿಸಿವೆ ಎಂಬುದು.',
   'landing.f2.title': 'ಹಣದಲ್ಲಿ ಸ್ಪಷ್ಟತೆ',
   'landing.f2.text': 'ಉದ್ಯಮ ಉಳಿಯುತ್ತದೆಯೇ, ಹಣ ಎಲ್ಲಿ ಹೋಗುತ್ತಿದೆ ಎಂದು ತಿಳಿಯಿರಿ.',
   'landing.f3.title': 'ಸರ್ಕಾರಿ ನೆರವು',
@@ -1386,7 +1386,7 @@ const mr = {
   'landing.offerEyebrow': 'आम्ही काय देतो',
   'landing.offerTitle': 'कल्पनेपासून कृतीपर्यंत.',
   'landing.f1.title': 'स्थानिक माहिती',
-  'landing.f1.text': 'तुमचे गाव, जिल्हा, ग्राहक आणि बाजारावर आधारित सल्ला.',
+  'landing.f1.text': 'आमच्याकडे असतील तिथे तुमच्या जिल्ह्याचे सरकारी आकडे: मंडीतील घाऊक भाव, आणि तुमच्यासारखे काम किती व्यवसायांनी नोंदवले आहे.',
   'landing.f2.title': 'पैशांची स्पष्टता',
   'landing.f2.text': 'व्यवसाय टिकेल का आणि पैसे कुठे जात आहेत ते समजून घ्या.',
   'landing.f3.title': 'सरकारी मदत',
@@ -1594,7 +1594,7 @@ const bn = {
   'landing.offerEyebrow': 'আমরা যা দিই',
   'landing.offerTitle': 'ভাবনা থেকে কাজে।',
   'landing.f1.title': 'স্থানীয় তথ্য',
-  'landing.f1.text': 'আপনার গ্রাম, জেলা, ক্রেতা ও বাজারের ভিত্তিতে পরামর্শ।',
+  'landing.f1.text': 'যেখানে আমাদের কাছে আছে, সেখানে আপনার জেলার সরকারি সংখ্যা: মণ্ডির পাইকারি দাম, আর আপনার মতো কাজ কতগুলো ব্যবসা নথিভুক্ত করেছে।',
   'landing.f2.title': 'টাকার স্পষ্টতা',
   'landing.f2.text': 'ব্যবসা টিকবে কি না এবং টাকা কোথায় যাচ্ছে বুঝে নিন।',
   'landing.f3.title': 'সরকারি সহায়তা',

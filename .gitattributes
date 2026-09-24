@@ -1,0 +1,5 @@
+# The market data's provenance records the SHA-256 of these two files' bytes
+# (script_sha256). Pin them to LF so a Windows checkout with core.autocrlf=true
+# hashes the same as the copy that wrote backend/app/data/market_data.json.
+tools/market-lib.mjs text eol=lf
+tools/fetch-market-data.mjs text eol=lf

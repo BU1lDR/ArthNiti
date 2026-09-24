@@ -31,7 +31,7 @@
 // a narrow band.
 //
 // Run the Vite dev server first, then:  node tools/verify/mobile-audit.mjs
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -42,6 +42,36 @@ const OUT = resolve('screenshots/verify/mobile')
 const PROFILE_DIR = resolve('screenshots/verify/edge-profile-mobile')
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// Our Edge dies by PID and nothing else, never by image name, which would close
+// the Edge the person running the gate has open. edge.kill() alone used to leak
+// it: the msedge.exe we spawn relaunches itself through a compatibility layer and
+// exits within a second, so the spawned PID is gone before we kill it.
+// --edge-skip-compat-layer-relaunch stops that at the source, and ownEdgePids()
+// is the fallback, finding the browser process that carries OUR profile path and
+// no --type= (renderer, GPU and utility children all carry one; taskkill /T takes
+// those with it). The path is anchored at a quote, a space or the end so it cannot
+// match a longer profile dir that starts with this one. Same technique as
+// drive.mjs and market-ui.mjs.
+let edge = null
+function ownEdgePids() {
+  const script =
+    "$p = [regex]::Escape($env:MOBILE_EDGE_PROFILE) + '(?=[\"\\s]|$)'; " +
+    "Get-CimInstance Win32_Process -Filter \"name='msedge.exe'\" | Where-Object { $_.CommandLine -and " +
+    "$_.CommandLine -match $p -and $_.CommandLine -notmatch '--type=' } | ForEach-Object { $_.ProcessId }"
+  const r = spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    env: { ...process.env, MOBILE_EDGE_PROFILE: PROFILE_DIR },
+    encoding: 'utf8',
+  })
+  return (r.stdout || '').split(/\s+/).filter((s) => /^\d+$/.test(s)).map(Number)
+}
+function killOwnEdge() {
+  const kill = (pid) => spawnSync('taskkill', ['/F', '/T', '/PID', String(pid)], { stdio: 'ignore' })
+  // A spawned PID that has already exited is skipped: it may belong to something else by now.
+  if (edge && edge.exitCode === null && edge.signalCode === null) kill(edge.pid)
+  edge = null
+  for (const pid of ownEdgePids()) kill(pid)
+}
 
 // The last entry is the one that actually stresses the layout. index.css has to
 // survive two independent presentation switches, and the largest text scale on
@@ -254,10 +284,11 @@ async function main() {
   mkdirSync(OUT, { recursive: true })
   mkdirSync(PROFILE_DIR, { recursive: true })
 
-  const edge = spawn(EDGE, [
+  edge = spawn(EDGE, [
     '--headless=new',
     `--remote-debugging-port=${DEBUG_PORT}`,
     `--user-data-dir=${PROFILE_DIR}`,
+    '--edge-skip-compat-layer-relaunch',
     '--remote-allow-origins=*',
     '--disable-gpu', '--disable-sync', '--no-first-run',
     '--no-default-browser-check', '--disable-extensions',
@@ -332,7 +363,7 @@ async function main() {
 
     writeFileSync(`${OUT}/report.json`, JSON.stringify(report, null, 2))
   } finally {
-    edge.kill()
+    killOwnEdge()
   }
 
   console.log(`\n${report.length} page loads across ${VIEWPORTS.length} phone widths, ${problems} with problems.`)
@@ -340,4 +371,8 @@ async function main() {
   process.exit(problems ? 1 : 0)
 }
 
-main()
+main().catch((err) => {
+  console.error('MOBILE AUDIT ERROR:', err.message)
+  killOwnEdge()
+  process.exit(1)
+})

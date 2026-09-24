@@ -2,12 +2,13 @@
 //
 // This is the half of the app that used to stay English no matter which language
 // was chosen: advisory recommendations, business observations, the risk reason,
-// the summary sentences, scheme text and market seasonality. The services now
-// emit a stable code beside every sentence they build (`recommendation_codes`,
-// `observation_codes`, `reason_code`, `message_code`, `next_step_code`,
-// `match_reason_codes`, `seasonality_code`, and per-scheme `description_code` /
-// `support_type_code` / `eligibility_codes` / `document_codes`), and this file is
-// where those codes become readable text.
+// the summary sentences, scheme text, and where each market figure comes from.
+// The services now emit a stable code beside every sentence they build
+// (`recommendation_codes`, `observation_codes`, `reason_code`, `message_code`,
+// `next_step_code`, `match_reason_codes`, the market `source_code` and
+// `note_code`, and per-scheme `description_code` / `support_type_code` /
+// `eligibility_codes` / `document_codes`), and this file is where those codes
+// become readable text.
 //
 // Translating on this side rather than in Python is deliberate: the language
 // switch has to redraw a result page instantly, and the analysis runs once, on
@@ -88,11 +89,35 @@ const en = {
 
   // Documents. Shared across schemes, since the same papers repeat.
 
-  // Market seasonality and the honesty label on the data.
-  'seas.festivalWedding': 'Sales can go up around festivals and the wedding season.',
-  'seas.stableModerate': 'Sales stay mostly steady through the year, with some change by season.',
-  'seas.variesByProduct': 'Sales change with the product and with what people buy in each season.',
-  'src.prototypeEstimate': 'Demo estimate — sample figures, not a real survey',
+  // Where a market figure comes from: the source_code on every market row. The
+  // English here must match the row's own source field word for word;
+  // tools/verify/market-lib-test.mjs and backend/tests/test_market_data_guards.py
+  // both compare them.
+  'src.agmarknetMandi': 'Daily mandi prices reported to Agmarknet, published on data.gov.in',
+  'src.udyamList': 'Udyam registrations, published on data.gov.in',
+  'src.udyamAggregate': 'The Ministry of MSME\'s district counts of Udyam registrations, published on data.gov.in',
+
+  // A note a count row can carry (its note_code), saying how the figure was put
+  // together. The English must match the row's own note field, and
+  // market-lib-test.mjs compares them.
+  'mknote.ourGrouping': 'We chose which kinds of registered work to count in this figure.',
+  'mknote.ministryServices': 'This is the Ministry\'s own count of registered service businesses. It may include shops and traders.',
+  'mknote.ministryManufacturing': 'This is the Ministry\'s own count of registered manufacturing businesses. It counts each business once, by its main kind of work.',
+  'mknote.dairyProducts': 'This counts registered businesses that make dairy products, such as ghee, paneer or packaged milk. Keeping cows or buffaloes is not counted in it.',
+
+  // Crop names for a mandi price row, looked up from the row's commodity_id
+  // through COMMODITY_KEYS in backendText.js. The English must match the en name
+  // in tools/market-commodities.json, and market-lib-test.mjs compares them.
+  'cmd.wheat': 'Wheat',
+  'cmd.paddyCommon': 'Paddy',
+  'cmd.potato': 'Potato',
+  'cmd.onion': 'Onion',
+  'cmd.tomato': 'Tomato',
+  'cmd.gingerGreen': 'Green ginger',
+  'cmd.greenChilli': 'Green chilli',
+  'cmd.garlic': 'Garlic',
+  'cmd.mustard': 'Mustard seed',
+  'cmd.corianderLeaves': 'Coriander leaves',
 }
 
 const hi = {
@@ -140,10 +165,25 @@ const hi = {
 
 
 
-  'seas.festivalWedding': 'त्योहारों और शादी के मौसम में बिक्री बढ़ सकती है।',
-  'seas.stableModerate': 'साल भर बिक्री लगभग एक जैसी रहती है, मौसम से थोड़ा फ़र्क पड़ता है।',
-  'seas.variesByProduct': 'बिक्री सामान के हिसाब से और मौसम में लोग क्या खरीदते हैं उसके हिसाब से बदलती है।',
-  'src.prototypeEstimate': 'डेमो अनुमान — नमूने के आंकड़े, कोई असली सर्वे नहीं',
+  'src.agmarknetMandi': 'एगमार्कनेट को भेजे गए मंडी के रोज़ के दाम, data.gov.in पर प्रकाशित',
+  'src.udyamList': 'उद्यम पंजीकरण, data.gov.in पर प्रकाशित',
+  'src.udyamAggregate': 'एमएसएमई मंत्रालय की ज़िलेवार उद्यम पंजीकरण की गिनती, data.gov.in पर प्रकाशित',
+
+  'mknote.ourGrouping': 'इस आंकड़े में दर्ज कामों में से किन-किन तरह के कामों को गिनना है, यह हमने तय किया है।',
+  'mknote.ministryServices': 'यह दर्ज सेवा कारोबारों की मंत्रालय की अपनी गिनती है। इसमें दुकानें और व्यापारी भी शामिल हो सकते हैं।',
+  'mknote.ministryManufacturing': 'यह सामान बनाने वाले दर्ज कारोबारों की मंत्रालय की अपनी गिनती है। इसमें हर कारोबार को उसके मुख्य काम के हिसाब से एक ही बार गिना गया है।',
+  'mknote.dairyProducts': 'इसमें वे दर्ज कारोबार गिने गए हैं जो दूध से बनी चीज़ें बनाते हैं, जैसे घी, पनीर या पैकेट वाला दूध। गाय-भैंस पालने का काम इसमें नहीं गिना गया है।',
+
+  'cmd.wheat': 'गेहूँ',
+  'cmd.paddyCommon': 'धान',
+  'cmd.potato': 'आलू',
+  'cmd.onion': 'प्याज़',
+  'cmd.tomato': 'टमाटर',
+  'cmd.gingerGreen': 'हरी अदरक',
+  'cmd.greenChilli': 'हरी मिर्च',
+  'cmd.garlic': 'लहसुन',
+  'cmd.mustard': 'सरसों',
+  'cmd.corianderLeaves': 'हरा धनिया',
 }
 
 const ta = {
@@ -191,10 +231,25 @@ const ta = {
 
 
 
-  'seas.festivalWedding': 'பண்டிகை மற்றும் கல்யாண காலத்தில் விற்பனை அதிகமாகலாம்.',
-  'seas.stableModerate': 'ஆண்டு முழுவதும் விற்பனை பெரும்பாலும் ஒரே அளவில் இருக்கும், பருவத்திற்கு ஏற்ப சிறிது மாறும்.',
-  'seas.variesByProduct': 'பொருளுக்கு ஏற்ப, அந்தப் பருவத்தில் மக்கள் என்ன வாங்குகிறார்கள் என்பதற்கு ஏற்ப விற்பனை மாறும்.',
-  'src.prototypeEstimate': 'டெமோ மதிப்பீடு — மாதிரி எண்கள், உண்மையான கணக்கெடுப்பு அல்ல',
+  'src.agmarknetMandi': 'அக்மார்க்நெட்டுக்குத் தெரிவிக்கப்பட்ட மண்டியின் தினசரி விலைகள், data.gov.in-இல் வெளியிடப்பட்டவை',
+  'src.udyamList': 'உத்யம் பதிவுகள், data.gov.in-இல் வெளியிடப்பட்டவை',
+  'src.udyamAggregate': 'எம்எஸ்எம்இ அமைச்சகத்தின் மாவட்ட வாரியான உத்யம் பதிவு எண்ணிக்கை, data.gov.in-இல் வெளியிடப்பட்டது',
+
+  'mknote.ourGrouping': 'பதிவு செய்யப்பட்ட எந்த வகை வேலைகளை இந்த எண்ணில் சேர்ப்பது என்று நாங்களே தேர்ந்தெடுத்தோம்.',
+  'mknote.ministryServices': 'இது பதிவு செய்த சேவைத் தொழில்களுக்கான அமைச்சகத்தின் சொந்த எண்ணிக்கை. இதில் கடைகளும் வியாபாரிகளும் சேர்ந்திருக்கலாம்.',
+  'mknote.ministryManufacturing': 'இது பதிவு செய்த உற்பத்தித் தொழில்களுக்கான அமைச்சகத்தின் சொந்த எண்ணிக்கை. இதில் ஒவ்வொரு தொழிலும் அதன் முக்கிய வேலையின் அடிப்படையில் ஒரு முறை மட்டுமே எண்ணப்படுகிறது.',
+  'mknote.dairyProducts': 'இதில் நெய், பனீர், பாக்கெட் பால் போன்ற பால் பொருட்களைத் தயாரிக்கும் பதிவு செய்த தொழில்கள் எண்ணப்படுகின்றன. பசு, எருமை வளர்க்கும் வேலை இதில் எண்ணப்படவில்லை.',
+
+  'cmd.wheat': 'கோதுமை',
+  'cmd.paddyCommon': 'நெல்',
+  'cmd.potato': 'உருளைக்கிழங்கு',
+  'cmd.onion': 'வெங்காயம்',
+  'cmd.tomato': 'தக்காளி',
+  'cmd.gingerGreen': 'பச்சை இஞ்சி',
+  'cmd.greenChilli': 'பச்சை மிளகாய்',
+  'cmd.garlic': 'பூண்டு',
+  'cmd.mustard': 'கடுகு',
+  'cmd.corianderLeaves': 'கொத்தமல்லி இலை',
 }
 
 const te = {
@@ -242,10 +297,25 @@ const te = {
 
 
 
-  'seas.festivalWedding': 'పండుగలు, పెళ్ళిళ్ల కాలంలో అమ్మకాలు పెరగవచ్చు.',
-  'seas.stableModerate': 'ఏడాది పొడవునా అమ్మకాలు దాదాపు ఒకేలా ఉంటాయి, కాలానుసారం కొంత మారుతుంది.',
-  'seas.variesByProduct': 'వస్తువును బట్టి, ఆ కాలంలో ప్రజలు ఏమి కొంటారో దాన్ని బట్టి అమ్మకాలు మారుతాయి.',
-  'src.prototypeEstimate': 'డెమో అంచనా — నమూనా అంకెలు, నిజమైన సర్వే కాదు',
+  'src.agmarknetMandi': 'అగ్‌మార్క్‌నెట్‌కు తెలిపిన మండీ రోజువారీ ధరలు, data.gov.in-లో ప్రచురించినవి',
+  'src.udyamList': 'ఉద్యమ్ నమోదులు, data.gov.in-లో ప్రచురించినవి',
+  'src.udyamAggregate': 'ఎంఎస్ఎంఈ మంత్రిత్వ శాఖ జిల్లాల వారీ ఉద్యమ్ నమోదుల లెక్క, data.gov.in-లో ప్రచురించినది',
+
+  'mknote.ourGrouping': 'నమోదైన ఏ రకాల పనులను ఈ అంకెలో లెక్కించాలో మేమే ఎంచుకున్నాం.',
+  'mknote.ministryServices': 'ఇది నమోదైన సేవా వ్యాపారాలకు మంత్రిత్వ శాఖ స్వంత లెక్క. ఇందులో దుకాణాలు, వ్యాపారులు కూడా ఉండవచ్చు.',
+  'mknote.ministryManufacturing': 'ఇది నమోదైన తయారీ వ్యాపారాలకు మంత్రిత్వ శాఖ స్వంత లెక్క. ఇందులో ప్రతి వ్యాపారాన్ని దాని ముఖ్యమైన పనిని బట్టి ఒక్కసారి మాత్రమే లెక్కిస్తారు.',
+  'mknote.dairyProducts': 'ఇందులో నెయ్యి, పనీర్, ప్యాకెట్ పాలు వంటి పాల ఉత్పత్తులను తయారుచేసే నమోదైన వ్యాపారాలను లెక్కించారు. ఆవులు, గేదెల పెంపకాన్ని ఇందులో లెక్కించలేదు.',
+
+  'cmd.wheat': 'గోధుమ',
+  'cmd.paddyCommon': 'వరి',
+  'cmd.potato': 'బంగాళాదుంప',
+  'cmd.onion': 'ఉల్లిపాయ',
+  'cmd.tomato': 'టమాటా',
+  'cmd.gingerGreen': 'పచ్చి అల్లం',
+  'cmd.greenChilli': 'పచ్చి మిరపకాయ',
+  'cmd.garlic': 'వెల్లుల్లి',
+  'cmd.mustard': 'ఆవాలు',
+  'cmd.corianderLeaves': 'కొత్తిమీర',
 }
 
 const ml = {
@@ -293,10 +363,25 @@ const ml = {
 
 
 
-  'seas.festivalWedding': 'ഉത്സവങ്ങളുടെയും കല്യാണങ്ങളുടെയും സമയത്ത് വിൽപ്പന കൂടാം.',
-  'seas.stableModerate': 'വർഷം മുഴുവൻ വിൽപ്പന മിക്കവാറും ഒരുപോലെയാണ്, സീസൺ അനുസരിച്ച് കുറച്ച് മാറും.',
-  'seas.variesByProduct': 'സാമാനം അനുസരിച്ചും, ആ സീസണിൽ ആളുകൾ എന്ത് വാങ്ങുന്നു എന്നതനുസരിച്ചും വിൽപ്പന മാറും.',
-  'src.prototypeEstimate': 'ഡെമോ കണക്ക് — മാതൃകാ സംഖ്യകൾ, യഥാർത്ഥ സർവേ അല്ല',
+  'src.agmarknetMandi': 'അഗ്മാർക്ക്നെറ്റിലേക്ക് അറിയിച്ച മണ്ടിയിലെ ദിവസേനയുള്ള വിലകൾ, data.gov.in-ൽ പ്രസിദ്ധീകരിച്ചത്',
+  'src.udyamList': 'ഉദ്യം രജിസ്ട്രേഷനുകൾ, data.gov.in-ൽ പ്രസിദ്ധീകരിച്ചത്',
+  'src.udyamAggregate': 'എംഎസ്എംഇ മന്ത്രാലയത്തിന്റെ ജില്ല തിരിച്ചുള്ള ഉദ്യം രജിസ്ട്രേഷൻ എണ്ണം, data.gov.in-ൽ പ്രസിദ്ധീകരിച്ചത്',
+
+  'mknote.ourGrouping': 'രജിസ്റ്റർ ചെയ്ത ഏതൊക്കെ തരം ജോലികൾ ഈ കണക്കിൽ എണ്ണണം എന്ന് ഞങ്ങളാണ് തീരുമാനിച്ചത്.',
+  'mknote.ministryServices': 'ഇത് രജിസ്റ്റർ ചെയ്ത സേവന സംരംഭങ്ങളുടെ മന്ത്രാലയത്തിന്റെ സ്വന്തം കണക്കാണ്. ഇതിൽ കടകളും കച്ചവടക്കാരും ഉൾപ്പെട്ടേക്കാം.',
+  'mknote.ministryManufacturing': 'ഇത് രജിസ്റ്റർ ചെയ്ത നിർമ്മാണ സംരംഭങ്ങളുടെ മന്ത്രാലയത്തിന്റെ സ്വന്തം കണക്കാണ്. ഓരോ സംരംഭത്തെയും അതിന്റെ പ്രധാന ജോലി അനുസരിച്ച് ഒരു തവണ മാത്രമേ എണ്ണുന്നുള്ളൂ.',
+  'mknote.dairyProducts': 'നെയ്യ്, പനീർ, പാക്കറ്റ് പാൽ പോലുള്ള പാലുൽപ്പന്നങ്ങൾ ഉണ്ടാക്കുന്ന രജിസ്റ്റർ ചെയ്ത സംരംഭങ്ങളെയാണ് ഇതിൽ എണ്ണുന്നത്. പശുവിനെയോ എരുമയെയോ വളർത്തുന്ന ജോലി ഇതിൽ എണ്ണുന്നില്ല.',
+
+  'cmd.wheat': 'ഗോതമ്പ്',
+  'cmd.paddyCommon': 'നെല്ല്',
+  'cmd.potato': 'ഉരുളക്കിഴങ്ങ്',
+  'cmd.onion': 'ഉള്ളി',
+  'cmd.tomato': 'തക്കാളി',
+  'cmd.gingerGreen': 'പച്ച ഇഞ്ചി',
+  'cmd.greenChilli': 'പച്ചമുളക്',
+  'cmd.garlic': 'വെളുത്തുള്ളി',
+  'cmd.mustard': 'കടുക്',
+  'cmd.corianderLeaves': 'മല്ലിയില',
 }
 
 const kn = {
@@ -344,10 +429,25 @@ const kn = {
 
 
 
-  'seas.festivalWedding': 'ಹಬ್ಬ ಮತ್ತು ಮದುವೆ ಕಾಲದಲ್ಲಿ ಮಾರಾಟ ಹೆಚ್ಚಾಗಬಹುದು.',
-  'seas.stableModerate': 'ವರ್ಷವಿಡೀ ಮಾರಾಟ ಬಹುತೇಕ ಒಂದೇ ರೀತಿ ಇರುತ್ತದೆ, ಕಾಲಕ್ಕೆ ತಕ್ಕಂತೆ ಸ್ವಲ್ಪ ಬದಲಾಗುತ್ತದೆ.',
-  'seas.variesByProduct': 'ವಸ್ತುವಿಗೆ ತಕ್ಕಂತೆ, ಆ ಕಾಲದಲ್ಲಿ ಜನ ಏನು ಕೊಳ್ಳುತ್ತಾರೆ ಎಂಬುದಕ್ಕೆ ತಕ್ಕಂತೆ ಮಾರಾಟ ಬದಲಾಗುತ್ತದೆ.',
-  'src.prototypeEstimate': 'ಡೆಮೊ ಅಂದಾಜು — ಮಾದರಿ ಅಂಕಿಗಳು, ನಿಜವಾದ ಸರ್ವೆ ಅಲ್ಲ',
+  'src.agmarknetMandi': 'ಅಗ್‌ಮಾರ್ಕ್‌ನೆಟ್‌ಗೆ ತಿಳಿಸಿದ ಮಂಡಿಯ ದಿನನಿತ್ಯದ ದರಗಳು, data.gov.in-ನಲ್ಲಿ ಪ್ರಕಟಿಸಲಾಗಿದೆ',
+  'src.udyamList': 'ಉದ್ಯಮ್ ನೋಂದಣಿಗಳು, data.gov.in-ನಲ್ಲಿ ಪ್ರಕಟಿಸಲಾಗಿದೆ',
+  'src.udyamAggregate': 'ಎಂಎಸ್ಎಂಇ ಸಚಿವಾಲಯದ ಜಿಲ್ಲಾವಾರು ಉದ್ಯಮ್ ನೋಂದಣಿ ಎಣಿಕೆ, data.gov.in-ನಲ್ಲಿ ಪ್ರಕಟಿಸಲಾಗಿದೆ',
+
+  'mknote.ourGrouping': 'ನೋಂದಾಯಿತ ಯಾವ ಬಗೆಯ ಕೆಲಸಗಳನ್ನು ಈ ಅಂಕಿಯಲ್ಲಿ ಎಣಿಸಬೇಕು ಎಂದು ನಾವೇ ಆರಿಸಿದ್ದೇವೆ.',
+  'mknote.ministryServices': 'ಇದು ನೋಂದಾಯಿತ ಸೇವಾ ವ್ಯವಹಾರಗಳ ಬಗ್ಗೆ ಸಚಿವಾಲಯದ ಸ್ವಂತ ಎಣಿಕೆ. ಇದರಲ್ಲಿ ಅಂಗಡಿಗಳು ಮತ್ತು ವ್ಯಾಪಾರಿಗಳೂ ಸೇರಿರಬಹುದು.',
+  'mknote.ministryManufacturing': 'ಇದು ನೋಂದಾಯಿತ ತಯಾರಿಕಾ ವ್ಯವಹಾರಗಳ ಬಗ್ಗೆ ಸಚಿವಾಲಯದ ಸ್ವಂತ ಎಣಿಕೆ. ಇದು ಪ್ರತಿ ವ್ಯವಹಾರವನ್ನು ಅದರ ಮುಖ್ಯ ಕೆಲಸದ ಆಧಾರದ ಮೇಲೆ ಒಂದೇ ಸಲ ಎಣಿಸುತ್ತದೆ.',
+  'mknote.dairyProducts': 'ಇದರಲ್ಲಿ ತುಪ್ಪ, ಪನೀರ್, ಪ್ಯಾಕೆಟ್ ಹಾಲಿನಂತಹ ಹಾಲಿನ ಉತ್ಪನ್ನಗಳನ್ನು ತಯಾರಿಸುವ ನೋಂದಾಯಿತ ವ್ಯವಹಾರಗಳನ್ನು ಎಣಿಸಲಾಗಿದೆ. ಹಸು, ಎಮ್ಮೆ ಸಾಕುವ ಕೆಲಸವನ್ನು ಇದರಲ್ಲಿ ಎಣಿಸಿಲ್ಲ.',
+
+  'cmd.wheat': 'ಗೋಧಿ',
+  'cmd.paddyCommon': 'ಭತ್ತ',
+  'cmd.potato': 'ಆಲೂಗಡ್ಡೆ',
+  'cmd.onion': 'ಈರುಳ್ಳಿ',
+  'cmd.tomato': 'ಟೊಮೆಟೊ',
+  'cmd.gingerGreen': 'ಹಸಿ ಶುಂಠಿ',
+  'cmd.greenChilli': 'ಹಸಿ ಮೆಣಸಿನಕಾಯಿ',
+  'cmd.garlic': 'ಬೆಳ್ಳುಳ್ಳಿ',
+  'cmd.mustard': 'ಸಾಸಿವೆ',
+  'cmd.corianderLeaves': 'ಕೊತ್ತಂಬರಿ ಸೊಪ್ಪು',
 }
 
 const mr = {
@@ -395,10 +495,25 @@ const mr = {
 
 
 
-  'seas.festivalWedding': 'सण आणि लग्नाच्या हंगामात विक्री वाढू शकते।',
-  'seas.stableModerate': 'वर्षभर विक्री बहुतेक सारखीच राहते, हंगामानुसार थोडी बदलते।',
-  'seas.variesByProduct': 'वस्तूनुसार, आणि त्या हंगामात लोक काय घेतात त्यानुसार विक्री बदलते।',
-  'src.prototypeEstimate': 'डेमो अंदाज — नमुन्याचे आकडे, खरे सर्वेक्षण नाही',
+  'src.agmarknetMandi': 'एगमार्कनेटला कळवलेले मंडीतील रोजचे भाव, data.gov.in वर प्रकाशित',
+  'src.udyamList': 'उद्यम नोंदणी, data.gov.in वर प्रकाशित',
+  'src.udyamAggregate': 'एमएसएमई मंत्रालयाची जिल्हानिहाय उद्यम नोंदणीची संख्या, data.gov.in वर प्रकाशित',
+
+  'mknote.ourGrouping': 'नोंदवलेल्या कोणत्या प्रकारच्या कामांना या आकड्यात मोजायचे, हे आम्ही ठरवले आहे।',
+  'mknote.ministryServices': 'ही नोंदवलेल्या सेवा व्यवसायांची मंत्रालयाची स्वतःची मोजणी आहे। यात दुकाने आणि व्यापारीही असू शकतात।',
+  'mknote.ministryManufacturing': 'ही नोंदवलेल्या उत्पादन व्यवसायांची मंत्रालयाची स्वतःची मोजणी आहे। यात प्रत्येक व्यवसाय त्याच्या मुख्य कामानुसार एकदाच मोजला जातो।',
+  'mknote.dairyProducts': 'यात तूप, पनीर किंवा पिशवीतील दूध असे दुधाचे पदार्थ बनवणारे नोंदवलेले व्यवसाय मोजले आहेत। गाई-म्हशी पाळण्याचे काम यात मोजलेले नाही।',
+
+  'cmd.wheat': 'गहू',
+  'cmd.paddyCommon': 'भात',
+  'cmd.potato': 'बटाटा',
+  'cmd.onion': 'कांदा',
+  'cmd.tomato': 'टोमॅटो',
+  'cmd.gingerGreen': 'ओले आले',
+  'cmd.greenChilli': 'हिरवी मिरची',
+  'cmd.garlic': 'लसूण',
+  'cmd.mustard': 'मोहरी',
+  'cmd.corianderLeaves': 'कोथिंबीर',
 }
 
 const bn = {
@@ -446,10 +561,25 @@ const bn = {
 
 
 
-  'seas.festivalWedding': 'উৎসব আর বিয়ের সময় বিক্রি বাড়তে পারে।',
-  'seas.stableModerate': 'সারা বছর বিক্রি প্রায় একই থাকে, মৌসুম অনুযায়ী কিছুটা বদলায়।',
-  'seas.variesByProduct': 'জিনিস অনুযায়ী, আর সেই মৌসুমে লোকে কী কেনে তার উপর বিক্রি বদলায়।',
-  'src.prototypeEstimate': 'ডেমো হিসাব — নমুনা সংখ্যা, সত্যিকারের সমীক্ষা নয়',
+  'src.agmarknetMandi': 'অ্যাগমার্কনেটে জানানো মণ্ডির দৈনিক দাম, data.gov.in-এ প্রকাশিত',
+  'src.udyamList': 'উদ্যম নিবন্ধন, data.gov.in-এ প্রকাশিত',
+  'src.udyamAggregate': 'এমএসএমই মন্ত্রকের জেলাভিত্তিক উদ্যম নিবন্ধনের সংখ্যা, data.gov.in-এ প্রকাশিত',
+
+  'mknote.ourGrouping': 'নথিভুক্ত কোন কোন ধরনের কাজ এই সংখ্যায় গোনা হবে, তা আমরাই বেছে নিয়েছি।',
+  'mknote.ministryServices': 'এটি নথিভুক্ত পরিষেবা ব্যবসার মন্ত্রকের নিজস্ব গণনা। এতে দোকান আর ব্যবসায়ীরাও থাকতে পারেন।',
+  'mknote.ministryManufacturing': 'এটি নথিভুক্ত উৎপাদন ব্যবসার মন্ত্রকের নিজস্ব গণনা। এতে প্রতিটি ব্যবসাকে তার মূল কাজ ধরে একবারই গোনা হয়।',
+  'mknote.dairyProducts': 'এতে ঘি, পনির বা প্যাকেটের দুধের মতো দুগ্ধজাত জিনিস তৈরি করে এমন নথিভুক্ত ব্যবসা গোনা হয়েছে। গরু বা মোষ পালনের কাজ এতে গোনা হয়নি।',
+
+  'cmd.wheat': 'গম',
+  'cmd.paddyCommon': 'ধান',
+  'cmd.potato': 'আলু',
+  'cmd.onion': 'পেঁয়াজ',
+  'cmd.tomato': 'টমেটো',
+  'cmd.gingerGreen': 'কাঁচা আদা',
+  'cmd.greenChilli': 'কাঁচা লঙ্কা',
+  'cmd.garlic': 'রসুন',
+  'cmd.mustard': 'সরষে',
+  'cmd.corianderLeaves': 'ধনেপাতা',
 }
 
 export const BACKEND_STRINGS = { en, hi, ta, te, ml, kn, mr, bn }

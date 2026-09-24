@@ -10,7 +10,11 @@ router = APIRouter(
 )
 
 
-@router.post("/context", response_model=list[MarketContext])
+@router.post(
+    "/context",
+    response_model=list[MarketContext],
+    response_model_exclude_unset=True,
+)
 def market_context(request: MarketContextRequest):
     matches = get_market_context(
         request.state,
@@ -21,7 +25,7 @@ def market_context(request: MarketContextRequest):
     if not matches:
         raise HTTPException(
             status_code=404,
-            detail="No prototype market data found for the requested location and business category.",
+            detail="No market data found for the requested location and business category.",
         )
 
     return matches

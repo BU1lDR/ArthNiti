@@ -40,6 +40,12 @@ const BACKEND_SERVICES = 'backend/app/services'
 const SCHEMES_JSON = 'backend/app/data/schemes.json'
 const MARKET_JSON = 'backend/app/data/market_data.json'
 const BACKEND_TEXT = 'frontend/src/i18n/backendText.js'
+// The market fetch tool's own inputs. They are read directly rather than only
+// through market_data.json because that file can be empty (no fetch has run),
+// and a code the fetch WILL emit should fail here before any data carries it.
+const MARKET_LIB = 'tools/market-lib.mjs'
+const MARKET_NIC_MAP = 'tools/market-nic-map.json'
+const MARKET_COMMODITIES = 'tools/market-commodities.json'
 
 // --- what is defined -------------------------------------------------------
 // Same line-oriented parse parity4.mjs uses: `const en = {` opens a dict, and a
@@ -138,8 +144,24 @@ const collectDataCodes = (path) => {
 collectDataCodes(SCHEMES_JSON)
 collectDataCodes(MARKET_JSON)
 
+// 2b. Codes the market fetch tool writes into rows it has not produced yet.
+//     market-lib.mjs spells every source_code and note_code out as a literal
+//     (SOURCE_EN / NOTE_EN), and the NIC map carries the per-category note_code.
+//     A missing file throws rather than being skipped: an absent input is not
+//     the same as a clean one.
+readFileSync(MARKET_LIB, 'utf8')
+  .split(/\r?\n/)
+  .forEach((line, i) => {
+    for (const m of line.matchAll(/['"]((?:src|mknote)\.[A-Za-z]+)['"]/g)) {
+      noteBackend(m[1], `${MARKET_LIB}:${i + 1}`)
+    }
+  })
+for (const [category, entry] of Object.entries(JSON.parse(readFileSync(MARKET_NIC_MAP, 'utf8')).categories)) {
+  if (entry.note_code) noteBackend(entry.note_code, `${MARKET_NIC_MAP} (${category}.note_code)`)
+}
+
 // 3. Enum-shaped VALUES the frontend maps to a key. These do not travel as
-//    codes: backendText.js holds CATEGORY_KEYS and LEVEL_KEYS/LEVEL_NOTE_KEYS,
+//    codes: backendText.js holds CATEGORY_KEYS, LEVEL_KEYS and COMMODITY_KEYS,
 //    and a value with no entry in the map falls back to the raw English word
 //    dropped into an otherwise-translated sentence. So the failure is a missing
 //    MAP ENTRY rather than a missing dictionary key, and only comparing the map
@@ -191,6 +213,29 @@ checkMapped(
   'scheme level',
   ['lvl.', 'lvlnote.'],
 )
+// A mandi row's crop, by commodity_id. The union of the ids already in the data
+// and the ids the fetch is allowed to write, so a commodity added to the fetch
+// list is caught before its first row lands. The list also names the key it
+// expects (`cmd`); a map entry pointing somewhere else is the same drift.
+const commodityList = JSON.parse(readFileSync(MARKET_COMMODITIES, 'utf8')).commodities
+checkMapped(
+  'COMMODITY_KEYS',
+  new Set([
+    ...JSON.parse(readFileSync(MARKET_JSON, 'utf8')).map((r) => r.commodity_id).filter(Boolean),
+    ...commodityList.map((c) => c.id),
+  ]),
+  'market commodity',
+  [''],
+)
+const commodityMap = mapEntries('COMMODITY_KEYS')
+for (const c of commodityList) {
+  if (commodityMap?.has(c.id) && c.cmd && commodityMap.get(c.id) !== c.cmd) {
+    unmappedValues.push(
+      `  market commodity ${JSON.stringify(c.id)} maps to ${commodityMap.get(c.id)} in COMMODITY_KEYS ` +
+        `but ${MARKET_COMMODITIES} says ${c.cmd}`,
+    )
+  }
+}
 // The catch-all arm of both helpers, reachable only through the `|| 'other'`
 // fallback rather than through any level in the file, so no sweep of the data
 // finds it. Named here so it does not read as an orphan key.
@@ -234,7 +279,7 @@ if (unmappedValues.length) {
   console.log(`for. It renders as the raw English word inside a translated sentence:`)
   for (const line of unmappedValues) console.log(line)
 } else {
-  console.log('every scheme category and level maps to a key')
+  console.log('every scheme category, level and market commodity maps to a key')
 }
 
 // Unused means referenced by NEITHER side. Before the backend half existed this

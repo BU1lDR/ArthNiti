@@ -55,3 +55,6 @@ screenshots/
 *.sqlite3
 *.db
 *.pkl
+
+# ---- Market data fetch cache and logs ----
+.market-cache/
