@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
 import { BarGroup } from '../components/Charts'
-import { runAnalysis } from '../services/api'
+import { MAX_RUPEES } from '../data/limits'
+import { isAbortError, runAnalysis } from '../services/api'
 import { useI18n } from '../i18n/LanguageContext'
 
 const fieldClass = 'mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-base text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary-strong)]'
@@ -31,10 +32,26 @@ function hasNumber(value) {
   return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
 }
 
+// Payload fields that are echoed back rather than computed from. Changing one
+// (the language switcher in the top bar, say) does not make a result wrong,
+// which is also why AppContext does not clear the result for them.
+const ECHOED_FIELDS = new Set(['user_language', 'preferred_dialect', 'literacy_level'])
+
+// The answers a payload carries, as one comparable string. Sorted, so the same
+// answers always give the same string whatever order the object was built in.
+function answersKey(payload) {
+  return JSON.stringify(
+    Object.entries(payload)
+      .filter(([field]) => !ECHOED_FIELDS.has(field))
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+  )
+}
+
 function FinancePage() {
   const { applicationData, updateSection, setResult } = useApp()
   const { t, apiLanguage, apiDialect } = useI18n()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [loading, setLoading] = useState(false)
   // The whole Error, not a finished sentence. api.js throws a translation code
   // plus the fields it names, and the banner is resolved at render time — so a
@@ -42,6 +59,31 @@ function FinancePage() {
   // change with everything else instead of being left with the sentence that
   // happened to be current when the request failed.
   const [error, setError] = useState(null)
+  // True when a response came back for answers that had changed while it was
+  // out, so it was thrown away. The button is ready again at that point, and
+  // with nothing said the reader sees the check end and nothing happen.
+  const [stale, setStale] = useState(false)
+
+  // The request in flight, so it can be cancelled when the reader leaves this
+  // page. Without this a slow answer arriving after they had gone on to another
+  // step still called setResult and navigate('/analysis'), pulling them off the
+  // page they were on.
+  const requestRef = useRef(null)
+  // Set inside the effect rather than at declaration: StrictMode mounts, unmounts
+  // and mounts again in development, and the cleanup in between sets it false.
+  const mountedRef = useRef(false)
+  const pathRef = useRef(pathname)
+  const latestAnswersRef = useRef('')
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    return () => {
+      mountedRef.current = false
+      requestRef.current?.abort()
+      requestRef.current = null
+    }
+  }, [])
 
   const finance = applicationData.finance
   const business = applicationData.business
@@ -105,42 +147,94 @@ function FinancePage() {
     : business.category
   const marketTypes = Array.isArray(location.marketType) ? location.marketType : []
 
+  const payload = {
+    business_category: businessCategory,
+    state: location.state,
+    district: location.district || '',
+    village: location.village || '',
+    market_type: marketTypes.join(', '),
+    customers: location.customers || '',
+    available_capital: availableCapital,
+    monthly_expenses: monthlyExpenses,
+    expected_monthly_revenue: monthlyRevenue,
+    monthly_emi: monthlyEmi,
+    // Optional, and a blank answer is sent as null, never as 0. A 0 would be a
+    // household with no income at all, and the backend would then say every
+    // repayment is more than half of it. null tells it the question was not
+    // answered, so it says the check was not done.
+    household_monthly_income: String(finance.householdIncome ?? '').trim() === '' ? null : Number(finance.householdIncome),
+    initial_investment: investment,
+    monthly_operating_expenses: Number(business.monthlyOperatingExpenses) || 0,
+    employees: Number(business.employees) || 0,
+    existing_debt: Number(business.existingDebt) || 0,
+    // The language context is authoritative here, not `profile`: the header
+    // switcher can change the language without the profile form being touched.
+    user_language: apiLanguage,
+    preferred_dialect: apiDialect,
+    literacy_level: profile.literacyLevel || 'low',
+    location_type: location.locationType || 'rural',
+  }
+
+  const answers = answersKey(payload)
+
+  // After every render, so an answer changed while the request is out is seen
+  // by the time the response comes back. Refs are written here and not during
+  // render, which is where React expects them to be written.
+  useLayoutEffect(() => {
+    latestAnswersRef.current = answers
+    pathRef.current = pathname
+  })
+
   const handleContinue = async (event) => {
     event.preventDefault()
+
+    requestRef.current?.abort()
+    const controller = new AbortController()
+    requestRef.current = controller
+
     setLoading(true)
     setError(null)
+    setStale(false)
 
-    const payload = {
-      business_category: businessCategory,
-      state: location.state,
-      district: location.district || '',
-      village: location.village || '',
-      market_type: marketTypes.join(', '),
-      customers: location.customers || '',
-      available_capital: availableCapital,
-      monthly_expenses: monthlyExpenses,
-      expected_monthly_revenue: monthlyRevenue,
-      monthly_emi: monthlyEmi,
-      initial_investment: investment,
-      monthly_operating_expenses: Number(business.monthlyOperatingExpenses) || 0,
-      employees: Number(business.employees) || 0,
-      existing_debt: Number(business.existingDebt) || 0,
-      // The language context is authoritative here, not `profile`: the header
-      // switcher can change the language without the profile form being touched.
-      user_language: apiLanguage,
-      preferred_dialect: apiDialect,
-      literacy_level: profile.literacyLevel || 'low',
-      location_type: location.locationType || 'rural',
-    }
+    const sent = answers
+    const sentFrom = pathname
 
     try {
-      const result = await runAnalysis(payload)
+      const result = await runAnalysis(payload, { signal: controller.signal })
+
+      if (controller.signal.aborted || !mountedRef.current) return
+
+      // The fields stay editable while the check runs. If an answer changed in
+      // that time, this result describes answers that are no longer on the page,
+      // and storing it would show them as though they were the current ones. The
+      // button is ready again, and the page says so, so the reader checks the
+      // new answers instead.
+      if (latestAnswersRef.current !== sent) {
+        setStale(true)
+        return
+      }
+
       setResult(result)
-      navigate('/analysis')
+
+      if (mountedRef.current && pathRef.current === sentFrom) navigate('/analysis')
     } catch (err) {
+      // Leaving the page cancels the request. That is not a failure, and there
+      // is nobody left on this page to read a banner about it.
+      if (isAbortError(err) || controller.signal.aborted || !mountedRef.current) return
+      // An error about answers that have since changed would point the reader
+      // at something they may already have fixed. They are told to check again
+      // instead, the same as for a result that arrived too late.
+      if (latestAnswersRef.current !== sent) {
+        setStale(true)
+        return
+      }
+
       setError(err)
     } finally {
-      setLoading(false)
+      if (requestRef.current === controller) {
+        requestRef.current = null
+        if (mountedRef.current) setLoading(false)
+      }
     }
   }
 
@@ -227,9 +321,30 @@ function FinancePage() {
             <details className="ui-disclosure mt-6">
               <summary><span aria-hidden="true">💳</span> {t('finance.emiSummary')}</summary>
               <div className="ui-disclosure-body">
-                <InputField label={`${t('finance.emi')} (₹)`} name="monthlyEmi" value={finance.monthlyEmi} onChange={handleChange} placeholder={t('finance.emiPh')} />
+                <InputField label={t('finance.emi')} name="monthlyEmi" value={finance.monthlyEmi} onChange={handleChange} placeholder={t('finance.emiPh')} hint={t('finance.emiHint')} />
               </div>
             </details>
+
+            {/* Beside the loan question, and outside its disclosure on purpose:
+                someone with no loan today still needs one for any money the plan
+                is short of, and the household check counts that loan too, so
+                hiding this behind "do you have a loan?" would skip them.
+
+                No live preview. The share of household income that goes on
+                repayments needs the estimated loan for the gap, which the backend
+                prices, and a second copy of that arithmetic here could disagree
+                with the one on /analysis. Blank is sent as null, not 0. */}
+            <div className="mt-6">
+              <InputField
+                label={t('finance.householdIncome')}
+                name="householdIncome"
+                value={finance.householdIncome ?? ''}
+                onChange={handleChange}
+                placeholder="e.g. 20000"
+                hint={t('finance.householdIncomeHint')}
+                optionalText={t('common.optional')}
+              />
+            </div>
           </div>
         </div>
 
@@ -288,7 +403,27 @@ function FinancePage() {
           />
         </div>
 
+        {/* Said here, beside the button that sends the answers, because this is
+            the step where the money figures are entered. It has to match what
+            AppContext does: sessionStorage, so a refresh keeps the answers and a
+            closed tab normally loses them. "Normally", because a browser can
+            restore a closed tab together with what it had stored. */}
+        <p className="text-sm text-[var(--color-text-muted)]">
+          {/* The button's name only. The ↺ is the icon's own glyph and is
+              aria-hidden on the button, so pasted into the sentence it was read
+              out as a symbol and sat mid-word in scripts that have no space. */}
+          {t('finance.privacyNote', { button: t('common.startOver') })}
+        </p>
+
         {error && <div role="alert" className="ui-notice ui-notice-danger font-semibold text-[var(--color-danger)]">{errorText(error)}</div>}
+
+        {/* Always in the page, and only its text changes: a live region that is
+            inserted together with its message is often not announced, because
+            the screen reader was not yet watching it. Hidden but present until
+            there is something to say. */}
+        <div role="status" className={stale ? 'ui-notice ui-notice-warn font-semibold' : 'sr-only'}>
+          {stale ? t('finance.changedWhileChecking', { button: t('finance.submit') }) : null}
+        </div>
 
         {/* The arrow is decoration. Concatenated into the label it became part of
             the button's accessible name, which a screen reader reads out as
@@ -305,7 +440,15 @@ function FinancePage() {
 // ui-field, not block: each of these shares a grid row with a preview card that
 // stretches to the row's full height, so without it the box floats above the card's
 // bottom edge with dead space beneath it. See index.css.
-function InputField({ label, name, value, onChange, placeholder, hint, required = false }) {
+//
+// Every question on this page is an amount of money, so the ₹ sits inside the box
+// the same way BusinessPage's MoneyField puts it there, and for the same reasons:
+// see .ui-money-field in index.css. The marker is aria-hidden because each question
+// already names money in words.
+//
+// `optionalText` marks a question that may be left blank. It is part of the label,
+// so a screen reader hears it with the question rather than never at all.
+function InputField({ label, name, value, onChange, placeholder, hint, required = false, optionalText }) {
   return (
     <label className="ui-field">
       <span className="font-extrabold">
@@ -313,9 +456,13 @@ function InputField({ label, name, value, onChange, placeholder, hint, required 
         {/* No space before the asterisk — it would be a place to break the line, and
             the marker would end up alone under a question that wrapped. */}
         {required && <span className="ui-required" aria-hidden="true">*</span>}
+        {optionalText && <span className="ml-2 inline-block text-sm font-bold text-[var(--color-text-muted)]">{optionalText}</span>}
       </span>
       {hint && <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{hint}</span>}
-      <input name={name} value={value} onChange={onChange} type="number" min="0" placeholder={placeholder} required={required} className={fieldClass} />
+      <span className="ui-money-field">
+        <span className="ui-money-prefix" aria-hidden="true">₹</span>
+        <input name={name} value={value} onChange={onChange} type="number" min="0" max={MAX_RUPEES} placeholder={placeholder} required={required} className={fieldClass} />
+      </span>
     </label>
   )
 }

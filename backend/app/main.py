@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.routes import health
 from app.api.routes import entrepreneur
@@ -28,6 +30,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# A 422 body carries only each error's type, loc and msg. FastAPI's own handler
+# also echoes the rejected `input` and pydantic's `ctx`, and both break things:
+# an Infinity or NaN input cannot be written as JSON, so the reply to a bad
+# number became a 500 instead of a 422; and `input` sends a reader's own figures
+# back in an error body that may be logged. `ctx` is dropped with it, since
+# `msg` already says what the limit is. `loc` stays, because
+# frontend/src/services/api.js names the field to fix from its last element.
+def _public_error(error):
+    loc = error.get("loc") or ()
+
+    return {
+        "type": str(error.get("type", "")),
+        "loc": [part if isinstance(part, (str, int)) else str(part) for part in loc],
+        "msg": str(error.get("msg", "")),
+    }
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": [_public_error(error) for error in exc.errors()]},
+    )
 
 
 app.include_router(health.router)

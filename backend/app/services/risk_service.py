@@ -6,6 +6,31 @@
 ASSUMED_ANNUAL_INTEREST_PERCENT = 12
 ASSUMED_TENURE_MONTHS = 60
 
+# The household check, from the Reserve Bank of India's microfinance directions
+# (Regulatory Framework for Microfinance Loans, 2022). Every regulated lender
+# must have a board-approved policy capping a household's monthly loan
+# repayments at 50% of its monthly household income (para 5.1), counting the
+# repayments, principal and interest, of ALL the household's outstanding loans,
+# microfinance or not, plus the proposed one (para 5.2); a household already
+# over the cap gets no new loan until it is back within it (para 5.3). A
+# microfinance loan is a collateral-free loan to a household earning up to
+# ₹3,00,000 a year (para 3.1), where the household is husband, wife and their
+# unmarried children.
+#
+# The rule binds regulated lenders for microfinance loans. It does not bind a
+# household above ₹3,00,000 a year, or a loan that is not microfinance, so the
+# response says whether the household is in that range rather than calling
+# anything compliant. And the new loan inside the total is priced at the
+# assumption above, not at any lender's terms, so the result is an estimate of
+# the test a lender would run, never a statement that one will lend.
+#
+# Annex I assesses household income over the past year, from all sources. It is
+# silent on income expected from the activity being financed, and a new
+# activity has no past income, so the figure compared here is the household's
+# own, asked for separately, and never the business's expected revenue.
+HOUSEHOLD_REPAYMENT_LIMIT_PERCENT = 50
+MICROFINANCE_ANNUAL_INCOME_LIMIT = 300000
+
 
 def estimate_monthly_repayment(
     principal: float,
@@ -66,21 +91,105 @@ _REASONS = {
 }
 
 
+# household_check -> (household_reason, household_reason_code), on the same
+# pattern as _REASONS.
+_HOUSEHOLD_REASONS = {
+    "within_limit": (
+        "Loan repayments are no more than half of the household's monthly income.",
+        "rsn.householdWithin",
+    ),
+    "over_limit": (
+        "Loan repayments are more than half of the household's monthly income.",
+        "rsn.householdOver",
+    ),
+    "not_checked": (
+        "Household income was not given, so loan repayments were not checked against it.",
+        "rsn.householdNotChecked",
+    ),
+}
+
+
+def _household_share(monthly_repayment: float, household_monthly_income: float | None):
+    # Returns (percent, check). Every comparison is guarded: an income that was
+    # not given is None, and `None <= 0` is a TypeError in Python 3.
+    if household_monthly_income is None:
+        return None, "not_checked"
+
+    # No income to take a share of, so there is no percentage to print. Any
+    # repayment at all is then more than half of nothing; no repayment is not.
+    if household_monthly_income <= 0:
+        return None, "over_limit" if monthly_repayment > 0 else "within_limit"
+
+    # Round once, then classify on the rounded value, for the same reason as the
+    # pressure ratio below: the figure printed and the verdict beside it must
+    # come from one number. So 50.004% prints as 50% and is within the limit,
+    # and exactly 50% is within it too, because the cap is "no more than" half.
+    percent = round((monthly_repayment / household_monthly_income) * 100, 2)
+    if percent > HOUSEHOLD_REPAYMENT_LIMIT_PERCENT:
+        return percent, "over_limit"
+    return percent, "within_limit"
+
+
+def _household_terms(
+    monthly_emi: float,
+    total_monthly_emi: float,
+    household_monthly_income: float | None,
+):
+    # The check counts every repayment the household would make: the EMI it
+    # already pays plus the estimated loan for the funding gap (para 5.2 counts
+    # the proposed loan). `existing_debt` stays out for the reason given in
+    # calculate_repayment_pressure. The without-new-loan check is on the EMI
+    # alone, so mvp_service can tell "the loans you already have are too heavy
+    # for the household" from "the loan for the gap would make them too heavy".
+    percent, check = _household_share(total_monthly_emi, household_monthly_income)
+    _, check_without_new_loan = _household_share(monthly_emi, household_monthly_income)
+    reason, reason_code = _HOUSEHOLD_REASONS[check]
+
+    if household_monthly_income is None:
+        in_microfinance_range = None
+    else:
+        in_microfinance_range = (
+            household_monthly_income * 12 <= MICROFINANCE_ANNUAL_INCOME_LIMIT
+        )
+
+    return {
+        "household_monthly_income": household_monthly_income,
+        "household_repayment_percent": percent,
+        "household_check": check,
+        "household_check_without_new_loan": check_without_new_loan,
+        "household_limit_percent": HOUSEHOLD_REPAYMENT_LIMIT_PERCENT,
+        "household_microfinance_income_limit": MICROFINANCE_ANNUAL_INCOME_LIMIT,
+        "household_in_microfinance_range": in_microfinance_range,
+        "household_reason": reason,
+        "household_reason_code": reason_code,
+    }
+
+
 def calculate_repayment_pressure(
     monthly_surplus: float,
     monthly_emi: float,
     funding_gap: float = 0,
+    household_monthly_income: float | None = None,
 ):
     # A funding gap is money the plan needs and the entrepreneur does not have.
     # It used to be computed and then ignored here, so someone with no capital
     # against a ₹5 lakh plan and no current loan read as "low" risk and was told
     # to keep going. The gap is priced as the loan that would fill it and added
     # to the EMI they already pay. That is not double counting: the EMI question
-    # on /finance asks about loans they already have, and this is a new one.
+    # on /finance asks for the monthly repayment of every loan the household
+    # already has, and this is a new one.
     #
-    # `existing_debt` is deliberately not added. Its repayment is the EMI the
-    # entrepreneur has already entered, so counting the debt as well would count
-    # the same loan twice.
+    # The EMI is household-wide because the household check below needs every
+    # loan the household repays (RBI para 5.2). Dividing a household EMI by the
+    # business surplus is consistent, not a mix of scopes: monthly_surplus is
+    # revenue minus `monthly_expenses`, and that question asks for everything
+    # spent each month, home and family costs included. What it does not see is
+    # another earner's wages paying their own loan; those raise the pressure
+    # figure, which errs towards caution.
+    #
+    # `existing_debt` is deliberately not added. It is the outstanding amount of
+    # a business loan whose monthly repayment is already inside the EMI entered,
+    # so counting the debt as well would count the same loan twice.
     estimated_new_emi = estimate_monthly_repayment(funding_gap)
     total_monthly_emi = round(monthly_emi + estimated_new_emi, 2)
 
@@ -92,6 +201,12 @@ def calculate_repayment_pressure(
         "assumed_tenure_months": ASSUMED_TENURE_MONTHS,
     }
 
+    # The household check does not depend on the business surplus, so it is
+    # computed before the early return and travels on both paths. A household
+    # with no business surplus can still be told whether its loans fit its
+    # income, and the frontend reads these keys without guarding for absence.
+    household = _household_terms(monthly_emi, total_monthly_emi, household_monthly_income)
+
     if monthly_surplus <= 0:
         return {
             "pressure_ratio_percent": None,
@@ -100,6 +215,7 @@ def calculate_repayment_pressure(
             "reason": "There is no positive monthly surplus available for repayment.",
             "reason_code": "rsn.noSurplus",
             **terms,
+            **household,
         }
 
     # Round once, then classify on the rounded value. Classifying on the raw ratio
@@ -126,4 +242,5 @@ def calculate_repayment_pressure(
         "reason": reason,
         "reason_code": reason_code,
         **terms,
+        **household,
     }

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useApp } from '../context/AppContext'
+import { firstUnansweredStep, isStarted, useApp } from '../context/AppContext'
 import Button from '../components/Button'
 import { BarGroup, BarRow, UnitChart } from '../components/Charts'
 import { schemeFitItems } from '../components/chartData'
@@ -8,27 +8,37 @@ import { useBackendText } from '../i18n/backendText'
 import { APP_NAME } from '../i18n/brand'
 
 function AnalysisPage() {
-  const { applicationData } = useApp()
+  const { applicationData, resultCleared } = useApp()
   const { t } = useI18n()
   // Turns the code fields on the response into the chosen language. Falls back to
   // the English sentence the backend sent, never to a dotted code.
   const bt = useBackendText()
   const result = applicationData.result
 
+  // The same empty state on all four result pages. The button goes to the first
+  // step that still needs an answer, and to /finance, where the check is run,
+  // once every step has one. When an edited answer threw a result away, the page
+  // says so, rather than reading as though nothing was ever checked.
   if (!result) {
+    const nextStep = firstUnansweredStep(applicationData) ?? '/finance'
     return (
       <div className="mx-auto max-w-3xl">
-        <section className="ui-card p-5 text-center sm:p-8">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-surface-soft)] text-3xl" aria-hidden="true">
+        <Link to="/finance" className="inline-flex min-h-11 min-w-11 items-center text-sm font-semibold text-[var(--color-primary-strong)] hover:underline">
+          <span aria-hidden="true">←</span> {t('res.backFinance')}
+        </Link>
+        <section className="ui-card mt-8 text-center sm:p-8">
+          <div className="ui-feature-icon mx-auto" aria-hidden="true">
             📋
           </div>
-          <h1 className="mt-5 text-2xl font-bold text-[var(--color-text)] sm:text-3xl">
-            {t('res.notReady')}
+          <h1 className="mt-4 text-2xl font-bold text-[var(--color-text)]">
+            {resultCleared ? t('res.changedTitle') : t('res.notReady')}
           </h1>
-          <p className="mx-auto mt-3 max-w-xl text-[var(--color-text-muted)]">
-            {t('res.notReadyText')}
+          <p className="mx-auto mt-3 max-w-xl leading-7 text-[var(--color-text-muted)]">
+            {resultCleared ? t('res.changedText', { button: t('finance.submit') }) : t('res.notReadyText')}
           </p>
-          <Button to="/profile" className="mt-6">{t('res.start')}</Button>
+          <Button to={nextStep} className="mt-6">
+            {resultCleared ? t('res.changedButton') : isStarted(applicationData) ? t('res.finish') : t('res.start')}
+          </Button>
         </section>
       </div>
     )
@@ -229,11 +239,11 @@ function AnalysisPage() {
                 nothing else: the EMI is a separate input, and risk_service
                 divides the EMI *by* this figure. So it must not be captioned
                 "after the loan payment" (an.afterEmi / money.afterExpenses both
-                say that and both overstate what is left). Until a key exists for
-                "after your monthly spending", the two existing labels spell the
-                subtraction out, which is accurate in every language. */}
+                say that and both overstate what is left). an.leftFormula says
+                the subtraction as one whole sentence per language, rather than
+                two labels joined by a minus sign in the JSX. */}
             <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-              {t('f.income')} − {t('f.spending')}
+              {t('an.leftFormula')}
             </p>
           </div>
         </div>
@@ -286,8 +296,8 @@ function AnalysisPage() {
                   marks={[{ at: 0.3 }, { at: 0.5 }]}
                 />
                 <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs font-semibold text-[var(--color-text-muted)]">
-                  <span>{t('ch.safe')} · 30%</span>
-                  <span>{t('ch.heavy')} · 50%</span>
+                  <span>{t('ch.safeUnder')}</span>
+                  <span>{t('ch.heavyOver')}</span>
                 </div>
                 <p className="ui-chart-caption">{t('ch.pressureCaption')}</p>
                 {newLoanNote && <p className="ui-chart-caption">{newLoanNote}</p>}
@@ -300,6 +310,17 @@ function AnalysisPage() {
               </p>
             )}
           </div>
+
+          {/* Beside the pressure chart because it is the same loan payments,
+              measured against the household's income instead of the business
+              surplus. Absent from a response written before the check existed,
+              so the gate is on the field itself. */}
+          {hasHouseholdCheck(risk) && (
+            <div className="mt-7 border-t border-[var(--color-border)] pt-6">
+              <ChartTitle title={t('ch.householdTitle')} />
+              <HouseholdCheck risk={risk} t={t} bt={bt} termsShownAbove={hasNumber(pressure) && Boolean(newLoanNote)} />
+            </div>
+          )}
         </div>
 
         <div className="ui-card min-w-0 p-5 sm:p-8">
@@ -336,7 +357,7 @@ function AnalysisPage() {
                 total={10}
                 icon="🪙"
                 label={t('ch.coinLabel', { n: coins })}
-                ariaLabel={`${t('ch.coinLabel', { n: coins })} — ${formatPercent(margin, t)}`}
+                ariaLabel={t('ch.coinAria', { n: coins, percent: formatPercent(margin, t) })}
               />
             </div>
           )}
@@ -508,6 +529,65 @@ function DetailRow({ label, value }) {
       <span className="min-w-0 break-words text-sm text-[var(--color-text-muted)]">{label}</span>
       <span className="min-w-0 max-w-full break-words text-right text-sm font-bold text-[var(--color-text)]">{value}</span>
     </div>
+  )
+}
+
+// The household check from risk_service: every loan payment, the estimated loan
+// for the money still needed included, against the monthly household income the
+// reader gave. The limit, the income ceiling and whether the RBI rule covers this
+// household all come from the response, so the page cannot disagree with the
+// backend about which rule applies. It is an estimate, never a lender's decision:
+// within the limit is drawn neutral rather than green, and no line says anyone is
+// eligible or will lend. `termsShownAbove` is true when the pressure chart just
+// above already printed the assumed rate and tenure, so they are not said twice.
+// Kept in step with the copies on /advisory and /report.
+function HouseholdCheck({ risk, t, bt, termsShownAbove }) {
+  const check = String(risk.household_check).trim()
+  if (check === 'not_checked') {
+    return (
+      <p className="mt-2 break-words text-sm leading-6 text-[var(--color-text)]">
+        {t('ch.householdNotChecked', { step: t('nav.finance') })}
+      </p>
+    )
+  }
+  const percent = risk.household_repayment_percent
+  const limit = risk.household_limit_percent
+  const limitText = hasNumber(limit) ? Number(limit).toLocaleString('en-IN') : null
+  const key = HOUSEHOLD_KEYS[check.toLowerCase()]
+  const label = key && limitText ? t(key, { limit: limitText }) : titleCaseEnum(check)
+  const isOver = check.toLowerCase() === 'over_limit'
+  const reason = bt.householdReason(risk)
+  const newLoanNote = householdLoanNote(risk, t, termsShownAbove)
+  const rbiNote = householdRbiNote(risk, limitText, t)
+  return (
+    <>
+      <p className={`break-words text-sm font-bold ${isOver ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}>{label}</p>
+      {hasNumber(percent) ? (
+        <>
+          <p className="mt-2 break-words text-sm leading-6 text-[var(--color-text)]">
+            {t('ch.householdPercent', { percent: formatPercent(percent, t) })}
+          </p>
+          <div className="mt-3">
+            <BarRow
+              label={t('ch.householdBar')}
+              icon="🏠"
+              valueText={formatPercent(percent, t)}
+              fraction={Number(percent) / 100}
+              tone={isOver ? 'bad' : 'neutral'}
+              marks={limitText ? [{ at: Number(limit) / 100 }] : []}
+            />
+          </div>
+          {limitText && <p className="ui-chart-caption">{t('ch.householdCaption', { limit: limitText })}</p>}
+        </>
+      ) : (
+        // An income of 0 has no percent to print. The backend sentence still
+        // says which side of the limit the payments fall on.
+        reason && <p className="mt-2 break-words text-sm leading-6 text-[var(--color-text)]">{reason}</p>
+      )}
+      {newLoanNote && <p className="ui-chart-caption">{newLoanNote}</p>}
+      <p className="ui-chart-caption">{t('ch.householdEstimate')}</p>
+      {rbiNote && <p className="mt-3 break-words text-sm leading-6 text-[var(--color-text)]">{rbiNote}</p>}
+    </>
   )
 }
 
@@ -711,7 +791,7 @@ function SchemeCard({ scheme, t, bt }) {
 
       {Array.isArray(scheme.eligibility_rules) && scheme.eligibility_rules.length > 0 && (
         <p className="mt-3 break-words text-xs leading-5 text-[var(--color-text-muted)]">
-          <span className="font-bold text-[var(--color-text)]">{t('sc.eligibility')}:</span> {bt.schemeEligibility(scheme).join(' · ')}
+          <span className="font-bold text-[var(--color-text)]">{t('sc.eligibilityLabel')}</span> {bt.schemeEligibility(scheme).join(' · ')}
         </p>
       )}
 
@@ -725,7 +805,7 @@ function SchemeCard({ scheme, t, bt }) {
 
       {Array.isArray(scheme.documents) && scheme.documents.length > 0 && (
         <p className="mt-2 break-words text-xs leading-5 text-[var(--color-text-muted)]">
-          <span className="font-bold text-[var(--color-text)]">{t('sc.documents')}:</span> {bt.schemeDocuments(scheme).join(' · ')}
+          <span className="font-bold text-[var(--color-text)]">{t('sc.documentsLabel')}</span> {bt.schemeDocuments(scheme).join(' · ')}
         </p>
       )}
 
@@ -761,6 +841,49 @@ const RISK_KEYS = { low: 'risk.low', moderate: 'risk.moderate', high: 'risk.high
 function riskText(value, t) {
   const key = RISK_KEYS[String(value || '').toLowerCase()]
   return key ? t(key) : t('risk.unknown')
+}
+
+// household_check is a backend enum, like risk_level. not_checked has its own
+// sentence and is handled before this map is read; an unknown value title-cases.
+const HOUSEHOLD_KEYS = { within_limit: 'ch.householdWithin', over_limit: 'ch.householdOver' }
+
+// A response written before the household check existed has no household_check
+// at all, and then nothing is drawn rather than an empty heading.
+function hasHouseholdCheck(risk) {
+  const check = risk?.household_check
+  return check !== undefined && check !== null && String(check).trim() !== ''
+}
+
+// The household figure counts the estimated loan for the money still needed, so
+// the reader is told, with the amount. The full sentence carries the assumed
+// rate and tenure; the short one is used where the pressure chart has just
+// printed them, or where the response did not send them. So the short one must
+// stand on its own: when the terms were not sent, nothing on the page printed
+// them, and "worked out the same way as the loan pressure" would point at
+// nothing. It says instead that the amount is our estimate.
+function householdLoanNote(risk, t, termsShownAbove) {
+  const newLoanEmi = risk.estimated_new_emi
+  if (!hasNumber(newLoanEmi) || Number(newLoanEmi) <= 0) return null
+  const amount = formatCurrency(newLoanEmi, t)
+  const hasTerms = hasNumber(risk.assumed_interest_rate_percent) && hasNumber(risk.assumed_tenure_months)
+  if (termsShownAbove || !hasTerms) return t('ch.householdIncludesNewShort', { amount })
+  return t('ch.householdIncludesNew', {
+    amount,
+    rate: risk.assumed_interest_rate_percent,
+    years: Number(risk.assumed_tenure_months) / 12,
+  })
+}
+
+// Which households the RBI limit covers. Printed only on a strict true or false:
+// null means the backend could not tell, and then the page says nothing rather
+// than guessing. Both figures come from the response.
+function householdRbiNote(risk, limitText, t) {
+  const incomeLimit = risk.household_microfinance_income_limit
+  if (!hasNumber(incomeLimit) || !limitText) return null
+  const values = { income: formatCurrency(incomeLimit, t), limit: limitText }
+  if (risk.household_in_microfinance_range === true) return t('ch.householdRbiCovered', values)
+  if (risk.household_in_microfinance_range === false) return t('ch.householdRbiNotCovered', values)
+  return null
 }
 
 // The picker values ('tailoring', 'weekly') are English on purpose — they are

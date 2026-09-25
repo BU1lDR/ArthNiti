@@ -13,8 +13,14 @@
 // shows up. Treat a hit as "go look", not as proof.
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = new URL('../../frontend/src/', import.meta.url).pathname.replace(/^\//, '')
+// fileURLToPath, not URL.pathname. The pathname of a Windows file URL is
+// '/D:/...', so stripping the leading slash gave a working drive path there, but
+// on Linux the same strip turned '/home/...' into a RELATIVE 'home/...', which
+// only resolved when the script was run from '/'. It also left any %20 or other
+// percent-escape in the path undecoded. fileURLToPath is right on both.
+const ROOT = fileURLToPath(new URL('../../frontend/src/', import.meta.url))
 
 const GLYPH =
   /[←-⇿☀-➿⬀-⯿️\u{1F000}-\u{1FAFF}✓✔✗◐›ℹ]/u

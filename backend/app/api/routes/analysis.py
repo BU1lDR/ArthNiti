@@ -40,6 +40,7 @@ def run_analysis(
         village=request.village,
         market_type=request.market_type,
         customers=request.customers,
+        household_monthly_income=request.household_monthly_income,
     )
 
     return result

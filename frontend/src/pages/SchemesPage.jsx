@@ -2,12 +2,12 @@ import { Link } from 'react-router-dom'
 import Button from '../components/Button'
 import { BarGroup } from '../components/Charts'
 import { schemeFitItems } from '../components/chartData'
-import { useApp } from '../context/AppContext'
+import { firstUnansweredStep, isStarted, useApp } from '../context/AppContext'
 import { useI18n } from '../i18n/LanguageContext'
 import { LEVEL_ORDER, useBackendText } from '../i18n/backendText'
 
 export default function SchemesPage() {
-  const { applicationData } = useApp()
+  const { applicationData, resultCleared } = useApp()
   const { t } = useI18n()
   // Prefers the backend's translatable codes, falls back to its English prose.
   const bt = useBackendText()
@@ -33,6 +33,10 @@ export default function SchemesPage() {
   // renders, in its own group at the end, rather than disappearing from the page.
   const groups = groupByLevel(schemes)
 
+  // The empty state's button goes where AnalysisPage's does: the first step
+  // still missing an answer, or /finance, where the check is run.
+  const nextStep = firstUnansweredStep(applicationData) ?? '/finance'
+
   return (
     <>
       <Link to="/analysis" className="inline-flex min-h-11 min-w-11 items-center text-sm font-semibold text-[var(--color-primary-strong)] hover:underline">
@@ -48,9 +52,15 @@ export default function SchemesPage() {
       {!result && (
         <section className="ui-card mt-8 text-center sm:p-8">
           <div className="ui-feature-icon mx-auto" aria-hidden="true">📋</div>
-          <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">{t('sch.finishTitle')}</h2>
-          <p className="mx-auto mt-3 max-w-xl text-[var(--color-text-muted)]">{t('sch.finishText')}</p>
-          <Button to="/finance" className="mt-6">{t('res.finish')}</Button>
+          <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">
+            {resultCleared ? t('res.changedTitle') : t('sch.finishTitle')}
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl leading-7 text-[var(--color-text-muted)]">
+            {resultCleared ? t('res.changedText', { button: t('finance.submit') }) : t('sch.finishText')}
+          </p>
+          <Button to={nextStep} className="mt-6">
+            {resultCleared ? t('res.changedButton') : isStarted(applicationData) ? t('res.finish') : t('res.start')}
+          </Button>
         </section>
       )}
 

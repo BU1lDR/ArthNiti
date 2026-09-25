@@ -1,9 +1,11 @@
 // text-align.mjs — do sibling cells start their text on the same line?
 //
 // Reported as "I want all the text to be equally aligned", against the footer:
-// "अर्थNiti" sat ~50px below "Your business journey" and "Helpline" because
-// column 1 stacked the brand mark in the flow ABOVE its heading. Three columns,
-// three different first lines.
+// "अर्थNiti" sat ~50px below "Your business journey" and the third column's
+// heading because column 1 stacked the brand mark in the flow ABOVE its heading.
+// Three columns, three different first lines. (The third heading read "Helpline"
+// then. It is common.helpTitle now, "Where to get help", over common.helpText,
+// and the column no longer carries a phone number.)
 //
 // No existing verifier can see that, and the reason is structural rather than an
 // oversight:

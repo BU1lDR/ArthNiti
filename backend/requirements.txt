@@ -1,5 +1,34 @@
+# Runtime dependencies of the backend: fastapi, uvicorn and everything they
+# pull in, each pinned to the exact version installed in ./.venv.
+#
+# Produced on 24 Sep 2026 from ./.venv (CPython 3.14.6) by walking each
+# distribution's Requires-Dist with importlib.metadata, extras skipped. A
+# requirement that only applies under an environment marker keeps its marker.
+# A conditional package that is not installed here is left to the resolver:
+#   exceptiongroup  anyio needs it when python_version < "3.11"
+# Requires-Python: every pin below allows 3.10 and none sets a ceiling, so the
+# floor is 3.10 (set by annotated-types, anyio, click, fastapi, starlette,
+# typing-inspection and uvicorn).
+#
+# Test tools are in requirements-dev.txt, which includes this file.
+#
+# To regenerate: in a clean venv, pip install the new fastapi and uvicorn
+# versions, run pip freeze, and keep only what they require. Read each
+# package's markers with
+#   python -c "import importlib.metadata as m; print(m.requires('anyio'))"
+# Then prove it from backend/:
+#   python -m pip install -r requirements-dev.txt && python -m pytest tests -q
+
+annotated-doc==0.0.5          # via fastapi
+annotated-types==0.8.0        # via pydantic
+anyio==4.14.2                 # via starlette
+click==8.5.0                  # via uvicorn
 fastapi==0.141.1
+h11==0.16.0                   # via uvicorn
+idna==3.19                    # via anyio
+pydantic==2.13.5              # via fastapi; app/schemas imports it directly
+pydantic-core==2.46.5         # via pydantic
+starlette==1.6.0              # via fastapi
+typing-extensions==4.16.0     # via fastapi, pydantic, pydantic-core, typing-inspection
+typing-inspection==0.4.4      # via fastapi, pydantic
 uvicorn==0.52.4
-pydantic==2.13.5
-pytest==9.1.1
-httpx2==2.12.0

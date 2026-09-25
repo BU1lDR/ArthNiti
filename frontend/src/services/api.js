@@ -40,11 +40,19 @@ const FIELD_LABELS = {
     en: 'the money you expect to earn each month',
   },
   monthly_emi: { key: 'errf.emi', en: 'your monthly EMI or loan payment' },
+  household_monthly_income: {
+    key: 'errf.householdIncome',
+    en: 'how much your household earns in a month',
+  },
   initial_investment: { key: 'errf.investment', en: 'how much money you require' },
   monthly_operating_expenses: {
     key: 'errf.opExpenses',
     en: 'how much the business itself will cost each month',
   },
+  // Both are optional on /business, but each has an upper bound the backend
+  // enforces, so each can be the field a 422 names.
+  employees: { key: 'errf.employees', en: 'how many people work here' },
+  existing_debt: { key: 'errf.debt', en: 'your existing business debt' },
 }
 
 // One place that builds the thrown Error, so no call site can forget the code.
@@ -55,8 +63,46 @@ function analysisError(code, message, fields, cause) {
   return error
 }
 
-export async function runAnalysis(payload) {
+function timeoutError(cause) {
+  return analysisError(
+    ERROR_CODES.timeout,
+    'The analysis service is taking too long to answer. Please try again.',
+    null,
+    cause,
+  )
+}
+
+// The error thrown when the CALLER cancelled the request: the reader left the
+// page, or started again. It is not a failure, so it carries no code and the
+// page must not show it. Tell it apart with isAbortError(), never by message.
+function abortedError(cause) {
+  const error = new Error('The request was cancelled.', cause ? { cause } : undefined)
+  error.name = 'AbortError'
+  error.code = null
+  error.aborted = true
+  return error
+}
+
+export function isAbortError(error) {
+  return Boolean(error && error.aborted === true)
+}
+
+// `signal` is the caller's own, for cancelling the request when the page that
+// asked for it goes away. It is combined with the 20-second timeout rather than
+// replacing it, so a caller that passes a signal still gets the timeout.
+//
+// The two are told apart by WHICH signal fired, not by the error's name. fetch
+// rejects with the signal's reason, and a caller abort's reason is whatever the
+// caller passed to abort(): a string has no name at all and would be reported as
+// "cannot connect". Asking the caller's own signal cannot mistake one for the
+// other.
+export async function runAnalysis(payload, { signal } = {}) {
   let response
+
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
+
+  if (signal && signal.aborted) throw abortedError(signal.reason)
 
   try {
     response = await fetch(`${API_BASE_URL}/api/analysis/run`, {
@@ -65,16 +111,13 @@ export async function runAnalysis(payload) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      signal: combined,
     })
   } catch (error) {
-    if (error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
-      throw analysisError(
-        ERROR_CODES.timeout,
-        'The analysis service is taking too long to answer. Please try again.',
-        null,
-        error,
-      )
+    if (signal && signal.aborted) throw abortedError(error)
+
+    if (timeout.aborted || (error && (error.name === 'TimeoutError' || error.name === 'AbortError'))) {
+      throw timeoutError(error)
     }
 
     throw analysisError(
@@ -91,10 +134,17 @@ export async function runAnalysis(payload) {
   try {
     data = await response.json()
     parsed = true
-  } catch {
-    // Fall through: a 2xx with an unreadable body is as broken as a 500, and
-    // returning {} would drop the reader onto empty result pages with nothing
-    // said about why.
+  } catch (error) {
+    // The body is read under the same signal, so leaving the page while it
+    // downloads lands here, and that is a cancellation, not a bad response.
+    if (signal && signal.aborted) throw abortedError(error)
+    // So does the timeout: a body that stalls past 20 seconds is a slow
+    // service, and "unexpected response" would send the reader looking for the
+    // wrong problem.
+    if (timeout.aborted) throw timeoutError(error)
+    // Otherwise fall through: a 2xx with an unreadable body is as broken as a
+    // 500, and returning {} would drop the reader onto empty result pages with
+    // nothing said about why.
   }
 
   if (!parsed) {

@@ -1,0 +1,27 @@
+# Everything the backend test suite needs: the runtime pins plus pytest and
+# httpx2, pinned the same way as requirements.txt (see its header for how).
+#
+# httpx2 is deliberate, not a typo for httpx. It is the httpx 2.x line from
+# the pydantic org, and Starlette 1.6's TestClient imports it directly.
+#
+# Conditional packages that are not installed in ./.venv, so left to the
+# resolver:
+#   exceptiongroup, tomli  pytest needs them when python_version < "3.11"
+#   httpx2-jsfetch         httpx2 needs it on emscripten with Python >= 3.12
+# Requires-Python: every pin below allows 3.10 and none sets a ceiling.
+#
+# Install and run, from the repo root:
+#   python -m pip install -r backend/requirements-dev.txt
+#   cd backend && python -m pytest tests -q
+
+-r requirements.txt
+
+colorama==0.4.6; sys_platform == "win32"         # via pytest
+httpcore2==2.12.0; sys_platform != "emscripten"  # via httpx2
+httpx2==2.12.0                                   # Starlette's TestClient
+iniconfig==2.3.0                                 # via pytest
+packaging==26.3                                  # via pytest
+pluggy==1.6.0                                    # via pytest
+pygments==2.21.0                                 # via pytest
+pytest==9.1.1
+truststore==0.10.4; sys_platform != "emscripten" # via httpx2, httpcore2

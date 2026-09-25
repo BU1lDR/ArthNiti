@@ -1,18 +1,21 @@
 from pydantic import BaseModel, Field
 
+from app.schemas.limits import MAX_EMPLOYEES, MAX_RUPEES
+
 
 class BusinessAnalysisRequest(BaseModel):
     business_type: str = Field(..., min_length=2)
 
-    initial_investment: float = Field(..., ge=0)
+    # Capped, and no Infinity or NaN; see limits.py.
+    initial_investment: float = Field(..., ge=0, le=MAX_RUPEES, allow_inf_nan=False)
 
-    expected_monthly_revenue: float = Field(..., ge=0)
+    expected_monthly_revenue: float = Field(..., ge=0, le=MAX_RUPEES, allow_inf_nan=False)
 
-    monthly_operating_expenses: float = Field(..., ge=0)
+    monthly_operating_expenses: float = Field(..., ge=0, le=MAX_RUPEES, allow_inf_nan=False)
 
-    employees: int = Field(default=0, ge=0)
+    employees: int = Field(default=0, ge=0, le=MAX_EMPLOYEES)
 
-    existing_debt: float = Field(default=0, ge=0)
+    existing_debt: float = Field(default=0, ge=0, le=MAX_RUPEES, allow_inf_nan=False)
 
 
 class BusinessAnalysisResponse(BaseModel):

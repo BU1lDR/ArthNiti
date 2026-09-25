@@ -1,18 +1,32 @@
-"""One-off generator for app/data/schemes.json.
+"""Generator for app/data/schemes.json and gen_schemes_keys.json.
 
 Kept out of the app package on purpose: nothing imports it at runtime. It exists
-because schemes.json now carries a translation code beside every sentence, and
-hand-editing 29 schemes across four parallel code arrays is how the arrays fall
+because schemes.json carries a translation code beside every sentence, and
+hand-editing 30 schemes across four parallel code arrays is how the arrays fall
 out of step. Here the code and the English are written once, together, and the
 arrays are derived — so `len(eligibility_codes) == len(eligibility_rules)` is
 structurally true rather than something a test has to catch.
 
-Run from ./backend:  ../.venv/Scripts/python.exe gen_schemes.py
+To change the dataset, edit SPEC (or LOCATION_TYPES) here and run the script;
+do not edit schemes.json by hand. tests/test_gen_schemes.py fails when the two
+disagree, so a hand edit fails a test instead of being silently undone by the
+next run.
+
+    ../.venv/Scripts/python.exe gen_schemes.py            # from ./backend
+    ../.venv/Scripts/python.exe gen_schemes.py OUT_DIR    # write to OUT_DIR
+
+With no argument it OVERWRITES app/data/schemes.json and gen_schemes_keys.json
+(paths resolved from this file, so any working directory works). With OUT_DIR it
+writes both files there instead and touches neither. It writes the dataset and
+the key inventory only; the translations in frontend/src/i18n/schemeStrings.js
+are separate and a new code needs its eight entries added there by hand
+(node tools/keycheck.mjs reports a code no dictionary defines).
 """
 
 import io
 import json
 import os
+import sys
 
 # Shared eligibility phrasings, reused across schemes. Formal English here
 # because this is scheme data; backendStrings.js carries the plain-language
@@ -172,7 +186,10 @@ SPEC = [
     (
         "standupindia",
         "Stand-Up India",
-        "central", ["ALL"], [MFG, SVC, TRD, AGR],
+        # No AGR: the scheme's own rule below says crop cultivation on its own
+        # is not covered, so the Agriculture button must not list it. Dairy and
+        # food processing are the allied activities that rule names.
+        "central", ["ALL"], [MFG, SVC, TRD, DRY, FP],
         "First-time women, Scheduled Caste and Scheduled Tribe entrepreneurs",
         "Bank loans between Rs.10 lakh and Rs.1 crore for a first enterprise set up by a woman entrepreneur, or by an entrepreneur from a Scheduled Caste or Scheduled Tribe community.",
         "Bank loan for a first-time enterprise",
@@ -600,11 +617,38 @@ SPEC = [
 EXISTING_VERIFIED = {"pmfme": "2026-09-01", "pmegp": "2026-09-01", "pmmy": "2026-09-01"}
 LAST_VERIFIED = "2026-09-07"
 
+# The kind of place each scheme serves. Every scheme not listed here is open
+# everywhere, ["ALL"]. A scheme is listed only when its OWN eligibility text
+# names a kind of place, so the gate in scheme_service.serves_location never
+# drops a scheme on our guess. The rule that restricts each one is named beside
+# it.
+LOCATION_TYPES = {
+    "vvp_border": ["rural"],  # elig.vvp.where: villages in the notified border blocks
+    "rseti": ["rural"],  # elig.common.ruralArea
+    "bdo_nrlm": ["rural"],  # elig.bdo.who: rural households
+    "gp_licence": ["rural"],  # the Gram Panchayat area; target_segment says so
+    "svanidhi": ["semi-urban", "urban"],  # elig.common.urbanArea
+}
+DEFAULT_LOCATION_TYPES = ["ALL"]
+KNOWN_LOCATION_TYPES = {"rural", "semi-urban", "urban"}
+
 
 def build():
     out = []
     elig_seen = {}
     doc_seen = set()
+
+    ids = [spec[0] for spec in SPEC]
+    if len(set(ids)) != len(ids):
+        raise SystemExit("duplicate scheme id")
+
+    # A typo'd id here would fall through to ["ALL"] and silently show a
+    # rural-only scheme to an urban reader, so an unknown id is an error.
+    for sid, places in LOCATION_TYPES.items():
+        if sid not in ids:
+            raise SystemExit("LOCATION_TYPES names an unknown scheme id: " + sid)
+        if not places or not set(places) <= KNOWN_LOCATION_TYPES:
+            raise SystemExit("LOCATION_TYPES has an unknown kind of place for: " + sid)
 
     for (sid, name, level, states, cats, target, desc, support, eligs, docs, url) in SPEC:
         codes, texts = [], []
@@ -630,6 +674,7 @@ def build():
                 "target_segment": target,
                 "business_categories": cats,
                 "states": states,
+                "location_types": list(LOCATION_TYPES.get(sid, DEFAULT_LOCATION_TYPES)),
                 "level": level,
                 "eligibility_rules": texts,
                 "support_type": support,
@@ -651,19 +696,40 @@ def build():
     return out, elig_seen, sorted(doc_seen)
 
 
-def main():
-    out, elig_seen, doc_seen = build()
+def render(out, elig_seen, doc_seen):
+    """
+    The exact text of the two files main() writes, with "\\n" line endings.
 
-    ids = [scheme["id"] for scheme in out]
-    if len(set(ids)) != len(ids):
-        raise SystemExit("duplicate scheme id")
+    Kept apart from main() so tests/test_gen_schemes.py compares schemes.json
+    against the same serialisation the script uses, rather than a copy of the
+    json.dump arguments that could drift from it.
+    """
+    schemes_text = json.dumps(out, indent=2, ensure_ascii=False) + "\n"
+    keys_text = json.dumps(
+        {"eligibility": elig_seen, "documents": doc_seen, "ids": [scheme["id"] for scheme in out]},
+        indent=1,
+        ensure_ascii=False,
+    )
+    return schemes_text, keys_text
+
+
+def main(out_dir=None):
+    out, elig_seen, doc_seen = build()
+    schemes_text, keys_text = render(out, elig_seen, doc_seen)
 
     here = os.path.dirname(os.path.abspath(__file__))
-    target = os.path.join(here, "app", "data", "schemes.json")
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+        target = os.path.join(out_dir, "schemes.json")
+        keys_target = os.path.join(out_dir, "gen_schemes_keys.json")
+    else:
+        target = os.path.join(here, "app", "data", "schemes.json")
+        keys_target = os.path.join(here, "gen_schemes_keys.json")
 
+    # Text mode, so the line endings are the platform's: CRLF on Windows, which
+    # is what a core.autocrlf=true checkout already holds. Git stores LF.
     with io.open(target, "w", encoding="utf-8") as handle:
-        json.dump(out, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
+        handle.write(schemes_text)
 
     levels = {}
     for scheme in out:
@@ -679,14 +745,12 @@ def main():
     print("sdata keys:", len(out) * 2)
     print("total translation keys:", len(elig_seen) + len(doc_seen) + len(out) * 2)
 
-    with io.open(os.path.join(here, "gen_schemes_keys.json"), "w", encoding="utf-8") as handle:
-        json.dump(
-            {"eligibility": elig_seen, "documents": doc_seen, "ids": ids},
-            handle,
-            indent=1,
-            ensure_ascii=False,
-        )
+    with io.open(keys_target, "w", encoding="utf-8") as handle:
+        handle.write(keys_text)
+
+    print("wrote:", target)
+    print("wrote:", keys_target)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1] if len(sys.argv) > 1 else None)

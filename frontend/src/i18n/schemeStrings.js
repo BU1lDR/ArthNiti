@@ -108,14 +108,14 @@ const en = {
   'elig.common.askLocalOffice': 'The amount and the conditions change from place to place, so check at your local office.',
 
   // --- central ------------------------------------------------------------
-  'sdata.pmfme.description': 'Help for small units that make food products, including a loan with a government discount on the cost.',
-  'sdata.pmfme.support': 'Loan with a government discount on project cost',
+  'sdata.pmfme.description': 'Help for small units that make food products, including government money towards part of the project cost, which comes with a bank loan.',
+  'sdata.pmfme.support': 'Government money towards part of the project cost, with a bank loan',
   'elig.pmfme.activity': 'You should be doing food-making work that the scheme covers.',
-  'elig.pmfme.subsidy': 'One unit can get 35% of the approved project cost as a discount, up to Rs.10 lakh.',
+  'elig.pmfme.subsidy': 'One unit can get government money equal to 35% of the approved project cost, up to Rs.10 lakh. It comes with a bank loan.',
   'elig.pmfme.contribution': 'You must put in at least 10% of the project cost yourself.',
 
-  'sdata.pmegp.description': 'A loan with a government discount for new small businesses that make goods, do service work, or buy and sell.',
-  'sdata.pmegp.support': 'Loan with a government discount on your own share',
+  'sdata.pmegp.description': 'For new small businesses that make goods, do service work, or buy and sell: a bank loan, with government money towards part of the project cost. You also put in a share of your own.',
+  'sdata.pmegp.support': 'Bank loan, with government money towards part of the project cost',
   'elig.pmegp.guidelines': 'You must meet the conditions in the current PMEGP rules.',
   'elig.pmegp.maxManufacturing': 'For making goods, the project cost can go up to Rs.50 lakh.',
   'elig.pmegp.maxService': 'For service work or buying and selling, the project cost can go up to Rs.20 lakh.',
@@ -165,9 +165,9 @@ const en = {
   'elig.kcc.animal': 'Animal keeping and fishing are covered up to Rs.2 lakh.',
 
   // --- state ---------------------------------------------------------------
-  'sdata.up_myuva.description': 'For young people in Uttar Pradesh starting their own work: a project of up to Rs.5 lakh with no interest to pay, arranged through the District Industries Centre.',
+  'sdata.up_myuva.description': 'For young people in Uttar Pradesh starting their own work: a loan with no interest for a project of up to Rs.5 lakh, arranged through the District Industries Centre.',
   'sdata.up_myuva.support': 'Loan of up to Rs.5 lakh with no interest',
-  'elig.myuva.amount': 'A project cost of up to Rs.5 lakh is paid for, and you pay no interest for the stated period.',
+  'elig.myuva.amount': 'A loan covers a project cost of up to Rs.5 lakh. You pay no interest on it for the stated period.',
 
   'sdata.up_vssy.description': 'Six days of free training and a free toolkit for traditional workers in Uttar Pradesh - tailors, potters, ironsmiths, carpenters, barbers, shoe makers and others.',
   'sdata.up_vssy.support': 'Free training and a free toolkit',
@@ -189,15 +189,15 @@ const en = {
   'elig.ess.rate': 'You get back 15% to 45% of what you spent, with the higher shares for women, young people, and people from Scheduled Castes and Scheduled Tribes.',
   'elig.ess.stage': 'You can claim part of the money before you start and the rest once the unit is making goods.',
 
-  'sdata.wb_bcc.description': 'For young people in West Bengal starting their own work: a project of up to Rs.5 lakh with the state standing guarantee, and 10% of the cost given to you.',
-  'sdata.wb_bcc.support': 'Loan guaranteed by the state, with 10% given',
-  'elig.bcc.amount': 'A project cost of up to Rs.5 lakh is covered, and the state stands guarantee for the loan.',
+  'sdata.wb_bcc.description': 'For young people in West Bengal starting their own work: a loan for a project of up to Rs.5 lakh, with the state standing guarantee, and 10% of the cost as money you do not pay back.',
+  'sdata.wb_bcc.support': 'Loan guaranteed by the state, with 10% of the cost not to be paid back',
+  'elig.bcc.amount': 'A loan covers a project cost of up to Rs.5 lakh, and the state stands guarantee for the loan.',
   'elig.bcc.subsidy': 'You get 10% of the project cost, and you do not pay it back.',
 
-  'sdata.ka_udyogini.description': 'For women in Karnataka running or starting a small business: a loan of up to Rs.3 lakh, with part of it given to women from certain groups.',
-  'sdata.ka_udyogini.support': 'Loan for women with part of it given',
+  'sdata.ka_udyogini.description': 'For women in Karnataka running or starting a small business: a loan of up to Rs.3 lakh. For women from certain groups, part of the loan is money they do not pay back.',
+  'sdata.ka_udyogini.support': 'Loan for women, with part of it not to be paid back',
   'elig.udyogini.amount': 'Loans of up to Rs.3 lakh are given for the kinds of business on the list.',
-  'elig.udyogini.subsidy': 'Women from Scheduled Castes, Scheduled Tribes and other listed groups get 30% of the loan, up to Rs.90,000.',
+  'elig.udyogini.subsidy': 'If you are a woman from a Scheduled Caste, a Scheduled Tribe or another listed group, 30% of the loan, up to Rs.90,000, is money you do not pay back.',
   'elig.udyogini.income': 'There is a limit on family income, except for widows and women with a disability.',
 
   // --- regional ------------------------------------------------------------
@@ -213,7 +213,7 @@ const en = {
   'elig.vvp.what': 'The help goes to home-stays and village tourism, milk and animal keeping, craft, and small local business.',
 
   // --- district ------------------------------------------------------------
-  'sdata.dic.description': 'The government office in your own district. It registers small businesses, sends your loan and discount forms on to the state and central schemes, and tells you which ones you can get.',
+  'sdata.dic.description': 'The government office in your own district. It registers small businesses, sends your forms for loans and for government money towards the cost on to the state and central schemes, and tells you which ones you can get.',
   'sdata.dic.support': 'Free help with registration and scheme forms',
   'elig.dic.what': 'The office does Udyam registration, sends your forms on under state and central schemes, and arranges business training.',
 
@@ -226,11 +226,11 @@ const en = {
   'sdata.kvk.support': 'Free training, advice and soil testing',
   'elig.kvk.what': 'Short courses are run on animal keeping, beekeeping, mushroom growing, food making and seed growing.',
 
-  'sdata.odop_up.description': 'Every district in Uttar Pradesh has one chosen craft or product. If your work is the product chosen for your district, you can get a toolkit, training, help with selling at fairs, and your own share of a loan paid for.',
-  'sdata.odop_up.support': 'Toolkit, training, help with selling, and loan share',
+  'sdata.odop_up.description': 'Every district in Uttar Pradesh has one chosen craft or product. If your work is the product chosen for your district, you can get a toolkit, training, help with selling at fairs, and a loan with government money towards part of the project cost.',
+  'sdata.odop_up.support': 'Toolkit, training, help with selling, and a loan with government money towards part of the cost',
   'elig.odop.product': 'Your work must be the product chosen for your own district - ask your District Industries Centre which one it is.',
   'elig.odop.toolkit': 'Trained workers get a toolkit and can take part in state and national fairs.',
-  'elig.odop.margin': 'A loan is available under this scheme with your own share paid for.',
+  'elig.odop.margin': 'A loan is available under this scheme, with government money towards part of the project cost.',
 
   // --- sub-district --------------------------------------------------------
   'sdata.tehsil_certificates.description': 'Almost every scheme asks for an income, caste or residence certificate, and your tehsil or taluka office is the one that gives them. Get them before you apply anywhere, or your form will be held up.',
@@ -257,7 +257,7 @@ const en = {
 
   'sdata.atma_block.description': 'The block farm team shows new methods in the field, runs farmer field schools, arranges visits to other districts, and pays you a small amount while you train.',
   'sdata.atma_block.support': 'Free farm training and study visits',
-  'elig.atma.what': 'You get field demonstrations, farmer field schools, and paid visits inside and outside the district.',
+  'elig.atma.what': 'You get field demonstrations, farmer field schools, and study visits inside and outside the district. You do not pay for the visits.',
   'elig.atma.friend': 'Each village has a farmer friend you can go to first.',
 
   // --- village or town office ---------------------------------------------
@@ -274,7 +274,7 @@ const en = {
   'sdata.svanidhi.support': 'Working loan for street sellers',
   'elig.svanidhi.who': 'You must have been counted in the town vending survey, or have a vending certificate or a letter of recommendation.',
   'elig.svanidhi.ladder': 'The first loan is Rs.10,000. Pay it on time and the next is Rs.20,000, then Rs.50,000.',
-  'elig.svanidhi.cashback': 'Paying by phone or card earns money back, and paying on time earns 7% off the interest.',
+  'elig.svanidhi.cashback': 'Paying by phone or card earns money back. If you pay on time, the government pays 7% interest for you.',
 }
 
 const hi = {
@@ -337,14 +337,14 @@ const hi = {
   'elig.common.smallFee': 'हर सेवा के लिए एक छोटी तय फ़ीस लगती है।',
   'elig.common.askLocalOffice': 'रकम और शर्तें जगह-जगह बदलती हैं, इसलिए अपने नज़दीकी दफ़्तर में पक्का कर लें।',
 
-  'sdata.pmfme.description': 'खाने की चीज़ें बनाने वाली छोटी इकाइयों के लिए मदद, जिसमें लागत पर सरकारी छूट के साथ कर्ज़ भी मिलता है।',
-  'sdata.pmfme.support': 'योजना की लागत पर सरकारी छूट के साथ कर्ज़',
+  'sdata.pmfme.description': 'खाने की चीज़ें बनाने वाली छोटी इकाइयों के लिए मदद, जिसमें योजना की लागत के कुछ हिस्से के लिए सरकारी पैसा भी है, जो बैंक कर्ज़ के साथ मिलता है।',
+  'sdata.pmfme.support': 'योजना की लागत के कुछ हिस्से के लिए सरकारी पैसा, बैंक कर्ज़ के साथ',
   'elig.pmfme.activity': 'आप खाना बनाने का ऐसा काम कर रहे हों जो इस योजना में आता है।',
-  'elig.pmfme.subsidy': 'एक इकाई को मंज़ूर लागत का 35% छूट के रूप में मिल सकता है, ज़्यादा से ज़्यादा Rs.10 लाख।',
+  'elig.pmfme.subsidy': 'एक इकाई को मंज़ूर लागत के 35% के बराबर सरकारी पैसा मिल सकता है, ज़्यादा से ज़्यादा Rs.10 लाख। यह बैंक कर्ज़ के साथ मिलता है।',
   'elig.pmfme.contribution': 'लागत का कम से कम 10% आपको खुद लगाना होगा।',
 
-  'sdata.pmegp.description': 'सामान बनाने, सेवा के काम, या खरीद-बिक्री का नया छोटा कारोबार शुरू करने के लिए सरकारी छूट के साथ कर्ज़।',
-  'sdata.pmegp.support': 'आपके अपने हिस्से पर सरकारी छूट के साथ कर्ज़',
+  'sdata.pmegp.description': 'सामान बनाने, सेवा के काम, या खरीद-बिक्री का नया छोटा कारोबार शुरू करने के लिए: बैंक कर्ज़, और योजना की लागत के कुछ हिस्से के लिए सरकारी पैसा। अपना कुछ हिस्सा आपको खुद भी लगाना होगा।',
+  'sdata.pmegp.support': 'बैंक कर्ज़, और योजना की लागत के कुछ हिस्से के लिए सरकारी पैसा',
   'elig.pmegp.guidelines': 'आपको PMEGP के मौजूदा नियमों की शर्तें पूरी करनी होंगी।',
   'elig.pmegp.maxManufacturing': 'सामान बनाने के काम के लिए लागत Rs.50 लाख तक हो सकती है।',
   'elig.pmegp.maxService': 'सेवा के काम या खरीद-बिक्री के लिए लागत Rs.20 लाख तक हो सकती है।',
@@ -393,9 +393,9 @@ const hi = {
   'elig.kcc.rate': 'Rs.3 लाख तक ब्याज़ 7% है, और समय पर चुकाने पर 4% रह जाता है।',
   'elig.kcc.animal': 'पशु पालन और मछली पालन Rs.2 लाख तक इसमें आते हैं।',
 
-  'sdata.up_myuva.description': 'उत्तर प्रदेश के नौजवानों के लिए जो अपना काम शुरू कर रहे हैं: Rs.5 लाख तक की योजना, जिस पर ब्याज़ नहीं देना, ज़िला उद्योग केंद्र के ज़रिये।',
+  'sdata.up_myuva.description': 'उत्तर प्रदेश के नौजवानों के लिए जो अपना काम शुरू कर रहे हैं: Rs.5 लाख तक की योजना के लिए बिना ब्याज़ का कर्ज़, ज़िला उद्योग केंद्र के ज़रिये।',
   'sdata.up_myuva.support': 'Rs.5 लाख तक का बिना ब्याज़ कर्ज़',
-  'elig.myuva.amount': 'Rs.5 लाख तक की लागत दी जाती है, और तय समय तक आपको ब्याज़ नहीं देना पड़ता।',
+  'elig.myuva.amount': 'Rs.5 लाख तक की योजना की लागत कर्ज़ से पूरी होती है। तय समय तक आपको इस पर ब्याज़ नहीं देना पड़ता।',
 
   'sdata.up_vssy.description': 'उत्तर प्रदेश के परंपरागत कारीगरों के लिए छह दिन की मुफ़्त ट्रेनिंग और मुफ़्त औज़ार - दर्ज़ी, कुम्हार, लोहार, बढ़ई, नाई, मोची और दूसरे।',
   'sdata.up_vssy.support': 'मुफ़्त ट्रेनिंग और मुफ़्त औज़ार',
@@ -417,15 +417,15 @@ const hi = {
   'elig.ess.rate': 'आपने जो खर्च किया उसका 15% से 45% वापस मिलता है, और महिलाओं, नौजवानों, तथा अनुसूचित जाति और अनुसूचित जनजाति के लोगों को ज़्यादा हिस्सा मिलता है।',
   'elig.ess.stage': 'कुछ पैसा शुरू करने से पहले और बाकी इकाई में सामान बनने लगने के बाद मांग सकते हैं।',
 
-  'sdata.wb_bcc.description': 'पश्चिम बंगाल के नौजवानों के लिए जो अपना काम शुरू कर रहे हैं: Rs.5 लाख तक की योजना, जिसकी ज़मानत राज्य देता है, और लागत का 10% आपको मिलता है।',
-  'sdata.wb_bcc.support': 'राज्य की ज़मानत वाला कर्ज़, 10% मिलता है',
-  'elig.bcc.amount': 'Rs.5 लाख तक की लागत इसमें आती है, और कर्ज़ की ज़मानत राज्य देता है।',
+  'sdata.wb_bcc.description': 'पश्चिम बंगाल के नौजवानों के लिए जो अपना काम शुरू कर रहे हैं: Rs.5 लाख तक की योजना के लिए कर्ज़, जिसकी ज़मानत राज्य देता है, और लागत का 10% ऐसा पैसा है जो वापस नहीं करना पड़ता।',
+  'sdata.wb_bcc.support': 'राज्य की ज़मानत वाला कर्ज़, लागत का 10% वापस नहीं करना पड़ता',
+  'elig.bcc.amount': 'Rs.5 लाख तक की योजना की लागत कर्ज़ से पूरी होती है, और कर्ज़ की ज़मानत राज्य देता है।',
   'elig.bcc.subsidy': 'आपको लागत का 10% मिलता है, और वह वापस नहीं करना पड़ता।',
 
-  'sdata.ka_udyogini.description': 'कर्नाटक की महिलाओं के लिए जो छोटा कारोबार चला रही हैं या शुरू कर रही हैं: Rs.3 लाख तक का कर्ज़, जिसका कुछ हिस्सा कुछ वर्गों की महिलाओं को दिया जाता है।',
-  'sdata.ka_udyogini.support': 'महिलाओं के लिए कर्ज़, कुछ हिस्सा मिलता है',
+  'sdata.ka_udyogini.description': 'कर्नाटक की महिलाओं के लिए जो छोटा कारोबार चला रही हैं या शुरू कर रही हैं: Rs.3 लाख तक का कर्ज़। कुछ वर्गों की महिलाओं के लिए कर्ज़ का कुछ हिस्सा ऐसा पैसा है जो वापस नहीं करना पड़ता।',
+  'sdata.ka_udyogini.support': 'महिलाओं के लिए कर्ज़, जिसका कुछ हिस्सा वापस नहीं करना पड़ता',
   'elig.udyogini.amount': 'सूची में दिए गए कारोबारों के लिए Rs.3 लाख तक का कर्ज़ मिलता है।',
-  'elig.udyogini.subsidy': 'अनुसूचित जाति, अनुसूचित जनजाति और सूची में दिए दूसरे वर्गों की महिलाओं को कर्ज़ का 30%, Rs.90,000 तक मिलता है।',
+  'elig.udyogini.subsidy': 'अगर आप अनुसूचित जाति, अनुसूचित जनजाति या सूची में दिए किसी दूसरे वर्ग की महिला हैं, तो कर्ज़ का 30%, Rs.90,000 तक, ऐसा पैसा है जो वापस नहीं करना पड़ता।',
   'elig.udyogini.income': 'परिवार की आय की एक सीमा है, विधवाओं और दिव्यांग महिलाओं को छोड़कर।',
 
   'sdata.unnati_ner.description': 'पूर्वोत्तर के आठ राज्यों में नई और बढ़ती इकाइयों के लिए: आपकी इमारत, प्लांट और मशीनों के लिए पैसा, और सामान बनने लगने पर आगे भी मदद।',
@@ -439,7 +439,7 @@ const hi = {
   'elig.vvp.where': 'सिर्फ़ इस कार्यक्रम में शामिल सीमावर्ती ब्लॉकों के गाँव इसमें आते हैं।',
   'elig.vvp.what': 'यह मदद घर में ठहराने और गाँव के पर्यटन, दूध और पशु पालन, दस्तकारी, और छोटे स्थानीय कारोबार को मिलती है।',
 
-  'sdata.dic.description': 'आपके ही ज़िले का सरकारी दफ़्तर। यह छोटे कारोबार का रजिस्ट्रेशन करता है, आपके कर्ज़ और छूट के फ़ॉर्म राज्य और केंद्र की योजनाओं तक भेजता है, और बताता है कि आपको कौन-कौन सी मिल सकती हैं।',
+  'sdata.dic.description': 'आपके ही ज़िले का सरकारी दफ़्तर। यह छोटे कारोबार का रजिस्ट्रेशन करता है, कर्ज़ के और लागत के लिए सरकारी पैसे के आपके फ़ॉर्म राज्य और केंद्र की योजनाओं तक भेजता है, और बताता है कि आपको कौन-कौन सी मिल सकती हैं।',
   'sdata.dic.support': 'रजिस्ट्रेशन और योजना के फ़ॉर्म में मुफ़्त मदद',
   'elig.dic.what': 'दफ़्तर उद्यम रजिस्ट्रेशन करता है, राज्य और केंद्र की योजनाओं में आपके फ़ॉर्म आगे भेजता है, और कारोबार की ट्रेनिंग कराता है।',
 
@@ -452,11 +452,11 @@ const hi = {
   'sdata.kvk.support': 'मुफ़्त ट्रेनिंग, सलाह और मिट्टी की जाँच',
   'elig.kvk.what': 'पशु पालन, मधुमक्खी पालन, मशरूम उगाना, खाना बनाना और बीज तैयार करना, इन पर छोटे कोर्स चलते हैं।',
 
-  'sdata.odop_up.description': 'उत्तर प्रदेश के हर ज़िले का एक चुना हुआ हुनर या सामान है। अगर आपका काम आपके ज़िले का चुना हुआ सामान है, तो आपको औज़ार, ट्रेनिंग, मेलों में बेचने में मदद, और कर्ज़ में अपने हिस्से का पैसा मिल सकता है।',
-  'sdata.odop_up.support': 'औज़ार, ट्रेनिंग, बेचने में मदद, और कर्ज़ में हिस्सा',
+  'sdata.odop_up.description': 'उत्तर प्रदेश के हर ज़िले का एक चुना हुआ हुनर या सामान है। अगर आपका काम आपके ज़िले का चुना हुआ सामान है, तो आपको औज़ार, ट्रेनिंग, मेलों में बेचने में मदद, और योजना की लागत के कुछ हिस्से के लिए सरकारी पैसे के साथ कर्ज़ मिल सकता है।',
+  'sdata.odop_up.support': 'औज़ार, ट्रेनिंग, बेचने में मदद, और लागत के कुछ हिस्से के लिए सरकारी पैसे के साथ कर्ज़',
   'elig.odop.product': 'आपका काम आपके ही ज़िले का चुना हुआ सामान हो - कौन सा है, यह अपने ज़िला उद्योग केंद्र से पूछें।',
   'elig.odop.toolkit': 'ट्रेनिंग पा चुके कारीगरों को औज़ार मिलते हैं और वे राज्य तथा देश के मेलों में जा सकते हैं।',
-  'elig.odop.margin': 'इस योजना में कर्ज़ मिलता है, जिसमें आपके हिस्से का पैसा दिया जाता है।',
+  'elig.odop.margin': 'इस योजना में कर्ज़ मिलता है, और योजना की लागत के कुछ हिस्से के लिए सरकारी पैसा भी।',
 
   'sdata.tehsil_certificates.description': 'लगभग हर योजना आय, जाति या निवास का प्रमाण पत्र मांगती है, और ये आपकी तहसील या तालुका का दफ़्तर देता है। कहीं भी आवेदन करने से पहले ये बनवा लें, वरना आपका फ़ॉर्म रुक जाएगा।',
   'sdata.tehsil_certificates.support': 'वे प्रमाण पत्र जो दूसरी योजनाएँ मांगती हैं',
@@ -481,7 +481,7 @@ const hi = {
 
   'sdata.atma_block.description': 'ब्लॉक की खेती टीम खेत में नए तरीके दिखाती है, किसान पाठशाला चलाती है, दूसरे ज़िलों की यात्रा कराती है, और ट्रेनिंग के दिनों का थोड़ा पैसा देती है।',
   'sdata.atma_block.support': 'मुफ़्त खेती ट्रेनिंग और सीखने की यात्रा',
-  'elig.atma.what': 'खेत में नए तरीकों का प्रदर्शन, किसान पाठशाला, और ज़िले के अंदर-बाहर खर्च दी गई यात्राएँ मिलती हैं।',
+  'elig.atma.what': 'खेत में नए तरीकों का प्रदर्शन, किसान पाठशाला, और ज़िले के अंदर-बाहर सीखने की यात्राएँ मिलती हैं। इन यात्राओं का खर्च आपको नहीं देना पड़ता।',
   'elig.atma.friend': 'हर गाँव में एक किसान मित्र होता है, जिसके पास आप पहले जा सकते हैं।',
 
   'sdata.gp_licence.description': 'गाँव की दुकान या छोटी इकाई के लिए जो अनापत्ति पत्र और कारोबार की इजाज़त चाहिए, वह आपकी ग्राम पंचायत देती है, और उसकी सालाना गाँव योजना से आपके काम की जगह तक शेड, पानी या रास्ता बन सकता है।',
@@ -497,7 +497,7 @@ const hi = {
   'sdata.svanidhi.support': 'ठेले-पटरी वालों के लिए काम चलाने वाला कर्ज़',
   'elig.svanidhi.who': 'आप नगर के वेंडिंग सर्वे में गिने गए हों, या आपके पास वेंडिंग प्रमाण पत्र या सिफ़ारिश का पत्र हो।',
   'elig.svanidhi.ladder': 'पहला कर्ज़ Rs.10,000 का है। समय पर चुकाने पर अगला Rs.20,000 और फिर Rs.50,000 का मिलता है।',
-  'elig.svanidhi.cashback': 'फ़ोन या कार्ड से भुगतान पर पैसा वापस मिलता है, और समय पर चुकाने पर ब्याज़ में 7% की छूट।',
+  'elig.svanidhi.cashback': 'फ़ोन या कार्ड से भुगतान पर पैसा वापस मिलता है। अगर आप समय पर चुकाते हैं, तो 7% ब्याज़ आपकी जगह सरकार भरती है।',
 }
 
 const ta = {
@@ -560,14 +560,14 @@ const ta = {
   'elig.common.smallFee': 'ஒவ்வொரு சேவைக்கும் ஒரு சிறிய நிர்ணயக் கட்டணம் உண்டு.',
   'elig.common.askLocalOffice': 'தொகையும் நிபந்தனைகளும் இடத்திற்கு இடம் மாறும், எனவே உங்கள் அருகிலுள்ள அலுவலகத்தில் உறுதி செய்யுங்கள்.',
 
-  'sdata.pmfme.description': 'உணவுப் பொருள் தயாரிக்கும் சிறு நிறுவனங்களுக்கு உதவி, செலவில் அரசு தள்ளுபடியுடன் கடனும் அடங்கும்.',
-  'sdata.pmfme.support': 'திட்டச் செலவில் அரசு தள்ளுபடியுடன் கடன்',
+  'sdata.pmfme.description': 'உணவுப் பொருள் தயாரிக்கும் சிறு நிறுவனங்களுக்கு உதவி, திட்டச் செலவின் ஒரு பகுதிக்கு அரசுப் பணமும் அடங்கும், அது வங்கிக் கடனுடன் வரும்.',
+  'sdata.pmfme.support': 'திட்டச் செலவின் ஒரு பகுதிக்கு அரசுப் பணம், வங்கிக் கடனுடன்',
   'elig.pmfme.activity': 'இந்தத் திட்டத்தில் அடங்கும் உணவு தயாரிக்கும் வேலையை நீங்கள் செய்து வர வேண்டும்.',
-  'elig.pmfme.subsidy': 'ஒரு நிறுவனம் ஒப்புதல் பெற்ற திட்டச் செலவில் 35% தள்ளுபடியாகப் பெறலாம், அதிகபட்சம் Rs.10 லட்சம்.',
+  'elig.pmfme.subsidy': 'ஒரு நிறுவனம் ஒப்புதல் பெற்ற திட்டச் செலவில் 35% அளவுக்கு அரசுப் பணம் பெறலாம், அதிகபட்சம் Rs.10 லட்சம். இது வங்கிக் கடனுடன் வரும்.',
   'elig.pmfme.contribution': 'திட்டச் செலவில் குறைந்தது 10% நீங்களே போட வேண்டும்.',
 
-  'sdata.pmegp.description': 'பொருள் தயாரிப்பு, சேவை வேலை, அல்லது வாங்கி விற்கும் புதிய சிறு தொழிலுக்கு அரசு தள்ளுபடியுடன் கடன்.',
-  'sdata.pmegp.support': 'உங்கள் சொந்தப் பங்கில் அரசு தள்ளுபடியுடன் கடன்',
+  'sdata.pmegp.description': 'பொருள் தயாரிப்பு, சேவை வேலை, அல்லது வாங்கி விற்கும் புதிய சிறு தொழிலுக்கு: வங்கிக் கடன், திட்டச் செலவின் ஒரு பகுதிக்கு அரசுப் பணத்துடன். உங்கள் சொந்தப் பங்கையும் நீங்களே போட வேண்டும்.',
+  'sdata.pmegp.support': 'வங்கிக் கடன், திட்டச் செலவின் ஒரு பகுதிக்கு அரசுப் பணத்துடன்',
   'elig.pmegp.guidelines': 'இப்போதுள்ள PMEGP விதிகளின் நிபந்தனைகளை நீங்கள் பூர்த்தி செய்ய வேண்டும்.',
   'elig.pmegp.maxManufacturing': 'பொருள் தயாரிப்பு வேலைக்கு திட்டச் செலவு Rs.50 லட்சம் வரை இருக்கலாம்.',
   'elig.pmegp.maxService': 'சேவை வேலை அல்லது வாங்கி விற்பதற்கு திட்டச் செலவு Rs.20 லட்சம் வரை இருக்கலாம்.',
@@ -616,9 +616,9 @@ const ta = {
   'elig.kcc.rate': 'Rs.3 லட்சம் வரை வட்டி 7%, சரியான நேரத்தில் செலுத்தினால் 4% ஆகக் குறையும்.',
   'elig.kcc.animal': 'கால்நடை வளர்ப்பும் மீன்பிடியும் Rs.2 லட்சம் வரை அடங்கும்.',
 
-  'sdata.up_myuva.description': 'சொந்தத் தொழில் தொடங்கும் உத்தரப் பிரதேச இளைஞர்களுக்கு: Rs.5 லட்சம் வரையிலான திட்டம், வட்டி இல்லை, மாவட்டத் தொழில் மையம் வழியாக.',
+  'sdata.up_myuva.description': 'சொந்தத் தொழில் தொடங்கும் உத்தரப் பிரதேச இளைஞர்களுக்கு: Rs.5 லட்சம் வரையிலான திட்டத்துக்கு வட்டி இல்லாத கடன், மாவட்டத் தொழில் மையம் வழியாக.',
   'sdata.up_myuva.support': 'Rs.5 லட்சம் வரை வட்டி இல்லாத கடன்',
-  'elig.myuva.amount': 'Rs.5 லட்சம் வரை திட்டச் செலவு தரப்படும், குறிப்பிட்ட காலம் வரை நீங்கள் வட்டி செலுத்த வேண்டியதில்லை.',
+  'elig.myuva.amount': 'Rs.5 லட்சம் வரையிலான திட்டச் செலவைக் கடன் ஈடுகட்டும். குறிப்பிட்ட காலம் வரை அதற்கு நீங்கள் வட்டி செலுத்த வேண்டியதில்லை.',
 
   'sdata.up_vssy.description': 'உத்தரப் பிரதேசத்தின் பாரம்பரியத் தொழிலாளர்களுக்கு ஆறு நாள் இலவசப் பயிற்சியும் இலவசக் கருவிப் பெட்டியும் — தையல்காரர், குயவர், கொல்லர், தச்சர், நாவிதர், செருப்புத் தைப்பவர் மற்றும் பிறர்.',
   'sdata.up_vssy.support': 'இலவசப் பயிற்சியும் இலவசக் கருவிப் பெட்டியும்',
@@ -640,15 +640,15 @@ const ta = {
   'elig.ess.rate': 'நீங்கள் செலவழித்ததில் 15% முதல் 45% வரை திரும்பக் கிடைக்கும்; பெண்கள், இளைஞர்கள், பட்டியல் சாதி மற்றும் பட்டியல் பழங்குடியினருக்கு அதிகப் பங்கு.',
   'elig.ess.stage': 'ஒரு பகுதியைத் தொடங்கும் முன், மீதியை நிறுவனம் பொருள் தயாரிக்கத் தொடங்கிய பின் கேட்கலாம்.',
 
-  'sdata.wb_bcc.description': 'சொந்தத் தொழில் தொடங்கும் மேற்கு வங்க இளைஞர்களுக்கு: Rs.5 லட்சம் வரையிலான திட்டம், மாநிலம் உத்தரவாதம் தரும், செலவில் 10% உங்களுக்குக் கிடைக்கும்.',
-  'sdata.wb_bcc.support': 'மாநில உத்தரவாதக் கடன், 10% கிடைக்கும்',
-  'elig.bcc.amount': 'Rs.5 லட்சம் வரை திட்டச் செலவு அடங்கும், கடனுக்கு மாநிலம் உத்தரவாதம் தரும்.',
+  'sdata.wb_bcc.description': 'சொந்தத் தொழில் தொடங்கும் மேற்கு வங்க இளைஞர்களுக்கு: Rs.5 லட்சம் வரையிலான திட்டத்துக்குக் கடன், மாநிலம் உத்தரவாதம் தரும், செலவில் 10% திரும்பச் செலுத்த வேண்டாத பணமாகக் கிடைக்கும்.',
+  'sdata.wb_bcc.support': 'மாநில உத்தரவாதக் கடன், செலவில் 10% திரும்பச் செலுத்த வேண்டாம்',
+  'elig.bcc.amount': 'Rs.5 லட்சம் வரையிலான திட்டச் செலவைக் கடன் ஈடுகட்டும், கடனுக்கு மாநிலம் உத்தரவாதம் தரும்.',
   'elig.bcc.subsidy': 'திட்டச் செலவில் 10% கிடைக்கும், அதைத் திரும்பச் செலுத்த வேண்டாம்.',
 
-  'sdata.ka_udyogini.description': 'சிறு தொழில் நடத்தும் அல்லது தொடங்கும் கர்நாடகப் பெண்களுக்கு: Rs.3 லட்சம் வரை கடன், சில பிரிவினருக்கு அதில் ஒரு பகுதி பணமாகக் கிடைக்கும்.',
-  'sdata.ka_udyogini.support': 'பெண்களுக்குக் கடன், ஒரு பகுதி பணமாக',
+  'sdata.ka_udyogini.description': 'சிறு தொழில் நடத்தும் அல்லது தொடங்கும் கர்நாடகப் பெண்களுக்கு: Rs.3 லட்சம் வரை கடன். சில பிரிவுப் பெண்களுக்கு, கடனில் ஒரு பகுதி திரும்பச் செலுத்த வேண்டாத பணம்.',
+  'sdata.ka_udyogini.support': 'பெண்களுக்குக் கடன், ஒரு பகுதி திரும்பச் செலுத்த வேண்டாம்',
   'elig.udyogini.amount': 'பட்டியலில் உள்ள தொழில்களுக்கு Rs.3 லட்சம் வரை கடன் கிடைக்கும்.',
-  'elig.udyogini.subsidy': 'பட்டியல் சாதி, பட்டியல் பழங்குடி மற்றும் பட்டியலிட்ட பிற பிரிவினருக்கு கடனில் 30%, Rs.90,000 வரை கிடைக்கும்.',
+  'elig.udyogini.subsidy': 'நீங்கள் பட்டியல் சாதி, பட்டியல் பழங்குடி அல்லது பட்டியலிட்ட வேறு பிரிவைச் சேர்ந்த பெண் என்றால், கடனில் 30%, Rs.90,000 வரை, திரும்பச் செலுத்த வேண்டாத பணம்.',
   'elig.udyogini.income': 'குடும்ப வருமானத்திற்கு ஒரு வரம்பு உண்டு; விதவைகளுக்கும் மாற்றுத் திறனாளிப் பெண்களுக்கும் இது பொருந்தாது.',
 
   'sdata.unnati_ner.description': 'வடகிழக்கின் எட்டு மாநிலங்களில் புதிய மற்றும் வளரும் நிறுவனங்களுக்கு: உங்கள் கட்டிடம், ஆலை, இயந்திரங்களுக்குப் பணம், பொருள் தயாரிக்கத் தொடங்கிய பின் மேலும் உதவி.',
@@ -662,7 +662,7 @@ const ta = {
   'elig.vvp.where': 'இந்தத் திட்டத்தில் அறிவிக்கப்பட்ட எல்லைத் தொகுதிக் கிராமங்கள் மட்டுமே அடங்கும்.',
   'elig.vvp.what': 'வீட்டில் தங்க வைப்பது, கிராமச் சுற்றுலா, பால் மற்றும் கால்நடை வளர்ப்பு, கைவினை, சிறு உள்ளூர்த் தொழில் ஆகியவற்றுக்கு இந்த உதவி கிடைக்கும்.',
 
-  'sdata.dic.description': 'உங்கள் சொந்த மாவட்டத்தின் அரசு அலுவலகம். சிறு தொழில்களைப் பதிவு செய்யும், உங்கள் கடன் மற்றும் தள்ளுபடி விண்ணப்பங்களை மாநில, மத்திய திட்டங்களுக்கு அனுப்பும், உங்களுக்கு எவை கிடைக்கும் என்று சொல்லும்.',
+  'sdata.dic.description': 'உங்கள் சொந்த மாவட்டத்தின் அரசு அலுவலகம். சிறு தொழில்களைப் பதிவு செய்யும், கடனுக்கும் செலவுக்கான அரசுப் பணத்துக்குமான உங்கள் விண்ணப்பங்களை மாநில, மத்திய திட்டங்களுக்கு அனுப்பும், உங்களுக்கு எவை கிடைக்கும் என்று சொல்லும்.',
   'sdata.dic.support': 'பதிவு மற்றும் திட்ட விண்ணப்பங்களுக்கு இலவச உதவி',
   'elig.dic.what': 'அலுவலகம் உத்யம் பதிவு செய்யும், மாநில மற்றும் மத்தியத் திட்டங்களில் உங்கள் விண்ணப்பங்களை அனுப்பும், தொழில் பயிற்சி ஏற்பாடு செய்யும்.',
 
@@ -675,11 +675,11 @@ const ta = {
   'sdata.kvk.support': 'இலவசப் பயிற்சி, ஆலோசனை, மண் பரிசோதனை',
   'elig.kvk.what': 'கால்நடை வளர்ப்பு, தேனீ வளர்ப்பு, காளான் வளர்ப்பு, உணவு தயாரிப்பு, விதை உற்பத்தி பற்றி குறும் பயிற்சிகள் நடக்கும்.',
 
-  'sdata.odop_up.description': 'உத்தரப் பிரதேசத்தின் ஒவ்வொரு மாவட்டத்திற்கும் தேர்ந்தெடுக்கப்பட்ட ஒரு கைவினை அல்லது பொருள் உண்டு. உங்கள் வேலை உங்கள் மாவட்டத்திற்குத் தேர்ந்தெடுக்கப்பட்ட பொருளாக இருந்தால், கருவிப் பெட்டி, பயிற்சி, சந்தையில் விற்க உதவி, கடனில் உங்கள் பங்குக்குப் பணம் கிடைக்கும்.',
-  'sdata.odop_up.support': 'கருவிப் பெட்டி, பயிற்சி, விற்க உதவி, கடன் பங்கு',
+  'sdata.odop_up.description': 'உத்தரப் பிரதேசத்தின் ஒவ்வொரு மாவட்டத்திற்கும் தேர்ந்தெடுக்கப்பட்ட ஒரு கைவினை அல்லது பொருள் உண்டு. உங்கள் வேலை உங்கள் மாவட்டத்திற்குத் தேர்ந்தெடுக்கப்பட்ட பொருளாக இருந்தால், கருவிப் பெட்டி, பயிற்சி, சந்தையில் விற்க உதவி, திட்டச் செலவின் ஒரு பகுதிக்கு அரசுப் பணத்துடன் கடன் கிடைக்கும்.',
+  'sdata.odop_up.support': 'கருவிப் பெட்டி, பயிற்சி, விற்க உதவி, செலவின் ஒரு பகுதிக்கு அரசுப் பணத்துடன் கடன்',
   'elig.odop.product': 'உங்கள் வேலை உங்கள் சொந்த மாவட்டத்திற்குத் தேர்ந்தெடுக்கப்பட்ட பொருளாக இருக்க வேண்டும் — எது என்று உங்கள் மாவட்டத் தொழில் மையத்தில் கேளுங்கள்.',
   'elig.odop.toolkit': 'பயிற்சி பெற்ற கைவினைஞர்களுக்குக் கருவிப் பெட்டி கிடைக்கும், மாநில மற்றும் தேசியச் சந்தைகளில் கலந்து கொள்ளலாம்.',
-  'elig.odop.margin': 'இந்தத் திட்டத்தில் கடன் கிடைக்கும், அதில் உங்கள் பங்குக்குப் பணம் தரப்படும்.',
+  'elig.odop.margin': 'இந்தத் திட்டத்தில் கடன் கிடைக்கும், திட்டச் செலவின் ஒரு பகுதிக்கு அரசுப் பணத்துடன்.',
 
   'sdata.tehsil_certificates.description': 'கிட்டத்தட்ட எல்லாத் திட்டமும் வருமானம், சாதி அல்லது வசிப்பிடச் சான்றிதழ் கேட்கிறது; அவற்றைத் தருவது உங்கள் தாலுகா அலுவலகம். எங்கும் விண்ணப்பிக்கும் முன் இவற்றை வாங்கி வைத்துக்கொள்ளுங்கள், இல்லையெனில் உங்கள் விண்ணப்பம் நிற்கும்.',
   'sdata.tehsil_certificates.support': 'மற்ற திட்டங்கள் கேட்கும் சான்றிதழ்கள்',
@@ -704,7 +704,7 @@ const ta = {
 
   'sdata.atma_block.description': 'வட்டார வேளாண் குழு வயலில் புதிய முறைகளைக் காட்டும், விவசாயி வயல் பாடசாலை நடத்தும், வேறு மாவட்டங்களுக்குப் பயணம் ஏற்பாடு செய்யும், பயிற்சி நாட்களுக்குச் சிறு தொகையும் தரும்.',
   'sdata.atma_block.support': 'இலவச வேளாண் பயிற்சியும் கற்கும் பயணமும்',
-  'elig.atma.what': 'வயலில் புதிய முறைகளின் காட்சி, விவசாயி வயல் பாடசாலை, மாவட்டத்திற்கு உள்ளும் வெளியும் செலவு தரப்பட்ட பயணங்கள் கிடைக்கும்.',
+  'elig.atma.what': 'வயலில் புதிய முறைகளின் காட்சி, விவசாயி வயல் பாடசாலை, மாவட்டத்திற்கு உள்ளும் வெளியும் கற்கும் பயணங்கள் கிடைக்கும். இந்தப் பயணங்களுக்கு நீங்கள் செலவு செய்ய வேண்டியதில்லை.',
   'elig.atma.friend': 'ஒவ்வொரு கிராமத்திலும் ஒரு விவசாயி நண்பர் உண்டு; முதலில் அவரைப் பார்க்கலாம்.',
 
   'sdata.gp_licence.description': 'கிராமக் கடை அல்லது சிறு நிறுவனத்திற்குத் தேவையான தடையில்லாச் சான்றும் தொழில் அனுமதியும் உங்கள் கிராம பஞ்சாயத்து தரும்; அதன் ஆண்டு கிராமத் திட்டத்தில் உங்கள் வேலை இடத்திற்குக் கொட்டகை, தண்ணீர் அல்லது சாலை வரலாம்.',
@@ -720,7 +720,7 @@ const ta = {
   'sdata.svanidhi.support': 'தெருவில் விற்பவர்களுக்கு நடைமுறைக் கடன்',
   'elig.svanidhi.who': 'நகர விற்பனைக் கணக்கெடுப்பில் நீங்கள் இடம்பெற்றிருக்க வேண்டும், அல்லது விற்பனைச் சான்றிதழ் அல்லது பரிந்துரைக் கடிதம் இருக்க வேண்டும்.',
   'elig.svanidhi.ladder': 'முதல் கடன் Rs.10,000. சரியான நேரத்தில் செலுத்தினால் அடுத்தது Rs.20,000, பிறகு Rs.50,000.',
-  'elig.svanidhi.cashback': 'கைபேசி அல்லது அட்டையில் செலுத்தினால் பணம் திரும்பும், சரியான நேரத்தில் செலுத்தினால் வட்டியில் 7% தள்ளுபடி.',
+  'elig.svanidhi.cashback': 'கைபேசி அல்லது அட்டையில் செலுத்தினால் பணம் திரும்பும். சரியான நேரத்தில் செலுத்தினால், 7% வட்டியை உங்களுக்காக அரசு செலுத்தும்.',
 }
 
 const te = {
@@ -783,14 +783,14 @@ const te = {
   'elig.common.smallFee': 'ప్రతి సేవకు ఒక చిన్న నిర్ణీత రుసుము ఉంటుంది.',
   'elig.common.askLocalOffice': 'మొత్తం, షరతులు చోటుకు చోటు మారుతాయి, అందుకే మీ దగ్గరి కార్యాలయంలో నిర్ధారించుకోండి.',
 
-  'sdata.pmfme.description': 'ఆహార పదార్థాలు తయారు చేసే చిన్న యూనిట్లకు సహాయం, ఖర్చుపై ప్రభుత్వ రాయితీతో అప్పు కూడా ఉంటుంది.',
-  'sdata.pmfme.support': 'ప్రాజెక్టు ఖర్చుపై ప్రభుత్వ రాయితీతో అప్పు',
+  'sdata.pmfme.description': 'ఆహార పదార్థాలు తయారు చేసే చిన్న యూనిట్లకు సహాయం, ప్రాజెక్టు ఖర్చులో కొంత భాగానికి ప్రభుత్వ డబ్బు కూడా ఉంటుంది, అది బ్యాంకు అప్పుతో కలిసి వస్తుంది.',
+  'sdata.pmfme.support': 'ప్రాజెక్టు ఖర్చులో కొంత భాగానికి ప్రభుత్వ డబ్బు, బ్యాంకు అప్పుతో',
   'elig.pmfme.activity': 'ఈ పథకంలో వచ్చే ఆహార తయారీ పని మీరు చేస్తూ ఉండాలి.',
-  'elig.pmfme.subsidy': 'ఒక యూనిట్ ఆమోదించిన ప్రాజెక్టు ఖర్చులో 35% రాయితీగా పొందవచ్చు, గరిష్ఠంగా Rs.10 లక్షలు.',
+  'elig.pmfme.subsidy': 'ఒక యూనిట్ ఆమోదించిన ప్రాజెక్టు ఖర్చులో 35% మేర ప్రభుత్వ డబ్బు పొందవచ్చు, గరిష్ఠంగా Rs.10 లక్షలు. ఇది బ్యాంకు అప్పుతో కలిసి వస్తుంది.',
   'elig.pmfme.contribution': 'ప్రాజెక్టు ఖర్చులో కనీసం 10% మీరే పెట్టాలి.',
 
-  'sdata.pmegp.description': 'వస్తువుల తయారీ, సేవా పని, లేదా కొనడం అమ్మడం చేసే కొత్త చిన్న వ్యాపారాలకు ప్రభుత్వ రాయితీతో అప్పు.',
-  'sdata.pmegp.support': 'మీ సొంత వాటాపై ప్రభుత్వ రాయితీతో అప్పు',
+  'sdata.pmegp.description': 'వస్తువుల తయారీ, సేవా పని, లేదా కొనడం అమ్మడం చేసే కొత్త చిన్న వ్యాపారాలకు: బ్యాంకు అప్పు, ప్రాజెక్టు ఖర్చులో కొంత భాగానికి ప్రభుత్వ డబ్బుతో. మీ సొంత వాటా కూడా మీరే పెట్టాలి.',
+  'sdata.pmegp.support': 'బ్యాంకు అప్పు, ప్రాజెక్టు ఖర్చులో కొంత భాగానికి ప్రభుత్వ డబ్బుతో',
   'elig.pmegp.guidelines': 'ఇప్పుడున్న PMEGP నిబంధనల షరతులను మీరు తీర్చాలి.',
   'elig.pmegp.maxManufacturing': 'వస్తువుల తయారీ పనికి ప్రాజెక్టు ఖర్చు Rs.50 లక్షల వరకు ఉండవచ్చు.',
   'elig.pmegp.maxService': 'సేవా పని లేదా కొనడం అమ్మడం కోసం ప్రాజెక్టు ఖర్చు Rs.20 లక్షల వరకు ఉండవచ్చు.',
@@ -839,9 +839,9 @@ const te = {
   'elig.kcc.rate': 'Rs.3 లక్షల వరకు వడ్డీ 7%, సమయానికి చెల్లిస్తే 4%కి తగ్గుతుంది.',
   'elig.kcc.animal': 'పశుపోషణ, చేపల పెంపకం Rs.2 లక్షల వరకు వస్తాయి.',
 
-  'sdata.up_myuva.description': 'సొంత పని మొదలుపెట్టే ఉత్తర ప్రదేశ్ యువతకు: Rs.5 లక్షల వరకు ప్రాజెక్టు, వడ్డీ లేదు, జిల్లా పరిశ్రమల కేంద్రం ద్వారా.',
+  'sdata.up_myuva.description': 'సొంత పని మొదలుపెట్టే ఉత్తర ప్రదేశ్ యువతకు: Rs.5 లక్షల వరకు ప్రాజెక్టుకు వడ్డీ లేని అప్పు, జిల్లా పరిశ్రమల కేంద్రం ద్వారా.',
   'sdata.up_myuva.support': 'Rs.5 లక్షల వరకు వడ్డీ లేని అప్పు',
-  'elig.myuva.amount': 'Rs.5 లక్షల వరకు ప్రాజెక్టు ఖర్చు ఇస్తారు, చెప్పిన కాలం వరకు మీరు వడ్డీ చెల్లించాల్సిన అవసరం లేదు.',
+  'elig.myuva.amount': 'Rs.5 లక్షల వరకు ప్రాజెక్టు ఖర్చును అప్పు భరిస్తుంది. చెప్పిన కాలం వరకు దానిపై మీరు వడ్డీ చెల్లించాల్సిన అవసరం లేదు.',
 
   'sdata.up_vssy.description': 'ఉత్తర ప్రదేశ్‌లోని సాంప్రదాయ పనివారికి ఆరు రోజుల ఉచిత శిక్షణ, ఉచిత పనిముట్ల పెట్టె — దర్జీలు, కుమ్మరులు, కమ్మరులు, వడ్రంగులు, మంగలులు, చెప్పులు కుట్టేవారు, ఇతరులు.',
   'sdata.up_vssy.support': 'ఉచిత శిక్షణ, ఉచిత పనిముట్ల పెట్టె',
@@ -863,15 +863,15 @@ const te = {
   'elig.ess.rate': 'మీరు పెట్టిన ఖర్చులో 15% నుంచి 45% తిరిగి వస్తుంది; మహిళలు, యువత, షెడ్యూల్డ్ కులాలు, షెడ్యూల్డ్ తెగలకు ఎక్కువ వాటా.',
   'elig.ess.stage': 'కొంత డబ్బును మొదలుపెట్టే ముందు, మిగతాది యూనిట్ ఉత్పత్తి మొదలైన తరవాత అడగవచ్చు.',
 
-  'sdata.wb_bcc.description': 'సొంత పని మొదలుపెట్టే పశ్చిమ బెంగాల్ యువతకు: Rs.5 లక్షల వరకు ప్రాజెక్టు, రాష్ట్రం పూచీ ఇస్తుంది, ఖర్చులో 10% మీకు వస్తుంది.',
-  'sdata.wb_bcc.support': 'రాష్ట్ర పూచీ ఉన్న అప్పు, 10% వస్తుంది',
-  'elig.bcc.amount': 'Rs.5 లక్షల వరకు ప్రాజెక్టు ఖర్చు వస్తుంది, అప్పుకు రాష్ట్రం పూచీ ఇస్తుంది.',
+  'sdata.wb_bcc.description': 'సొంత పని మొదలుపెట్టే పశ్చిమ బెంగాల్ యువతకు: Rs.5 లక్షల వరకు ప్రాజెక్టుకు అప్పు, రాష్ట్రం పూచీ ఇస్తుంది, ఖర్చులో 10% తిరిగి చెల్లించాల్సిన అవసరం లేని డబ్బుగా వస్తుంది.',
+  'sdata.wb_bcc.support': 'రాష్ట్ర పూచీ ఉన్న అప్పు, ఖర్చులో 10% తిరిగి చెల్లించాల్సిన అవసరం లేదు',
+  'elig.bcc.amount': 'Rs.5 లక్షల వరకు ప్రాజెక్టు ఖర్చును అప్పు భరిస్తుంది, అప్పుకు రాష్ట్రం పూచీ ఇస్తుంది.',
   'elig.bcc.subsidy': 'ప్రాజెక్టు ఖర్చులో 10% వస్తుంది, దాన్ని తిరిగి చెల్లించాల్సిన అవసరం లేదు.',
 
-  'sdata.ka_udyogini.description': 'చిన్న వ్యాపారం నడుపుతున్న లేదా మొదలుపెడుతున్న కర్ణాటక మహిళలకు: Rs.3 లక్షల వరకు అప్పు, కొన్ని వర్గాల మహిళలకు దాంట్లో కొంత భాగం డబ్బుగా వస్తుంది.',
-  'sdata.ka_udyogini.support': 'మహిళలకు అప్పు, కొంత భాగం డబ్బుగా',
+  'sdata.ka_udyogini.description': 'చిన్న వ్యాపారం నడుపుతున్న లేదా మొదలుపెడుతున్న కర్ణాటక మహిళలకు: Rs.3 లక్షల వరకు అప్పు. కొన్ని వర్గాల మహిళలకు, అప్పులో కొంత భాగం తిరిగి చెల్లించాల్సిన అవసరం లేని డబ్బు.',
+  'sdata.ka_udyogini.support': 'మహిళలకు అప్పు, కొంత భాగం తిరిగి చెల్లించాల్సిన అవసరం లేదు',
   'elig.udyogini.amount': 'జాబితాలో ఉన్న వ్యాపారాలకు Rs.3 లక్షల వరకు అప్పు వస్తుంది.',
-  'elig.udyogini.subsidy': 'షెడ్యూల్డ్ కులాలు, షెడ్యూల్డ్ తెగలు, జాబితాలో ఉన్న ఇతర వర్గాల మహిళలకు అప్పులో 30%, Rs.90,000 వరకు వస్తుంది.',
+  'elig.udyogini.subsidy': 'మీరు షెడ్యూల్డ్ కులం, షెడ్యూల్డ్ తెగ లేదా జాబితాలో ఉన్న మరో వర్గానికి చెందిన మహిళ అయితే, అప్పులో 30%, Rs.90,000 వరకు, తిరిగి చెల్లించాల్సిన అవసరం లేని డబ్బు.',
   'elig.udyogini.income': 'కుటుంబ ఆదాయానికి ఒక పరిమితి ఉంది; వితంతువులకు, దివ్యాంగ మహిళలకు ఇది వర్తించదు.',
 
   'sdata.unnati_ner.description': 'ఈశాన్య ఎనిమిది రాష్ట్రాల్లో కొత్త, ఎదుగుతున్న యూనిట్లకు: మీ భవనం, ప్లాంటు, యంత్రాలకు డబ్బు, ఉత్పత్తి మొదలైన తరవాత మరింత సహాయం.',
@@ -885,7 +885,7 @@ const te = {
   'elig.vvp.where': 'ఈ కార్యక్రమంలో ప్రకటించిన సరిహద్దు బ్లాకుల గ్రామాలు మాత్రమే వస్తాయి.',
   'elig.vvp.what': 'ఇంట్లో బసకు ఇవ్వడం, గ్రామ పర్యాటకం, పాల, పశు పెంపకం, చేతిపని, చిన్న స్థానిక వ్యాపారానికి ఈ సహాయం వస్తుంది.',
 
-  'sdata.dic.description': 'మీ సొంత జిల్లాలోని ప్రభుత్వ కార్యాలయం. చిన్న వ్యాపారాలను నమోదు చేస్తుంది, మీ అప్పు, రాయితీ దరఖాస్తులను రాష్ట్ర, కేంద్ర పథకాలకు పంపుతుంది, మీకు ఏవి వస్తాయో చెబుతుంది.',
+  'sdata.dic.description': 'మీ సొంత జిల్లాలోని ప్రభుత్వ కార్యాలయం. చిన్న వ్యాపారాలను నమోదు చేస్తుంది, అప్పులకు, ఖర్చు కోసం ప్రభుత్వ డబ్బుకు మీ దరఖాస్తులను రాష్ట్ర, కేంద్ర పథకాలకు పంపుతుంది, మీకు ఏవి వస్తాయో చెబుతుంది.',
   'sdata.dic.support': 'నమోదు, పథకం దరఖాస్తులకు ఉచిత సహాయం',
   'elig.dic.what': 'కార్యాలయం ఉద్యమ్ నమోదు చేస్తుంది, రాష్ట్ర, కేంద్ర పథకాలకు మీ దరఖాస్తులను పంపుతుంది, వ్యాపార శిక్షణ ఏర్పాటు చేస్తుంది.',
 
@@ -898,11 +898,11 @@ const te = {
   'sdata.kvk.support': 'ఉచిత శిక్షణ, సలహా, మట్టి పరీక్ష',
   'elig.kvk.what': 'పశుపోషణ, తేనెటీగల పెంపకం, పుట్టగొడుగుల పెంపకం, ఆహార తయారీ, విత్తన ఉత్పత్తిపై చిన్న కోర్సులు నడుస్తాయి.',
 
-  'sdata.odop_up.description': 'ఉత్తర ప్రదేశ్‌లో ప్రతి జిల్లాకు ఎంపిక చేసిన ఒక చేతిపని లేదా వస్తువు ఉంది. మీ పని మీ జిల్లాకు ఎంపిక చేసిన వస్తువు అయితే, పనిముట్ల పెట్టె, శిక్షణ, జాతరల్లో అమ్మడానికి సహాయం, అప్పులో మీ వాటాకు డబ్బు వస్తాయి.',
-  'sdata.odop_up.support': 'పనిముట్లు, శిక్షణ, అమ్మకపు సహాయం, అప్పు వాటా',
+  'sdata.odop_up.description': 'ఉత్తర ప్రదేశ్‌లో ప్రతి జిల్లాకు ఎంపిక చేసిన ఒక చేతిపని లేదా వస్తువు ఉంది. మీ పని మీ జిల్లాకు ఎంపిక చేసిన వస్తువు అయితే, పనిముట్ల పెట్టె, శిక్షణ, జాతరల్లో అమ్మడానికి సహాయం, ప్రాజెక్టు ఖర్చులో కొంత భాగానికి ప్రభుత్వ డబ్బుతో అప్పు వస్తాయి.',
+  'sdata.odop_up.support': 'పనిముట్లు, శిక్షణ, అమ్మకపు సహాయం, ఖర్చులో కొంత భాగానికి ప్రభుత్వ డబ్బుతో అప్పు',
   'elig.odop.product': 'మీ పని మీ సొంత జిల్లాకు ఎంపిక చేసిన వస్తువు కావాలి — ఏది అనేది మీ జిల్లా పరిశ్రమల కేంద్రంలో అడగండి.',
   'elig.odop.toolkit': 'శిక్షణ పొందిన పనివారికి పనిముట్ల పెట్టె వస్తుంది, రాష్ట్ర, జాతీయ జాతరల్లో పాల్గొనవచ్చు.',
-  'elig.odop.margin': 'ఈ పథకంలో అప్పు వస్తుంది, దాంట్లో మీ వాటాకు డబ్బు ఇస్తారు.',
+  'elig.odop.margin': 'ఈ పథకంలో అప్పు వస్తుంది, ప్రాజెక్టు ఖర్చులో కొంత భాగానికి ప్రభుత్వ డబ్బుతో.',
 
   'sdata.tehsil_certificates.description': 'దాదాపు ప్రతి పథకం ఆదాయం, కులం లేదా నివాస ధ్రువీకరణ పత్రం అడుగుతుంది, వాటిని ఇచ్చేది మీ తహసీల్ లేదా తాలూకా కార్యాలయం. ఎక్కడైనా దరఖాస్తు చేసే ముందు వాటిని తీసుకోండి, లేకపోతే మీ దరఖాస్తు ఆగిపోతుంది.',
   'sdata.tehsil_certificates.support': 'ఇతర పథకాలు అడిగే ధ్రువీకరణ పత్రాలు',
@@ -927,7 +927,7 @@ const te = {
 
   'sdata.atma_block.description': 'బ్లాకు వ్యవసాయ బృందం పొలంలో కొత్త పద్ధతులు చూపుతుంది, రైతు పొలం బడులు నడుపుతుంది, వేరే జిల్లాలకు పర్యటనలు ఏర్పాటు చేస్తుంది, శిక్షణ రోజులకు కొంత డబ్బు ఇస్తుంది.',
   'sdata.atma_block.support': 'ఉచిత వ్యవసాయ శిక్షణ, నేర్చుకునే పర్యటనలు',
-  'elig.atma.what': 'పొలంలో కొత్త పద్ధతుల ప్రదర్శన, రైతు పొలం బడులు, జిల్లా లోపల బయట ఖర్చు ఇచ్చిన పర్యటనలు వస్తాయి.',
+  'elig.atma.what': 'పొలంలో కొత్త పద్ధతుల ప్రదర్శన, రైతు పొలం బడులు, జిల్లా లోపల బయట నేర్చుకునే పర్యటనలు వస్తాయి. ఈ పర్యటనలకు మీరు ఖర్చు పెట్టాల్సిన అవసరం లేదు.',
   'elig.atma.friend': 'ప్రతి గ్రామంలో ఒక రైతు మిత్ర ఉంటారు; మొదట వారిని కలవవచ్చు.',
 
   'sdata.gp_licence.description': 'గ్రామంలో దుకాణం లేదా చిన్న యూనిట్‌కు కావాల్సిన అభ్యంతరం లేని పత్రం, వ్యాపార అనుమతిని మీ గ్రామ పంచాయతీ ఇస్తుంది; దాని వార్షిక గ్రామ ప్రణాళిక నుంచి మీ పని చోటుకు షెడ్డు, నీరు లేదా దారి రావచ్చు.',
@@ -943,7 +943,7 @@ const te = {
   'sdata.svanidhi.support': 'వీధిలో అమ్మేవారికి పని నడిపే అప్పు',
   'elig.svanidhi.who': 'పట్టణ అమ్మకపు సర్వేలో మీరు లెక్కకు వచ్చి ఉండాలి, లేదా అమ్మకపు ధ్రువీకరణ పత్రం లేదా సిఫారసు లేఖ ఉండాలి.',
   'elig.svanidhi.ladder': 'మొదటి అప్పు Rs.10,000. సమయానికి చెల్లిస్తే తరవాతిది Rs.20,000, ఆ తరవాత Rs.50,000.',
-  'elig.svanidhi.cashback': 'ఫోను లేదా కార్డుతో చెల్లిస్తే డబ్బు తిరిగి వస్తుంది, సమయానికి చెల్లిస్తే వడ్డీలో 7% రాయితీ.',
+  'elig.svanidhi.cashback': 'ఫోను లేదా కార్డుతో చెల్లిస్తే డబ్బు తిరిగి వస్తుంది. సమయానికి చెల్లిస్తే, 7% వడ్డీని మీ తరఫున ప్రభుత్వం చెల్లిస్తుంది.',
 }
 
 const ml = {
@@ -1006,14 +1006,14 @@ const ml = {
   'elig.common.smallFee': 'ഓരോ സേവനത്തിനും ഒരു ചെറിയ നിശ്ചിത ഫീസ് ഉണ്ട്.',
   'elig.common.askLocalOffice': 'തുകയും വ്യവസ്ഥകളും സ്ഥലത്തിനനുസരിച്ച് മാറും, അതുകൊണ്ട് നിങ്ങളുടെ അടുത്തുള്ള ഓഫീസിൽ ചോദിച്ച് ഉറപ്പാക്കുക.',
 
-  'sdata.pmfme.description': 'ഭക്ഷ്യവസ്തുക്കൾ ഉണ്ടാക്കുന്ന ചെറിയ യൂണിറ്റുകൾക്ക് സഹായം, ചെലവിൽ സർക്കാർ കിഴിവോടെ വായ്പയും ഉൾപ്പെടും.',
-  'sdata.pmfme.support': 'പദ്ധതിച്ചെലവിൽ സർക്കാർ കിഴിവോടെ വായ്പ',
+  'sdata.pmfme.description': 'ഭക്ഷ്യവസ്തുക്കൾ ഉണ്ടാക്കുന്ന ചെറിയ യൂണിറ്റുകൾക്ക് സഹായം, പദ്ധതിച്ചെലവിന്റെ ഒരു ഭാഗത്തിന് സർക്കാർ പണവും ഉൾപ്പെടും, അത് ബാങ്ക് വായ്പയോടൊപ്പം വരും.',
+  'sdata.pmfme.support': 'പദ്ധതിച്ചെലവിന്റെ ഒരു ഭാഗത്തിന് സർക്കാർ പണം, ബാങ്ക് വായ്പയോടൊപ്പം',
   'elig.pmfme.activity': 'ഈ പദ്ധതിയിൽ വരുന്ന ഭക്ഷ്യനിർമ്മാണ ജോലി നിങ്ങൾ ചെയ്തുവരണം.',
-  'elig.pmfme.subsidy': 'ഒരു യൂണിറ്റിന് അനുവദിച്ച പദ്ധതിച്ചെലവിന്റെ 35% കിഴിവായി കിട്ടും, പരമാവധി Rs.10 ലക്ഷം.',
+  'elig.pmfme.subsidy': 'ഒരു യൂണിറ്റിന് അനുവദിച്ച പദ്ധതിച്ചെലവിന്റെ 35% വരുന്ന സർക്കാർ പണം കിട്ടാം, പരമാവധി Rs.10 ലക്ഷം. ഇത് ബാങ്ക് വായ്പയോടൊപ്പം വരും.',
   'elig.pmfme.contribution': 'പദ്ധതിച്ചെലവിന്റെ കുറഞ്ഞത് 10% നിങ്ങൾതന്നെ ഇടണം.',
 
-  'sdata.pmegp.description': 'സാമാനം ഉണ്ടാക്കൽ, സേവന ജോലി, അല്ലെങ്കിൽ വാങ്ങലും വിൽപ്പനയും ചെയ്യുന്ന പുതിയ ചെറുകിട ബിസിനസുകൾക്ക് സർക്കാർ കിഴിവോടെ വായ്പ.',
-  'sdata.pmegp.support': 'നിങ്ങളുടെ സ്വന്തം വിഹിതത്തിൽ സർക്കാർ കിഴിവോടെ വായ്പ',
+  'sdata.pmegp.description': 'സാമാനം ഉണ്ടാക്കൽ, സേവന ജോലി, അല്ലെങ്കിൽ വാങ്ങലും വിൽപ്പനയും ചെയ്യുന്ന പുതിയ ചെറുകിട ബിസിനസുകൾക്ക്: ബാങ്ക് വായ്പ, പദ്ധതിച്ചെലവിന്റെ ഒരു ഭാഗത്തിന് സർക്കാർ പണത്തോടൊപ്പം. നിങ്ങളുടെ സ്വന്തം വിഹിതവും നിങ്ങൾതന്നെ ഇടണം.',
+  'sdata.pmegp.support': 'ബാങ്ക് വായ്പ, പദ്ധതിച്ചെലവിന്റെ ഒരു ഭാഗത്തിന് സർക്കാർ പണത്തോടൊപ്പം',
   'elig.pmegp.guidelines': 'ഇപ്പോഴുള്ള PMEGP നിയമങ്ങളിലെ വ്യവസ്ഥകൾ നിങ്ങൾ പാലിക്കണം.',
   'elig.pmegp.maxManufacturing': 'സാമാനം ഉണ്ടാക്കുന്ന ജോലിക്ക് പദ്ധതിച്ചെലവ് Rs.50 ലക്ഷം വരെ ആകാം.',
   'elig.pmegp.maxService': 'സേവന ജോലിക്കോ വാങ്ങൽ വിൽപ്പനയ്ക്കോ പദ്ധതിച്ചെലവ് Rs.20 ലക്ഷം വരെ ആകാം.',
@@ -1062,9 +1062,9 @@ const ml = {
   'elig.kcc.rate': 'Rs.3 ലക്ഷം വരെ പലിശ 7%, സമയത്ത് അടച്ചാൽ 4% ആയി കുറയും.',
   'elig.kcc.animal': 'കന്നുകാലി വളർത്തലും മീൻ വളർത്തലും Rs.2 ലക്ഷം വരെ വരും.',
 
-  'sdata.up_myuva.description': 'സ്വന്തം ജോലി തുടങ്ങുന്ന ഉത്തർപ്രദേശിലെ ചെറുപ്പക്കാർക്ക്: Rs.5 ലക്ഷം വരെ പദ്ധതി, പലിശയില്ല, ജില്ലാ വ്യവസായ കേന്ദ്രം വഴി.',
+  'sdata.up_myuva.description': 'സ്വന്തം ജോലി തുടങ്ങുന്ന ഉത്തർപ്രദേശിലെ ചെറുപ്പക്കാർക്ക്: Rs.5 ലക്ഷം വരെയുള്ള പദ്ധതിക്ക് പലിശയില്ലാത്ത വായ്പ, ജില്ലാ വ്യവസായ കേന്ദ്രം വഴി.',
   'sdata.up_myuva.support': 'Rs.5 ലക്ഷം വരെ പലിശയില്ലാത്ത വായ്പ',
-  'elig.myuva.amount': 'Rs.5 ലക്ഷം വരെ പദ്ധതിച്ചെലവ് തരും, പറഞ്ഞ കാലം വരെ നിങ്ങൾ പലിശ അടയ്ക്കേണ്ടതില്ല.',
+  'elig.myuva.amount': 'Rs.5 ലക്ഷം വരെയുള്ള പദ്ധതിച്ചെലവ് വായ്പയായി കിട്ടും. പറഞ്ഞ കാലം വരെ അതിന് നിങ്ങൾ പലിശ അടയ്ക്കേണ്ടതില്ല.',
 
   'sdata.up_vssy.description': 'ഉത്തർപ്രദേശിലെ പരമ്പരാഗത തൊഴിലാളികൾക്ക് ആറ് ദിവസത്തെ സൗജന്യ പരിശീലനവും സൗജന്യ ഉപകരണപ്പെട്ടിയും — തയ്യൽക്കാർ, കുശവർ, കൊല്ലന്മാർ, മരപ്പണിക്കാർ, ക്ഷുരകർ, ചെരിപ്പുകുത്തികൾ, മറ്റുള്ളവർ.',
   'sdata.up_vssy.support': 'സൗജന്യ പരിശീലനം, സൗജന്യ ഉപകരണപ്പെട്ടി',
@@ -1086,15 +1086,15 @@ const ml = {
   'elig.ess.rate': 'നിങ്ങൾ ഇട്ട ചെലവിന്റെ 15% മുതൽ 45% വരെ തിരികെ കിട്ടും; സ്ത്രീകൾക്ക്, ചെറുപ്പക്കാർക്ക്, പട്ടികജാതി പട്ടികവർഗക്കാർക്ക് കൂടുതൽ വിഹിതം.',
   'elig.ess.stage': 'കുറച്ച് പണം തുടങ്ങുന്നതിന് മുൻപും ബാക്കി യൂണിറ്റ് ഉൽപ്പാദനം തുടങ്ങിയ ശേഷവും ചോദിക്കാം.',
 
-  'sdata.wb_bcc.description': 'സ്വന്തം ജോലി തുടങ്ങുന്ന പശ്ചിമ ബംഗാളിലെ ചെറുപ്പക്കാർക്ക്: Rs.5 ലക്ഷം വരെ പദ്ധതി, സംസ്ഥാനം ജാമ്യം നിൽക്കും, ചെലവിന്റെ 10% നിങ്ങൾക്ക് കിട്ടും.',
-  'sdata.wb_bcc.support': 'സംസ്ഥാന ജാമ്യമുള്ള വായ്പ, 10% കിട്ടും',
-  'elig.bcc.amount': 'Rs.5 ലക്ഷം വരെ പദ്ധതിച്ചെലവ് കിട്ടും, വായ്പയ്ക്ക് സംസ്ഥാനം ജാമ്യം നിൽക്കും.',
+  'sdata.wb_bcc.description': 'സ്വന്തം ജോലി തുടങ്ങുന്ന പശ്ചിമ ബംഗാളിലെ ചെറുപ്പക്കാർക്ക്: Rs.5 ലക്ഷം വരെയുള്ള പദ്ധതിക്ക് വായ്പ, സംസ്ഥാനം ജാമ്യം നിൽക്കും, ചെലവിന്റെ 10% തിരിച്ചടയ്ക്കേണ്ടാത്ത പണമായി കിട്ടും.',
+  'sdata.wb_bcc.support': 'സംസ്ഥാന ജാമ്യമുള്ള വായ്പ, ചെലവിന്റെ 10% തിരിച്ചടയ്ക്കേണ്ടതില്ല',
+  'elig.bcc.amount': 'Rs.5 ലക്ഷം വരെയുള്ള പദ്ധതിച്ചെലവ് വായ്പയായി കിട്ടും, വായ്പയ്ക്ക് സംസ്ഥാനം ജാമ്യം നിൽക്കും.',
   'elig.bcc.subsidy': 'പദ്ധതിച്ചെലവിന്റെ 10% കിട്ടും, അത് തിരിച്ചടയ്ക്കേണ്ടതില്ല.',
 
-  'sdata.ka_udyogini.description': 'ചെറിയ ബിസിനസ് നടത്തുന്നതോ തുടങ്ങുന്നതോ ആയ കർണാടകത്തിലെ സ്ത്രീകൾക്ക്: Rs.3 ലക്ഷം വരെ വായ്പ, ചില വിഭാഗം സ്ത്രീകൾക്ക് അതിന്റെ ഒരു ഭാഗം പണമായി കിട്ടും.',
-  'sdata.ka_udyogini.support': 'സ്ത്രീകൾക്ക് വായ്പ, ഒരു ഭാഗം പണമായി',
+  'sdata.ka_udyogini.description': 'ചെറിയ ബിസിനസ് നടത്തുന്നതോ തുടങ്ങുന്നതോ ആയ കർണാടകത്തിലെ സ്ത്രീകൾക്ക്: Rs.3 ലക്ഷം വരെ വായ്പ. ചില വിഭാഗം സ്ത്രീകൾക്ക്, വായ്പയുടെ ഒരു ഭാഗം തിരിച്ചടയ്ക്കേണ്ടാത്ത പണമാണ്.',
+  'sdata.ka_udyogini.support': 'സ്ത്രീകൾക്ക് വായ്പ, ഒരു ഭാഗം തിരിച്ചടയ്ക്കേണ്ടതില്ല',
   'elig.udyogini.amount': 'പട്ടികയിലുള്ള ബിസിനസുകൾക്ക് Rs.3 ലക്ഷം വരെ വായ്പ കിട്ടും.',
-  'elig.udyogini.subsidy': 'പട്ടികജാതി, പട്ടികവർഗം, പട്ടികയിലുള്ള മറ്റ് വിഭാഗങ്ങളിലെ സ്ത്രീകൾക്ക് വായ്പയുടെ 30%, Rs.90,000 വരെ കിട്ടും.',
+  'elig.udyogini.subsidy': 'നിങ്ങൾ പട്ടികജാതി, പട്ടികവർഗം അല്ലെങ്കിൽ പട്ടികയിലുള്ള മറ്റൊരു വിഭാഗത്തിലെ സ്ത്രീയാണെങ്കിൽ, വായ്പയുടെ 30%, Rs.90,000 വരെ, തിരിച്ചടയ്ക്കേണ്ടാത്ത പണമാണ്.',
   'elig.udyogini.income': 'കുടുംബ വരുമാനത്തിന് ഒരു പരിധിയുണ്ട്; വിധവകൾക്കും വികലാംഗരായ സ്ത്രീകൾക്കും ഇത് ബാധകമല്ല.',
 
   'sdata.unnati_ner.description': 'വടക്കുകിഴക്കൻ എട്ട് സംസ്ഥാനങ്ങളിലെ പുതിയതും വളരുന്നതുമായ യൂണിറ്റുകൾക്ക്: നിങ്ങളുടെ കെട്ടിടം, പ്ലാന്റ്, യന്ത്രം എന്നിവയ്ക്ക് പണം, ഉൽപ്പാദനം തുടങ്ങിയ ശേഷം കൂടുതൽ സഹായം.',
@@ -1108,7 +1108,7 @@ const ml = {
   'elig.vvp.where': 'ഈ പരിപാടിയിൽ പ്രഖ്യാപിച്ച അതിർത്തി ബ്ലോക്കുകളിലെ ഗ്രാമങ്ങൾ മാത്രം വരും.',
   'elig.vvp.what': 'വീട്ടിൽ താമസസൗകര്യം, ഗ്രാമ വിനോദസഞ്ചാരം, പാൽ, കന്നുകാലി വളർത്തൽ, കൈത്തൊഴിൽ, ചെറിയ നാടൻ ബിസിനസ് എന്നിവയ്ക്ക് ഈ സഹായം കിട്ടും.',
 
-  'sdata.dic.description': 'നിങ്ങളുടെ സ്വന്തം ജില്ലയിലെ സർക്കാർ ഓഫീസ്. ചെറുകിട ബിസിനസുകൾ രജിസ്റ്റർ ചെയ്യും, നിങ്ങളുടെ വായ്പ കിഴിവ് അപേക്ഷകൾ സംസ്ഥാന കേന്ദ്ര പദ്ധതികളിലേക്ക് അയയ്ക്കും, നിങ്ങൾക്ക് ഏതെല്ലാം കിട്ടും എന്ന് പറയും.',
+  'sdata.dic.description': 'നിങ്ങളുടെ സ്വന്തം ജില്ലയിലെ സർക്കാർ ഓഫീസ്. ചെറുകിട ബിസിനസുകൾ രജിസ്റ്റർ ചെയ്യും, വായ്പയ്ക്കും ചെലവിനുള്ള സർക്കാർ പണത്തിനുമുള്ള നിങ്ങളുടെ അപേക്ഷകൾ സംസ്ഥാന കേന്ദ്ര പദ്ധതികളിലേക്ക് അയയ്ക്കും, നിങ്ങൾക്ക് ഏതെല്ലാം കിട്ടും എന്ന് പറയും.',
   'sdata.dic.support': 'രജിസ്ട്രേഷനും പദ്ധതി അപേക്ഷകൾക്കും സൗജന്യ സഹായം',
   'elig.dic.what': 'ഓഫീസ് ഉദ്യം രജിസ്ട്രേഷൻ ചെയ്യും, സംസ്ഥാന കേന്ദ്ര പദ്ധതികളിലേക്ക് നിങ്ങളുടെ അപേക്ഷകൾ അയയ്ക്കും, ബിസിനസ് പരിശീലനം ഒരുക്കും.',
 
@@ -1121,11 +1121,11 @@ const ml = {
   'sdata.kvk.support': 'സൗജന്യ പരിശീലനം, ഉപദേശം, മണ്ണ് പരിശോധന',
   'elig.kvk.what': 'കന്നുകാലി വളർത്തൽ, തേനീച്ച വളർത്തൽ, കൂൺ വളർത്തൽ, ഭക്ഷ്യനിർമ്മാണം, വിത്ത് ഉൽപ്പാദനം എന്നിവയിൽ ചെറിയ കോഴ്സുകൾ നടക്കും.',
 
-  'sdata.odop_up.description': 'ഉത്തർപ്രദേശിൽ ഓരോ ജില്ലയ്ക്കും തിരഞ്ഞെടുത്ത ഒരു കൈത്തൊഴിലോ സാമാനമോ ഉണ്ട്. നിങ്ങളുടെ ജോലി നിങ്ങളുടെ ജില്ലയ്ക്ക് തിരഞ്ഞെടുത്ത സാമാനമാണെങ്കിൽ, ഉപകരണപ്പെട്ടി, പരിശീലനം, മേളകളിൽ വിൽക്കാൻ സഹായം, വായ്പയിലെ നിങ്ങളുടെ വിഹിതത്തിന് പണം എന്നിവ കിട്ടും.',
-  'sdata.odop_up.support': 'ഉപകരണം, പരിശീലനം, വിൽപ്പന സഹായം, വായ്പ വിഹിതം',
+  'sdata.odop_up.description': 'ഉത്തർപ്രദേശിൽ ഓരോ ജില്ലയ്ക്കും തിരഞ്ഞെടുത്ത ഒരു കൈത്തൊഴിലോ സാമാനമോ ഉണ്ട്. നിങ്ങളുടെ ജോലി നിങ്ങളുടെ ജില്ലയ്ക്ക് തിരഞ്ഞെടുത്ത സാമാനമാണെങ്കിൽ, ഉപകരണപ്പെട്ടി, പരിശീലനം, മേളകളിൽ വിൽക്കാൻ സഹായം, പദ്ധതിച്ചെലവിന്റെ ഒരു ഭാഗത്തിന് സർക്കാർ പണത്തോടൊപ്പം വായ്പ എന്നിവ കിട്ടും.',
+  'sdata.odop_up.support': 'ഉപകരണം, പരിശീലനം, വിൽപ്പന സഹായം, ചെലവിന്റെ ഒരു ഭാഗത്തിന് സർക്കാർ പണത്തോടൊപ്പം വായ്പ',
   'elig.odop.product': 'നിങ്ങളുടെ ജോലി നിങ്ങളുടെ സ്വന്തം ജില്ലയ്ക്ക് തിരഞ്ഞെടുത്ത സാമാനമാകണം — ഏതാണെന്ന് നിങ്ങളുടെ ജില്ലാ വ്യവസായ കേന്ദ്രത്തിൽ ചോദിക്കുക.',
   'elig.odop.toolkit': 'പരിശീലനം കിട്ടിയ തൊഴിലാളികൾക്ക് ഉപകരണപ്പെട്ടി കിട്ടും, സംസ്ഥാന ദേശീയ മേളകളിൽ പങ്കെടുക്കാം.',
-  'elig.odop.margin': 'ഈ പദ്ധതിയിൽ വായ്പ കിട്ടും, അതിലെ നിങ്ങളുടെ വിഹിതത്തിന് പണം തരും.',
+  'elig.odop.margin': 'ഈ പദ്ധതിയിൽ വായ്പ കിട്ടും, പദ്ധതിച്ചെലവിന്റെ ഒരു ഭാഗത്തിന് സർക്കാർ പണത്തോടൊപ്പം.',
 
   'sdata.tehsil_certificates.description': 'മിക്കവാറും എല്ലാ പദ്ധതിയും വരുമാനം, ജാതി അല്ലെങ്കിൽ താമസ സർട്ടിഫിക്കറ്റ് ചോദിക്കും, അവ തരുന്നത് നിങ്ങളുടെ തഹസീൽ അല്ലെങ്കിൽ താലൂക്ക് ഓഫീസാണ്. എവിടെയും അപേക്ഷിക്കുന്നതിന് മുൻപ് അവ എടുക്കുക, അല്ലെങ്കിൽ നിങ്ങളുടെ അപേക്ഷ നിന്നുപോകും.',
   'sdata.tehsil_certificates.support': 'മറ്റ് പദ്ധതികൾ ചോദിക്കുന്ന സർട്ടിഫിക്കറ്റുകൾ',
@@ -1150,7 +1150,7 @@ const ml = {
 
   'sdata.atma_block.description': 'ബ്ലോക്ക് കൃഷി സംഘം വയലിൽ പുതിയ രീതികൾ കാണിക്കും, കർഷക വയൽ പാഠശാലകൾ നടത്തും, മറ്റ് ജില്ലകളിലേക്ക് യാത്രകൾ ഒരുക്കും, പരിശീലന ദിവസങ്ങൾക്ക് കുറച്ച് പണം തരും.',
   'sdata.atma_block.support': 'സൗജന്യ കൃഷി പരിശീലനം, പഠന യാത്രകൾ',
-  'elig.atma.what': 'വയലിൽ പുതിയ രീതികളുടെ പ്രദർശനം, കർഷക വയൽ പാഠശാലകൾ, ജില്ലയ്ക്കകത്തും പുറത്തും ചെലവ് തന്ന യാത്രകൾ എന്നിവ വരും.',
+  'elig.atma.what': 'വയലിൽ പുതിയ രീതികളുടെ പ്രദർശനം, കർഷക വയൽ പാഠശാലകൾ, ജില്ലയ്ക്കകത്തും പുറത്തും പഠന യാത്രകൾ എന്നിവ വരും. ഈ യാത്രകളുടെ ചെലവ് നിങ്ങൾ വഹിക്കേണ്ടതില്ല.',
   'elig.atma.friend': 'ഓരോ ഗ്രാമത്തിലും ഒരു കർഷക മിത്ര ഉണ്ട്; ആദ്യം അവരെ കാണാം.',
 
   'sdata.gp_licence.description': 'ഗ്രാമത്തിൽ കടയ്ക്കോ ചെറിയ യൂണിറ്റിനോ വേണ്ട എതിർപ്പില്ലാ രേഖയും ബിസിനസ് അനുമതിയും നിങ്ങളുടെ ഗ്രാമപഞ്ചായത്ത് തരും; അതിന്റെ വാർഷിക ഗ്രാമ പദ്ധതിയിൽ നിന്ന് നിങ്ങളുടെ ജോലിസ്ഥലത്തിന് ഷെഡ്, വെള്ളം അല്ലെങ്കിൽ വഴി കിട്ടിയേക്കാം.',
@@ -1166,7 +1166,7 @@ const ml = {
   'sdata.svanidhi.support': 'വഴിയോരത്ത് വിൽക്കുന്നവർക്ക് ജോലി നടത്താനുള്ള വായ്പ',
   'elig.svanidhi.who': 'നഗരസഭയുടെ വിൽപ്പന സർവേയിൽ നിങ്ങൾ എണ്ണത്തിൽ വന്നിരിക്കണം, അല്ലെങ്കിൽ വിൽപ്പന സർട്ടിഫിക്കറ്റോ ശുപാർശ കത്തോ വേണം.',
   'elig.svanidhi.ladder': 'ആദ്യ വായ്പ Rs.10,000. സമയത്ത് അടച്ചാൽ അടുത്തത് Rs.20,000, അതിന് ശേഷം Rs.50,000.',
-  'elig.svanidhi.cashback': 'ഫോൺ കൊണ്ടോ കാർഡ് കൊണ്ടോ അടച്ചാൽ പണം തിരികെ കിട്ടും, സമയത്ത് അടച്ചാൽ പലിശയിൽ 7% കിഴിവ്.',
+  'elig.svanidhi.cashback': 'ഫോൺ കൊണ്ടോ കാർഡ് കൊണ്ടോ അടച്ചാൽ പണം തിരികെ കിട്ടും. സമയത്ത് അടച്ചാൽ, 7% പലിശ നിങ്ങൾക്കു വേണ്ടി സർക്കാർ അടയ്ക്കും.',
 }
 
 const kn = {
@@ -1229,14 +1229,14 @@ const kn = {
   'elig.common.smallFee': 'ಪ್ರತಿ ಸೇವೆಗೆ ಒಂದು ಸಣ್ಣ ನಿಗದಿತ ಶುಲ್ಕ ಇರುತ್ತದೆ.',
   'elig.common.askLocalOffice': 'ಮೊತ್ತ ಮತ್ತು ಷರತ್ತುಗಳು ಜಾಗದಿಂದ ಜಾಗಕ್ಕೆ ಬದಲಾಗುತ್ತವೆ, ಹಾಗಾಗಿ ನಿಮ್ಮ ಹತ್ತಿರದ ಕಚೇರಿಯಲ್ಲಿ ಕೇಳಿ ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.',
 
-  'sdata.pmfme.description': 'ಆಹಾರ ಪದಾರ್ಥ ತಯಾರಿಸುವ ಸಣ್ಣ ಘಟಕಗಳಿಗೆ ನೆರವು, ಖರ್ಚಿನ ಮೇಲೆ ಸರ್ಕಾರಿ ರಿಯಾಯಿತಿಯೊಂದಿಗೆ ಸಾಲವೂ ಸೇರಿದೆ.',
-  'sdata.pmfme.support': 'ಯೋಜನೆಯ ಖರ್ಚಿನ ಮೇಲೆ ಸರ್ಕಾರಿ ರಿಯಾಯಿತಿಯೊಂದಿಗೆ ಸಾಲ',
+  'sdata.pmfme.description': 'ಆಹಾರ ಪದಾರ್ಥ ತಯಾರಿಸುವ ಸಣ್ಣ ಘಟಕಗಳಿಗೆ ನೆರವು, ಯೋಜನೆ ಖರ್ಚಿನ ಒಂದು ಭಾಗಕ್ಕೆ ಸರ್ಕಾರದ ಹಣವೂ ಸೇರಿದೆ, ಅದು ಬ್ಯಾಂಕ್ ಸಾಲದೊಂದಿಗೆ ಬರುತ್ತದೆ.',
+  'sdata.pmfme.support': 'ಯೋಜನೆ ಖರ್ಚಿನ ಒಂದು ಭಾಗಕ್ಕೆ ಸರ್ಕಾರದ ಹಣ, ಬ್ಯಾಂಕ್ ಸಾಲದೊಂದಿಗೆ',
   'elig.pmfme.activity': 'ಈ ಯೋಜನೆಯಲ್ಲಿ ಬರುವ ಆಹಾರ ತಯಾರಿಕೆ ಕೆಲಸವನ್ನು ನೀವು ಮಾಡುತ್ತಿರಬೇಕು.',
-  'elig.pmfme.subsidy': 'ಒಂದು ಘಟಕಕ್ಕೆ ಮಂಜೂರಾದ ಯೋಜನೆ ಖರ್ಚಿನ 35% ರಿಯಾಯಿತಿಯಾಗಿ ಸಿಗಬಹುದು, ಗರಿಷ್ಠ Rs.10 ಲಕ್ಷ.',
+  'elig.pmfme.subsidy': 'ಒಂದು ಘಟಕಕ್ಕೆ ಮಂಜೂರಾದ ಯೋಜನೆ ಖರ್ಚಿನ 35% ನಷ್ಟು ಸರ್ಕಾರದ ಹಣ ಸಿಗಬಹುದು, ಗರಿಷ್ಠ Rs.10 ಲಕ್ಷ. ಇದು ಬ್ಯಾಂಕ್ ಸಾಲದೊಂದಿಗೆ ಬರುತ್ತದೆ.',
   'elig.pmfme.contribution': 'ಯೋಜನೆ ಖರ್ಚಿನ ಕನಿಷ್ಠ 10% ನೀವೇ ಹಾಕಬೇಕು.',
 
-  'sdata.pmegp.description': 'ವಸ್ತು ತಯಾರಿಕೆ, ಸೇವಾ ಕೆಲಸ, ಅಥವಾ ಕೊಂಡು ಮಾರುವ ಹೊಸ ಸಣ್ಣ ವ್ಯಾಪಾರಗಳಿಗೆ ಸರ್ಕಾರಿ ರಿಯಾಯಿತಿಯೊಂದಿಗೆ ಸಾಲ.',
-  'sdata.pmegp.support': 'ನಿಮ್ಮ ಸ್ವಂತ ಪಾಲಿನ ಮೇಲೆ ಸರ್ಕಾರಿ ರಿಯಾಯಿತಿಯೊಂದಿಗೆ ಸಾಲ',
+  'sdata.pmegp.description': 'ವಸ್ತು ತಯಾರಿಕೆ, ಸೇವಾ ಕೆಲಸ, ಅಥವಾ ಕೊಂಡು ಮಾರುವ ಹೊಸ ಸಣ್ಣ ವ್ಯಾಪಾರಗಳಿಗೆ: ಬ್ಯಾಂಕ್ ಸಾಲ, ಯೋಜನೆ ಖರ್ಚಿನ ಒಂದು ಭಾಗಕ್ಕೆ ಸರ್ಕಾರದ ಹಣದೊಂದಿಗೆ. ನಿಮ್ಮ ಸ್ವಂತ ಪಾಲನ್ನೂ ನೀವೇ ಹಾಕಬೇಕು.',
+  'sdata.pmegp.support': 'ಬ್ಯಾಂಕ್ ಸಾಲ, ಯೋಜನೆ ಖರ್ಚಿನ ಒಂದು ಭಾಗಕ್ಕೆ ಸರ್ಕಾರದ ಹಣದೊಂದಿಗೆ',
   'elig.pmegp.guidelines': 'ಈಗಿನ PMEGP ನಿಯಮಗಳ ಷರತ್ತುಗಳನ್ನು ನೀವು ಪೂರೈಸಬೇಕು.',
   'elig.pmegp.maxManufacturing': 'ವಸ್ತು ತಯಾರಿಕೆ ಕೆಲಸಕ್ಕೆ ಯೋಜನೆ ಖರ್ಚು Rs.50 ಲಕ್ಷದವರೆಗೆ ಇರಬಹುದು.',
   'elig.pmegp.maxService': 'ಸೇವಾ ಕೆಲಸ ಅಥವಾ ಕೊಂಡು ಮಾರುವುದಕ್ಕೆ ಯೋಜನೆ ಖರ್ಚು Rs.20 ಲಕ್ಷದವರೆಗೆ ಇರಬಹುದು.',
@@ -1285,9 +1285,9 @@ const kn = {
   'elig.kcc.rate': 'Rs.3 ಲಕ್ಷದವರೆಗೆ ಬಡ್ಡಿ 7%, ಸಮಯಕ್ಕೆ ಕಟ್ಟಿದರೆ 4% ಕ್ಕೆ ಇಳಿಯುತ್ತದೆ.',
   'elig.kcc.animal': 'ಪಶು ಸಾಕಣೆ ಮತ್ತು ಮೀನು ಸಾಕಣೆ Rs.2 ಲಕ್ಷದವರೆಗೆ ಬರುತ್ತವೆ.',
 
-  'sdata.up_myuva.description': 'ಸ್ವಂತ ಕೆಲಸ ಆರಂಭಿಸುವ ಉತ್ತರ ಪ್ರದೇಶದ ಯುವಕರಿಗೆ: Rs.5 ಲಕ್ಷದವರೆಗೆ ಯೋಜನೆ, ಬಡ್ಡಿ ಇಲ್ಲ, ಜಿಲ್ಲಾ ಕೈಗಾರಿಕೆ ಕೇಂದ್ರದ ಮೂಲಕ.',
+  'sdata.up_myuva.description': 'ಸ್ವಂತ ಕೆಲಸ ಆರಂಭಿಸುವ ಉತ್ತರ ಪ್ರದೇಶದ ಯುವಕರಿಗೆ: Rs.5 ಲಕ್ಷದವರೆಗಿನ ಯೋಜನೆಗೆ ಬಡ್ಡಿ ಇಲ್ಲದ ಸಾಲ, ಜಿಲ್ಲಾ ಕೈಗಾರಿಕೆ ಕೇಂದ್ರದ ಮೂಲಕ.',
   'sdata.up_myuva.support': 'Rs.5 ಲಕ್ಷದವರೆಗೆ ಬಡ್ಡಿ ಇಲ್ಲದ ಸಾಲ',
-  'elig.myuva.amount': 'Rs.5 ಲಕ್ಷದವರೆಗೆ ಯೋಜನೆ ಖರ್ಚು ಕೊಡುತ್ತಾರೆ, ಹೇಳಿದ ಅವಧಿಯವರೆಗೆ ನೀವು ಬಡ್ಡಿ ಕಟ್ಟಬೇಕಿಲ್ಲ.',
+  'elig.myuva.amount': 'Rs.5 ಲಕ್ಷದವರೆಗಿನ ಯೋಜನೆ ಖರ್ಚನ್ನು ಸಾಲ ಭರಿಸುತ್ತದೆ. ಹೇಳಿದ ಅವಧಿಯವರೆಗೆ ಅದಕ್ಕೆ ನೀವು ಬಡ್ಡಿ ಕಟ್ಟಬೇಕಿಲ್ಲ.',
 
   'sdata.up_vssy.description': 'ಉತ್ತರ ಪ್ರದೇಶದ ಪಾರಂಪರಿಕ ಕೆಲಸಗಾರರಿಗೆ ಆರು ದಿನದ ಉಚಿತ ತರಬೇತಿ ಮತ್ತು ಉಚಿತ ಸಾಧನ ಪೆಟ್ಟಿಗೆ — ದರ್ಜಿಗಳು, ಕುಂಬಾರರು, ಕಮ್ಮಾರರು, ಬಡಗಿಗಳು, ಕ್ಷೌರಿಕರು, ಚಪ್ಪಲಿ ಹೊಲಿಯುವವರು, ಇತರರು.',
   'sdata.up_vssy.support': 'ಉಚಿತ ತರಬೇತಿ, ಉಚಿತ ಸಾಧನ ಪೆಟ್ಟಿಗೆ',
@@ -1309,15 +1309,15 @@ const kn = {
   'elig.ess.rate': 'ನೀವು ಹಾಕಿದ ಖರ್ಚಿನ 15% ರಿಂದ 45% ಹಿಂತಿರುಗಿ ಸಿಗುತ್ತದೆ; ಮಹಿಳೆಯರಿಗೆ, ಯುವಕರಿಗೆ, ಪರಿಶಿಷ್ಟ ಜಾತಿ ಪರಿಶಿಷ್ಟ ಪಂಗಡದವರಿಗೆ ಹೆಚ್ಚಿನ ಪಾಲು.',
   'elig.ess.stage': 'ಸ್ವಲ್ಪ ಹಣವನ್ನು ಆರಂಭಿಸುವ ಮೊದಲು ಮತ್ತು ಉಳಿದದ್ದನ್ನು ಘಟಕ ಉತ್ಪಾದನೆ ಆರಂಭಿಸಿದ ನಂತರ ಕೇಳಬಹುದು.',
 
-  'sdata.wb_bcc.description': 'ಸ್ವಂತ ಕೆಲಸ ಆರಂಭಿಸುವ ಪಶ್ಚಿಮ ಬಂಗಾಳದ ಯುವಕರಿಗೆ: Rs.5 ಲಕ್ಷದವರೆಗೆ ಯೋಜನೆ, ರಾಜ್ಯ ಜಾಮೀನು ನಿಲ್ಲುತ್ತದೆ, ಖರ್ಚಿನ 10% ನಿಮಗೆ ಸಿಗುತ್ತದೆ.',
-  'sdata.wb_bcc.support': 'ರಾಜ್ಯ ಜಾಮೀನಿನ ಸಾಲ, 10% ಸಿಗುತ್ತದೆ',
-  'elig.bcc.amount': 'Rs.5 ಲಕ್ಷದವರೆಗೆ ಯೋಜನೆ ಖರ್ಚು ಸಿಗುತ್ತದೆ, ಸಾಲಕ್ಕೆ ರಾಜ್ಯ ಜಾಮೀನು ನಿಲ್ಲುತ್ತದೆ.',
+  'sdata.wb_bcc.description': 'ಸ್ವಂತ ಕೆಲಸ ಆರಂಭಿಸುವ ಪಶ್ಚಿಮ ಬಂಗಾಳದ ಯುವಕರಿಗೆ: Rs.5 ಲಕ್ಷದವರೆಗಿನ ಯೋಜನೆಗೆ ಸಾಲ, ರಾಜ್ಯ ಜಾಮೀನು ನಿಲ್ಲುತ್ತದೆ, ಖರ್ಚಿನ 10% ಮರುಪಾವತಿ ಮಾಡಬೇಕಿಲ್ಲದ ಹಣವಾಗಿ ಸಿಗುತ್ತದೆ.',
+  'sdata.wb_bcc.support': 'ರಾಜ್ಯ ಜಾಮೀನಿನ ಸಾಲ, ಖರ್ಚಿನ 10% ಮರುಪಾವತಿ ಮಾಡಬೇಕಿಲ್ಲ',
+  'elig.bcc.amount': 'Rs.5 ಲಕ್ಷದವರೆಗಿನ ಯೋಜನೆ ಖರ್ಚನ್ನು ಸಾಲ ಭರಿಸುತ್ತದೆ, ಸಾಲಕ್ಕೆ ರಾಜ್ಯ ಜಾಮೀನು ನಿಲ್ಲುತ್ತದೆ.',
   'elig.bcc.subsidy': 'ಯೋಜನೆ ಖರ್ಚಿನ 10% ಸಿಗುತ್ತದೆ, ಅದನ್ನು ಮರುಪಾವತಿ ಮಾಡಬೇಕಿಲ್ಲ.',
 
-  'sdata.ka_udyogini.description': 'ಸಣ್ಣ ವ್ಯಾಪಾರ ನಡೆಸುತ್ತಿರುವ ಅಥವಾ ಆರಂಭಿಸುತ್ತಿರುವ ಕರ್ನಾಟಕದ ಮಹಿಳೆಯರಿಗೆ: Rs.3 ಲಕ್ಷದವರೆಗೆ ಸಾಲ, ಕೆಲವು ವರ್ಗದ ಮಹಿಳೆಯರಿಗೆ ಅದರ ಒಂದು ಭಾಗ ಹಣವಾಗಿ ಸಿಗುತ್ತದೆ.',
-  'sdata.ka_udyogini.support': 'ಮಹಿಳೆಯರಿಗೆ ಸಾಲ, ಒಂದು ಭಾಗ ಹಣವಾಗಿ',
+  'sdata.ka_udyogini.description': 'ಸಣ್ಣ ವ್ಯಾಪಾರ ನಡೆಸುತ್ತಿರುವ ಅಥವಾ ಆರಂಭಿಸುತ್ತಿರುವ ಕರ್ನಾಟಕದ ಮಹಿಳೆಯರಿಗೆ: Rs.3 ಲಕ್ಷದವರೆಗೆ ಸಾಲ. ಕೆಲವು ವರ್ಗದ ಮಹಿಳೆಯರಿಗೆ, ಸಾಲದ ಒಂದು ಭಾಗ ಮರುಪಾವತಿ ಮಾಡಬೇಕಿಲ್ಲದ ಹಣ.',
+  'sdata.ka_udyogini.support': 'ಮಹಿಳೆಯರಿಗೆ ಸಾಲ, ಒಂದು ಭಾಗ ಮರುಪಾವತಿ ಮಾಡಬೇಕಿಲ್ಲ',
   'elig.udyogini.amount': 'ಪಟ್ಟಿಯಲ್ಲಿರುವ ವ್ಯಾಪಾರಗಳಿಗೆ Rs.3 ಲಕ್ಷದವರೆಗೆ ಸಾಲ ಸಿಗುತ್ತದೆ.',
-  'elig.udyogini.subsidy': 'ಪರಿಶಿಷ್ಟ ಜಾತಿ, ಪರಿಶಿಷ್ಟ ಪಂಗಡ ಮತ್ತು ಪಟ್ಟಿಯಲ್ಲಿರುವ ಇತರ ವರ್ಗದ ಮಹಿಳೆಯರಿಗೆ ಸಾಲದ 30%, Rs.90,000 ದವರೆಗೆ ಸಿಗುತ್ತದೆ.',
+  'elig.udyogini.subsidy': 'ನೀವು ಪರಿಶಿಷ್ಟ ಜಾತಿ, ಪರಿಶಿಷ್ಟ ಪಂಗಡ ಅಥವಾ ಪಟ್ಟಿಯಲ್ಲಿರುವ ಇನ್ನೊಂದು ವರ್ಗದ ಮಹಿಳೆಯಾಗಿದ್ದರೆ, ಸಾಲದ 30%, Rs.90,000 ದವರೆಗೆ, ಮರುಪಾವತಿ ಮಾಡಬೇಕಿಲ್ಲದ ಹಣ.',
   'elig.udyogini.income': 'ಕುಟುಂಬದ ಆದಾಯಕ್ಕೆ ಒಂದು ಮಿತಿ ಇದೆ; ವಿಧವೆಯರಿಗೆ ಮತ್ತು ಅಂಗವಿಕಲ ಮಹಿಳೆಯರಿಗೆ ಇದು ಅನ್ವಯಿಸುವುದಿಲ್ಲ.',
 
   'sdata.unnati_ner.description': 'ಈಶಾನ್ಯದ ಎಂಟು ರಾಜ್ಯಗಳ ಹೊಸ ಮತ್ತು ಬೆಳೆಯುತ್ತಿರುವ ಘಟಕಗಳಿಗೆ: ನಿಮ್ಮ ಕಟ್ಟಡ, ಪ್ಲಾಂಟ್, ಯಂತ್ರಕ್ಕೆ ಹಣ, ಉತ್ಪಾದನೆ ಆರಂಭಿಸಿದ ನಂತರ ಹೆಚ್ಚಿನ ನೆರವು.',
@@ -1331,7 +1331,7 @@ const kn = {
   'elig.vvp.where': 'ಈ ಕಾರ್ಯಕ್ರಮದಲ್ಲಿ ಘೋಷಿಸಿದ ಗಡಿ ಬ್ಲಾಕುಗಳ ಹಳ್ಳಿಗಳು ಮಾತ್ರ ಬರುತ್ತವೆ.',
   'elig.vvp.what': 'ಮನೆಯಲ್ಲಿ ವಸತಿ ಕೊಡುವುದು, ಹಳ್ಳಿ ಪ್ರವಾಸ, ಹಾಲು, ಪಶು ಸಾಕಣೆ, ಕರಕುಶಲ, ಸಣ್ಣ ಸ್ಥಳೀಯ ವ್ಯಾಪಾರಕ್ಕೆ ಈ ನೆರವು ಸಿಗುತ್ತದೆ.',
 
-  'sdata.dic.description': 'ನಿಮ್ಮ ಸ್ವಂತ ಜಿಲ್ಲೆಯ ಸರ್ಕಾರಿ ಕಚೇರಿ. ಸಣ್ಣ ವ್ಯಾಪಾರಗಳನ್ನು ನೋಂದಣಿ ಮಾಡುತ್ತದೆ, ನಿಮ್ಮ ಸಾಲ ಮತ್ತು ರಿಯಾಯಿತಿ ಅರ್ಜಿಗಳನ್ನು ರಾಜ್ಯ ಮತ್ತು ಕೇಂದ್ರ ಯೋಜನೆಗಳಿಗೆ ಕಳಿಸುತ್ತದೆ, ನಿಮಗೆ ಯಾವುದು ಸಿಗುತ್ತದೆ ಎಂದು ಹೇಳುತ್ತದೆ.',
+  'sdata.dic.description': 'ನಿಮ್ಮ ಸ್ವಂತ ಜಿಲ್ಲೆಯ ಸರ್ಕಾರಿ ಕಚೇರಿ. ಸಣ್ಣ ವ್ಯಾಪಾರಗಳನ್ನು ನೋಂದಣಿ ಮಾಡುತ್ತದೆ, ಸಾಲಕ್ಕೆ ಮತ್ತು ಖರ್ಚಿಗೆ ಸರ್ಕಾರದ ಹಣಕ್ಕೆ ನಿಮ್ಮ ಅರ್ಜಿಗಳನ್ನು ರಾಜ್ಯ ಮತ್ತು ಕೇಂದ್ರ ಯೋಜನೆಗಳಿಗೆ ಕಳಿಸುತ್ತದೆ, ನಿಮಗೆ ಯಾವುದು ಸಿಗುತ್ತದೆ ಎಂದು ಹೇಳುತ್ತದೆ.',
   'sdata.dic.support': 'ನೋಂದಣಿ ಮತ್ತು ಯೋಜನೆ ಅರ್ಜಿಗಳಿಗೆ ಉಚಿತ ನೆರವು',
   'elig.dic.what': 'ಕಚೇರಿ ಉದ್ಯಮ್ ನೋಂದಣಿ ಮಾಡುತ್ತದೆ, ರಾಜ್ಯ ಮತ್ತು ಕೇಂದ್ರ ಯೋಜನೆಗಳಿಗೆ ನಿಮ್ಮ ಅರ್ಜಿಗಳನ್ನು ಕಳಿಸುತ್ತದೆ, ವ್ಯಾಪಾರ ತರಬೇತಿ ಏರ್ಪಾಡು ಮಾಡುತ್ತದೆ.',
 
@@ -1344,11 +1344,11 @@ const kn = {
   'sdata.kvk.support': 'ಉಚಿತ ತರಬೇತಿ, ಸಲಹೆ, ಮಣ್ಣು ಪರೀಕ್ಷೆ',
   'elig.kvk.what': 'ಪಶು ಸಾಕಣೆ, ಜೇನು ಸಾಕಣೆ, ಅಣಬೆ ಬೆಳೆಸುವುದು, ಆಹಾರ ತಯಾರಿಕೆ, ಬೀಜ ಉತ್ಪಾದನೆಯಲ್ಲಿ ಸಣ್ಣ ಕೋರ್ಸುಗಳು ನಡೆಯುತ್ತವೆ.',
 
-  'sdata.odop_up.description': 'ಉತ್ತರ ಪ್ರದೇಶದಲ್ಲಿ ಪ್ರತಿ ಜಿಲ್ಲೆಗೆ ಆಯ್ಕೆ ಮಾಡಿದ ಒಂದು ಕರಕುಶಲ ಅಥವಾ ವಸ್ತು ಇದೆ. ನಿಮ್ಮ ಕೆಲಸ ನಿಮ್ಮ ಜಿಲ್ಲೆಗೆ ಆಯ್ಕೆ ಮಾಡಿದ ವಸ್ತು ಆದರೆ, ಸಾಧನ ಪೆಟ್ಟಿಗೆ, ತರಬೇತಿ, ಜಾತ್ರೆಗಳಲ್ಲಿ ಮಾರಲು ನೆರವು, ಸಾಲದಲ್ಲಿ ನಿಮ್ಮ ಪಾಲಿಗೆ ಹಣ ಸಿಗುತ್ತದೆ.',
-  'sdata.odop_up.support': 'ಸಾಧನ, ತರಬೇತಿ, ಮಾರಾಟದ ನೆರವು, ಸಾಲದ ಪಾಲು',
+  'sdata.odop_up.description': 'ಉತ್ತರ ಪ್ರದೇಶದಲ್ಲಿ ಪ್ರತಿ ಜಿಲ್ಲೆಗೆ ಆಯ್ಕೆ ಮಾಡಿದ ಒಂದು ಕರಕುಶಲ ಅಥವಾ ವಸ್ತು ಇದೆ. ನಿಮ್ಮ ಕೆಲಸ ನಿಮ್ಮ ಜಿಲ್ಲೆಗೆ ಆಯ್ಕೆ ಮಾಡಿದ ವಸ್ತು ಆದರೆ, ಸಾಧನ ಪೆಟ್ಟಿಗೆ, ತರಬೇತಿ, ಜಾತ್ರೆಗಳಲ್ಲಿ ಮಾರಲು ನೆರವು, ಯೋಜನೆ ಖರ್ಚಿನ ಒಂದು ಭಾಗಕ್ಕೆ ಸರ್ಕಾರದ ಹಣದೊಂದಿಗೆ ಸಾಲ ಸಿಗುತ್ತದೆ.',
+  'sdata.odop_up.support': 'ಸಾಧನ, ತರಬೇತಿ, ಮಾರಾಟದ ನೆರವು, ಖರ್ಚಿನ ಒಂದು ಭಾಗಕ್ಕೆ ಸರ್ಕಾರದ ಹಣದೊಂದಿಗೆ ಸಾಲ',
   'elig.odop.product': 'ನಿಮ್ಮ ಕೆಲಸ ನಿಮ್ಮ ಸ್ವಂತ ಜಿಲ್ಲೆಗೆ ಆಯ್ಕೆ ಮಾಡಿದ ವಸ್ತು ಆಗಿರಬೇಕು — ಯಾವುದು ಎಂದು ನಿಮ್ಮ ಜಿಲ್ಲಾ ಕೈಗಾರಿಕೆ ಕೇಂದ್ರದಲ್ಲಿ ಕೇಳಿ.',
   'elig.odop.toolkit': 'ತರಬೇತಿ ಪಡೆದ ಕೆಲಸಗಾರರಿಗೆ ಸಾಧನ ಪೆಟ್ಟಿಗೆ ಸಿಗುತ್ತದೆ, ರಾಜ್ಯ ಮತ್ತು ರಾಷ್ಟ್ರೀಯ ಜಾತ್ರೆಗಳಲ್ಲಿ ಭಾಗವಹಿಸಬಹುದು.',
-  'elig.odop.margin': 'ಈ ಯೋಜನೆಯಲ್ಲಿ ಸಾಲ ಸಿಗುತ್ತದೆ, ಅದರಲ್ಲಿ ನಿಮ್ಮ ಪಾಲಿಗೆ ಹಣ ಕೊಡುತ್ತಾರೆ.',
+  'elig.odop.margin': 'ಈ ಯೋಜನೆಯಲ್ಲಿ ಸಾಲ ಸಿಗುತ್ತದೆ, ಯೋಜನೆ ಖರ್ಚಿನ ಒಂದು ಭಾಗಕ್ಕೆ ಸರ್ಕಾರದ ಹಣದೊಂದಿಗೆ.',
 
   'sdata.tehsil_certificates.description': 'ಬಹುತೇಕ ಎಲ್ಲ ಯೋಜನೆಯೂ ಆದಾಯ, ಜಾತಿ ಅಥವಾ ವಾಸ ಪ್ರಮಾಣಪತ್ರ ಕೇಳುತ್ತದೆ, ಅವನ್ನು ಕೊಡುವುದು ನಿಮ್ಮ ತಹಸೀಲ್ ಅಥವಾ ತಾಲೂಕು ಕಚೇರಿ. ಎಲ್ಲಿಯೂ ಅರ್ಜಿ ಹಾಕುವ ಮೊದಲು ಅವನ್ನು ಪಡೆಯಿರಿ, ಇಲ್ಲದಿದ್ದರೆ ನಿಮ್ಮ ಅರ್ಜಿ ನಿಂತು ಹೋಗುತ್ತದೆ.',
   'sdata.tehsil_certificates.support': 'ಬೇರೆ ಯೋಜನೆಗಳು ಕೇಳುವ ಪ್ರಮಾಣಪತ್ರಗಳು',
@@ -1373,7 +1373,7 @@ const kn = {
 
   'sdata.atma_block.description': 'ಬ್ಲಾಕ್ ಕೃಷಿ ತಂಡ ಹೊಲದಲ್ಲಿ ಹೊಸ ವಿಧಾನಗಳನ್ನು ತೋರಿಸುತ್ತದೆ, ರೈತ ಹೊಲ ಶಾಲೆಗಳನ್ನು ನಡೆಸುತ್ತದೆ, ಬೇರೆ ಜಿಲ್ಲೆಗಳಿಗೆ ಪ್ರವಾಸ ಏರ್ಪಾಡು ಮಾಡುತ್ತದೆ, ತರಬೇತಿ ದಿನಗಳಿಗೆ ಸ್ವಲ್ಪ ಹಣ ಕೊಡುತ್ತದೆ.',
   'sdata.atma_block.support': 'ಉಚಿತ ಕೃಷಿ ತರಬೇತಿ, ಕಲಿಕೆ ಪ್ರವಾಸ',
-  'elig.atma.what': 'ಹೊಲದಲ್ಲಿ ಹೊಸ ವಿಧಾನಗಳ ಪ್ರದರ್ಶನ, ರೈತ ಹೊಲ ಶಾಲೆಗಳು, ಜಿಲ್ಲೆಯ ಒಳಗೆ ಮತ್ತು ಹೊರಗೆ ಖರ್ಚು ಕೊಟ್ಟ ಪ್ರವಾಸಗಳು ಬರುತ್ತವೆ.',
+  'elig.atma.what': 'ಹೊಲದಲ್ಲಿ ಹೊಸ ವಿಧಾನಗಳ ಪ್ರದರ್ಶನ, ರೈತ ಹೊಲ ಶಾಲೆಗಳು, ಜಿಲ್ಲೆಯ ಒಳಗೆ ಮತ್ತು ಹೊರಗೆ ಕಲಿಕೆ ಪ್ರವಾಸಗಳು ಬರುತ್ತವೆ. ಈ ಪ್ರವಾಸಗಳ ಖರ್ಚನ್ನು ನೀವು ಕೊಡಬೇಕಿಲ್ಲ.',
   'elig.atma.friend': 'ಪ್ರತಿ ಹಳ್ಳಿಯಲ್ಲಿ ಒಬ್ಬ ರೈತ ಮಿತ್ರ ಇದ್ದಾರೆ; ಮೊದಲು ಅವರನ್ನು ಕಾಣಬಹುದು.',
 
   'sdata.gp_licence.description': 'ಹಳ್ಳಿಯಲ್ಲಿ ಅಂಗಡಿಗೆ ಅಥವಾ ಸಣ್ಣ ಘಟಕಕ್ಕೆ ಬೇಕಾದ ಆಕ್ಷೇಪಣೆ ಇಲ್ಲದ ಪತ್ರ ಮತ್ತು ವ್ಯಾಪಾರ ಅನುಮತಿಯನ್ನು ನಿಮ್ಮ ಗ್ರಾಮ ಪಂಚಾಯಿತಿ ಕೊಡುತ್ತದೆ; ಅದರ ವಾರ್ಷಿಕ ಹಳ್ಳಿ ಯೋಜನೆಯಿಂದ ನಿಮ್ಮ ಕೆಲಸದ ಜಾಗಕ್ಕೆ ಶೆಡ್, ನೀರು ಅಥವಾ ದಾರಿ ಸಿಗಬಹುದು.',
@@ -1389,7 +1389,7 @@ const kn = {
   'sdata.svanidhi.support': 'ಬೀದಿಯಲ್ಲಿ ಮಾರುವವರಿಗೆ ಕೆಲಸ ನಡೆಸುವ ಸಾಲ',
   'elig.svanidhi.who': 'ಪಟ್ಟಣದ ಮಾರಾಟ ಸಮೀಕ್ಷೆಯಲ್ಲಿ ನೀವು ಎಣಿಕೆಗೆ ಬಂದಿರಬೇಕು, ಅಥವಾ ಮಾರಾಟ ಪ್ರಮಾಣಪತ್ರ ಅಥವಾ ಶಿಫಾರಸು ಪತ್ರ ಇರಬೇಕು.',
   'elig.svanidhi.ladder': 'ಮೊದಲ ಸಾಲ Rs.10,000. ಸಮಯಕ್ಕೆ ಕಟ್ಟಿದರೆ ಮುಂದಿನದು Rs.20,000, ಅದರ ನಂತರ Rs.50,000.',
-  'elig.svanidhi.cashback': 'ಫೋನ್ ಅಥವಾ ಕಾರ್ಡ್‌ನಿಂದ ಕಟ್ಟಿದರೆ ಹಣ ಹಿಂತಿರುಗಿ ಸಿಗುತ್ತದೆ, ಸಮಯಕ್ಕೆ ಕಟ್ಟಿದರೆ ಬಡ್ಡಿಯಲ್ಲಿ 7% ರಿಯಾಯಿತಿ.',
+  'elig.svanidhi.cashback': 'ಫೋನ್ ಅಥವಾ ಕಾರ್ಡ್‌ನಿಂದ ಕಟ್ಟಿದರೆ ಹಣ ಹಿಂತಿರುಗಿ ಸಿಗುತ್ತದೆ. ಸಮಯಕ್ಕೆ ಕಟ್ಟಿದರೆ, 7% ಬಡ್ಡಿಯನ್ನು ನಿಮ್ಮ ಪರವಾಗಿ ಸರ್ಕಾರ ಕಟ್ಟುತ್ತದೆ.',
 }
 
 const mr = {
@@ -1452,14 +1452,14 @@ const mr = {
   'elig.common.smallFee': 'प्रत्येक सेवेसाठी एक छोटी ठरलेली फी असते।',
   'elig.common.askLocalOffice': 'रक्कम आणि अटी ठिकाणानुसार बदलतात, म्हणून तुमच्या जवळच्या कार्यालयात विचारून खात्री करा।',
 
-  'sdata.pmfme.description': 'खाद्यपदार्थ बनवणाऱ्या छोट्या घटकांना मदत, ज्यात खर्चावर सरकारी सवलतीसह कर्जही मिळते।',
-  'sdata.pmfme.support': 'योजनेच्या खर्चावर सरकारी सवलतीसह कर्ज',
+  'sdata.pmfme.description': 'खाद्यपदार्थ बनवणाऱ्या छोट्या घटकांना मदत, ज्यात योजनेच्या खर्चाच्या काही भागासाठी सरकारी पैसेही आहेत, जे बँक कर्जासोबत मिळतात।',
+  'sdata.pmfme.support': 'योजनेच्या खर्चाच्या काही भागासाठी सरकारी पैसे, बँक कर्जासोबत',
   'elig.pmfme.activity': 'या योजनेत येणारे खाद्यपदार्थ बनवण्याचे काम तुम्ही करत असावे।',
-  'elig.pmfme.subsidy': 'एका घटकाला मंजूर झालेल्या खर्चाच्या 35% सवलत मिळू शकते, जास्तीत जास्त Rs.10 लाख।',
+  'elig.pmfme.subsidy': 'एका घटकाला मंजूर झालेल्या योजनेच्या खर्चाच्या 35% इतके सरकारी पैसे मिळू शकतात, जास्तीत जास्त Rs.10 लाख। हे बँक कर्जासोबत मिळतात।',
   'elig.pmfme.contribution': 'योजनेच्या खर्चाच्या कमीत कमी 10% तुम्हाला स्वतः घालावे लागतील।',
 
-  'sdata.pmegp.description': 'वस्तू बनवणे, सेवेचे काम, किंवा खरेदी-विक्री करणाऱ्या नव्या छोट्या व्यवसायांना सरकारी सवलतीसह कर्ज।',
-  'sdata.pmegp.support': 'तुमच्या स्वतःच्या वाट्यावर सरकारी सवलतीसह कर्ज',
+  'sdata.pmegp.description': 'वस्तू बनवणे, सेवेचे काम, किंवा खरेदी-विक्री करणाऱ्या नव्या छोट्या व्यवसायांसाठी: बँक कर्ज, आणि योजनेच्या खर्चाच्या काही भागासाठी सरकारी पैसे। तुमचा स्वतःचा वाटाही तुम्हाला स्वतः घालावा लागतो।',
+  'sdata.pmegp.support': 'बँक कर्ज, आणि योजनेच्या खर्चाच्या काही भागासाठी सरकारी पैसे',
   'elig.pmegp.guidelines': 'आताच्या PMEGP नियमांच्या अटी तुम्ही पूर्ण करायला हव्यात।',
   'elig.pmegp.maxManufacturing': 'वस्तू बनवण्याच्या कामासाठी खर्च Rs.50 लाखांपर्यंत असू शकतो।',
   'elig.pmegp.maxService': 'सेवेच्या कामासाठी किंवा खरेदी-विक्रीसाठी खर्च Rs.20 लाखांपर्यंत असू शकतो।',
@@ -1508,9 +1508,9 @@ const mr = {
   'elig.kcc.rate': 'Rs.3 लाखांपर्यंत व्याज 7%, वेळेवर भरल्यास ते 4% होते।',
   'elig.kcc.animal': 'जनावरांचे पालन आणि मत्स्यपालन Rs.2 लाखांपर्यंत येतात।',
 
-  'sdata.up_myuva.description': 'स्वतःचे काम सुरू करणाऱ्या उत्तर प्रदेशातील तरुणांसाठी: Rs.5 लाखांपर्यंतची योजना, व्याज नाही, जिल्हा उद्योग केंद्रामार्फत।',
+  'sdata.up_myuva.description': 'स्वतःचे काम सुरू करणाऱ्या उत्तर प्रदेशातील तरुणांसाठी: Rs.5 लाखांपर्यंतच्या योजनेसाठी बिनव्याजी कर्ज, जिल्हा उद्योग केंद्रामार्फत।',
   'sdata.up_myuva.support': 'Rs.5 लाखांपर्यंत व्याजाशिवाय कर्ज',
-  'elig.myuva.amount': 'Rs.5 लाखांपर्यंतचा योजनेचा खर्च मिळतो, आणि ठरलेल्या मुदतीपर्यंत तुम्हाला व्याज भरावे लागत नाही।',
+  'elig.myuva.amount': 'Rs.5 लाखांपर्यंतचा योजनेचा खर्च कर्जातून भागतो। ठरलेल्या मुदतीपर्यंत तुम्हाला त्यावर व्याज भरावे लागत नाही।',
 
   'sdata.up_vssy.description': 'उत्तर प्रदेशातील पारंपरिक कामगारांना सहा दिवसांचे मोफत प्रशिक्षण आणि मोफत अवजारांची पेटी — शिंपी, कुंभार, लोहार, सुतार, न्हावी, चांभार आणि इतर।',
   'sdata.up_vssy.support': 'मोफत प्रशिक्षण, मोफत अवजारांची पेटी',
@@ -1532,15 +1532,15 @@ const mr = {
   'elig.ess.rate': 'तुम्ही घातलेल्या खर्चाच्या 15% ते 45% परत मिळतात; महिला, तरुण आणि अनुसूचित जाती जमातींना जास्त वाटा।',
   'elig.ess.stage': 'काही पैसे सुरू करण्यापूर्वी आणि बाकीचे घटकाचे उत्पादन सुरू झाल्यावर मागू शकता।',
 
-  'sdata.wb_bcc.description': 'स्वतःचे काम सुरू करणाऱ्या पश्चिम बंगालमधील तरुणांसाठी: Rs.5 लाखांपर्यंतची योजना, राज्य जामीन राहते आणि खर्चाच्या 10% तुम्हाला मिळतात।',
-  'sdata.wb_bcc.support': 'राज्याच्या जामिनाचे कर्ज, 10% मिळतात',
-  'elig.bcc.amount': 'Rs.5 लाखांपर्यंतचा योजनेचा खर्च मिळतो आणि कर्जाला राज्य जामीन राहते।',
+  'sdata.wb_bcc.description': 'स्वतःचे काम सुरू करणाऱ्या पश्चिम बंगालमधील तरुणांसाठी: Rs.5 लाखांपर्यंतच्या योजनेसाठी कर्ज, राज्य जामीन राहते, आणि खर्चाच्या 10% परत न करावे लागणाऱ्या पैशांच्या रूपात मिळतात।',
+  'sdata.wb_bcc.support': 'राज्याच्या जामिनाचे कर्ज, खर्चाच्या 10% परत करावे लागत नाहीत',
+  'elig.bcc.amount': 'Rs.5 लाखांपर्यंतचा योजनेचा खर्च कर्जातून भागतो आणि कर्जाला राज्य जामीन राहते।',
   'elig.bcc.subsidy': 'योजनेच्या खर्चाच्या 10% मिळतात, ते परत करावे लागत नाहीत।',
 
-  'sdata.ka_udyogini.description': 'छोटा व्यवसाय चालवणाऱ्या किंवा सुरू करणाऱ्या कर्नाटकातील महिलांसाठी: Rs.3 लाखांपर्यंत कर्ज, आणि काही वर्गांतील महिलांना त्यातील काही भाग पैशांच्या रूपात मिळतो।',
-  'sdata.ka_udyogini.support': 'महिलांना कर्ज, काही भाग पैशांच्या रूपात',
+  'sdata.ka_udyogini.description': 'छोटा व्यवसाय चालवणाऱ्या किंवा सुरू करणाऱ्या कर्नाटकातील महिलांसाठी: Rs.3 लाखांपर्यंत कर्ज। काही वर्गांतील महिलांसाठी कर्जाचा काही भाग परत न करावे लागणारे पैसे असतो।',
+  'sdata.ka_udyogini.support': 'महिलांना कर्ज, काही भाग परत करावा लागत नाही',
   'elig.udyogini.amount': 'यादीत असलेल्या व्यवसायांसाठी Rs.3 लाखांपर्यंत कर्ज मिळते।',
-  'elig.udyogini.subsidy': 'अनुसूचित जाती, अनुसूचित जमाती आणि यादीत असलेल्या इतर वर्गांतील महिलांना कर्जाच्या 30%, Rs.90,000 पर्यंत मिळतात।',
+  'elig.udyogini.subsidy': 'तुम्ही अनुसूचित जाती, अनुसूचित जमाती किंवा यादीत असलेल्या दुसऱ्या वर्गातील महिला असाल, तर कर्जाच्या 30%, Rs.90,000 पर्यंत, परत न करावे लागणारे पैसे असतात।',
   'elig.udyogini.income': 'कुटुंबाच्या उत्पन्नाला एक मर्यादा आहे; विधवा आणि अपंग महिलांना ती लागू होत नाही।',
 
   'sdata.unnati_ner.description': 'ईशान्येकडील आठ राज्यांतील नव्या आणि वाढणाऱ्या घटकांसाठी: तुमची इमारत, प्लांट आणि यंत्रांसाठी पैसे, आणि उत्पादन सुरू झाल्यावर अधिक मदत।',
@@ -1554,7 +1554,7 @@ const mr = {
   'elig.vvp.where': 'या कार्यक्रमात जाहीर केलेल्या सीमावर्ती गटांतील गावेच येतात।',
   'elig.vvp.what': 'घरात राहण्याची सोय देणे, गाव पर्यटन, दूध, जनावरांचे पालन, हस्तकला आणि छोट्या स्थानिक व्यवसायाला ही मदत मिळते।',
 
-  'sdata.dic.description': 'तुमच्या स्वतःच्या जिल्ह्यातील सरकारी कार्यालय। ते छोट्या व्यवसायांची नोंदणी करते, तुमचे कर्ज आणि सवलतीचे अर्ज राज्य व केंद्राच्या योजनांकडे पाठवते, आणि तुम्हाला कोणत्या योजना मिळू शकतात ते सांगते।',
+  'sdata.dic.description': 'तुमच्या स्वतःच्या जिल्ह्यातील सरकारी कार्यालय। ते छोट्या व्यवसायांची नोंदणी करते, कर्जाचे आणि खर्चासाठी सरकारी पैशांचे तुमचे अर्ज राज्य व केंद्राच्या योजनांकडे पाठवते, आणि तुम्हाला कोणत्या योजना मिळू शकतात ते सांगते।',
   'sdata.dic.support': 'नोंदणी आणि योजनांच्या अर्जांसाठी मोफत मदत',
   'elig.dic.what': 'कार्यालय उद्यम नोंदणी करते, राज्य व केंद्राच्या योजनांकडे तुमचे अर्ज पाठवते आणि व्यवसायाचे प्रशिक्षण ठरवते।',
 
@@ -1567,11 +1567,11 @@ const mr = {
   'sdata.kvk.support': 'मोफत प्रशिक्षण, सल्ला आणि माती तपासणी',
   'elig.kvk.what': 'जनावरांचे पालन, मधमाशी पालन, अळंबी लागवड, खाद्यपदार्थ बनवणे आणि बियाणे उत्पादन यावर छोटे अभ्यासक्रम चालतात।',
 
-  'sdata.odop_up.description': 'उत्तर प्रदेशात प्रत्येक जिल्ह्यासाठी एक हस्तकला किंवा वस्तू निवडलेली आहे। तुमचे काम तुमच्या जिल्ह्यासाठी निवडलेली वस्तू असेल, तर अवजारांची पेटी, प्रशिक्षण, जत्रांमध्ये विकण्यासाठी मदत आणि कर्जातील तुमच्या वाट्याचे पैसे मिळतात।',
-  'sdata.odop_up.support': 'अवजारे, प्रशिक्षण, विक्रीची मदत आणि कर्जातील वाटा',
+  'sdata.odop_up.description': 'उत्तर प्रदेशात प्रत्येक जिल्ह्यासाठी एक हस्तकला किंवा वस्तू निवडलेली आहे। तुमचे काम तुमच्या जिल्ह्यासाठी निवडलेली वस्तू असेल, तर अवजारांची पेटी, प्रशिक्षण, जत्रांमध्ये विकण्यासाठी मदत आणि योजनेच्या खर्चाच्या काही भागासाठी सरकारी पैशांसह कर्ज मिळतात।',
+  'sdata.odop_up.support': 'अवजारे, प्रशिक्षण, विक्रीची मदत आणि खर्चाच्या काही भागासाठी सरकारी पैशांसह कर्ज',
   'elig.odop.product': 'तुमचे काम तुमच्या स्वतःच्या जिल्ह्यासाठी निवडलेली वस्तू असावी — कोणती ते तुमच्या जिल्हा उद्योग केंद्रात विचारा।',
   'elig.odop.toolkit': 'प्रशिक्षण घेतलेल्या कामगारांना अवजारांची पेटी मिळते आणि राज्य व राष्ट्रीय जत्रांमध्ये भाग घेता येतो।',
-  'elig.odop.margin': 'या योजनेत कर्ज मिळते आणि त्यातील तुमच्या वाट्याचे पैसे दिले जातात।',
+  'elig.odop.margin': 'या योजनेत कर्ज मिळते, आणि योजनेच्या खर्चाच्या काही भागासाठी सरकारी पैसेही।',
 
   'sdata.tehsil_certificates.description': 'जवळपास प्रत्येक योजना उत्पन्न, जात किंवा राहण्याचा दाखला मागते, आणि ते देणारे तुमचे तहसील किंवा तालुका कार्यालय आहे। कुठेही अर्ज करण्यापूर्वी ते काढून घ्या, नाहीतर तुमचा अर्ज तिथेच थांबतो।',
   'sdata.tehsil_certificates.support': 'इतर योजना मागतात ते दाखले',
@@ -1596,7 +1596,7 @@ const mr = {
 
   'sdata.atma_block.description': 'गटाची कृषी टीम शेतात नव्या पद्धती दाखवते, शेतकरी शेत शाळा चालवते, दुसऱ्या जिल्ह्यांत सहली ठरवते आणि प्रशिक्षणाच्या दिवसांसाठी थोडे पैसे देते।',
   'sdata.atma_block.support': 'मोफत शेतीचे प्रशिक्षण आणि शिकण्याच्या सहली',
-  'elig.atma.what': 'शेतात नव्या पद्धतींचे प्रदर्शन, शेतकरी शेत शाळा आणि जिल्ह्याच्या आत-बाहेर खर्च दिलेल्या सहली येतात।',
+  'elig.atma.what': 'शेतात नव्या पद्धतींचे प्रदर्शन, शेतकरी शेत शाळा आणि जिल्ह्याच्या आत-बाहेर शिकण्याच्या सहली येतात। या सहलींचा खर्च तुम्हाला करावा लागत नाही।',
   'elig.atma.friend': 'प्रत्येक गावात एक शेतकरी मित्र असतो; प्रथम त्यांना भेटता येईल।',
 
   'sdata.gp_licence.description': 'गावात दुकानासाठी किंवा छोट्या घटकासाठी लागणारे हरकत नसल्याचे पत्र आणि व्यवसाय परवाना तुमची ग्रामपंचायत देते; तिच्या वार्षिक गाव योजनेतून तुमच्या कामाच्या जागेला शेड, पाणी किंवा रस्ता मिळू शकतो।',
@@ -1612,7 +1612,7 @@ const mr = {
   'sdata.svanidhi.support': 'रस्त्यावर विकणाऱ्यांना काम चालवण्याचे कर्ज',
   'elig.svanidhi.who': 'नगरपालिकेच्या विक्री सर्वेक्षणात तुमची गणना झालेली असावी, किंवा विक्री दाखला अथवा शिफारस पत्र असावे।',
   'elig.svanidhi.ladder': 'पहिले कर्ज Rs.10,000। वेळेवर भरल्यास पुढचे Rs.20,000 आणि त्यानंतर Rs.50,000।',
-  'elig.svanidhi.cashback': 'फोनने किंवा कार्डने भरल्यास पैसे परत मिळतात, आणि वेळेवर भरल्यास व्याजात 7% सवलत।',
+  'elig.svanidhi.cashback': 'फोनने किंवा कार्डने भरल्यास पैसे परत मिळतात। वेळेवर भरल्यास 7% व्याज तुमच्या वतीने सरकार भरते।',
 }
 
 const bn = {
@@ -1675,14 +1675,14 @@ const bn = {
   'elig.common.smallFee': 'প্রতিটি সেবার জন্য একটি ছোট নির্দিষ্ট ফি আছে।',
   'elig.common.askLocalOffice': 'টাকার পরিমাণ আর শর্ত জায়গা অনুযায়ী বদলায়, তাই আপনার কাছের অফিসে জিজ্ঞেস করে নিশ্চিত হয়ে নিন।',
 
-  'sdata.pmfme.description': 'খাবারের জিনিস তৈরি করা ছোট ইউনিটের জন্য সাহায্য, যার মধ্যে খরচে সরকারি ছাড়সহ ঋণও আছে।',
-  'sdata.pmfme.support': 'প্রকল্পের খরচে সরকারি ছাড়সহ ঋণ',
+  'sdata.pmfme.description': 'খাবারের জিনিস তৈরি করা ছোট ইউনিটের জন্য সাহায্য, যার মধ্যে প্রকল্প খরচের কিছু অংশের জন্য সরকারি টাকাও আছে, যা ব্যাঙ্ক ঋণের সঙ্গে আসে।',
+  'sdata.pmfme.support': 'প্রকল্প খরচের কিছু অংশের জন্য সরকারি টাকা, ব্যাঙ্ক ঋণের সঙ্গে',
   'elig.pmfme.activity': 'এই প্রকল্পে পড়ে এমন খাবার তৈরির কাজ আপনার করা থাকতে হবে।',
-  'elig.pmfme.subsidy': 'একটি ইউনিট মঞ্জুর হওয়া প্রকল্প খরচের 35% ছাড় হিসেবে পেতে পারে, সবচেয়ে বেশি Rs.10 লাখ।',
+  'elig.pmfme.subsidy': 'একটি ইউনিট মঞ্জুর হওয়া প্রকল্প খরচের 35% পরিমাণ সরকারি টাকা পেতে পারে, সবচেয়ে বেশি Rs.10 লাখ। এটি ব্যাঙ্ক ঋণের সঙ্গে আসে।',
   'elig.pmfme.contribution': 'প্রকল্প খরচের অন্তত 10% আপনাকে নিজে দিতে হবে।',
 
-  'sdata.pmegp.description': 'জিনিস তৈরি, সেবার কাজ, বা কেনা-বেচা করা নতুন ছোট ব্যবসার জন্য সরকারি ছাড়সহ ঋণ।',
-  'sdata.pmegp.support': 'আপনার নিজের অংশে সরকারি ছাড়সহ ঋণ',
+  'sdata.pmegp.description': 'জিনিস তৈরি, সেবার কাজ, বা কেনা-বেচা করা নতুন ছোট ব্যবসার জন্য: ব্যাঙ্ক ঋণ, আর প্রকল্প খরচের কিছু অংশের জন্য সরকারি টাকা। আপনার নিজের একটা অংশও আপনাকে নিজে দিতে হবে।',
+  'sdata.pmegp.support': 'ব্যাঙ্ক ঋণ, আর প্রকল্প খরচের কিছু অংশের জন্য সরকারি টাকা',
   'elig.pmegp.guidelines': 'এখনকার PMEGP নিয়মের শর্ত আপনাকে পূরণ করতে হবে।',
   'elig.pmegp.maxManufacturing': 'জিনিস তৈরির কাজে প্রকল্প খরচ Rs.50 লাখ পর্যন্ত হতে পারে।',
   'elig.pmegp.maxService': 'সেবার কাজে বা কেনা-বেচায় প্রকল্প খরচ Rs.20 লাখ পর্যন্ত হতে পারে।',
@@ -1731,9 +1731,9 @@ const bn = {
   'elig.kcc.rate': 'Rs.3 লাখ পর্যন্ত সুদ 7%, সময়ে শোধ করলে তা 4% হয়ে যায়।',
   'elig.kcc.animal': 'পশু পালন আর মাছ চাষ Rs.2 লাখ পর্যন্ত পড়ে।',
 
-  'sdata.up_myuva.description': 'নিজের কাজ শুরু করা উত্তরপ্রদেশের তরুণদের জন্য: Rs.5 লাখ পর্যন্ত প্রকল্প, সুদ নেই, জেলা শিল্প কেন্দ্রের মাধ্যমে।',
+  'sdata.up_myuva.description': 'নিজের কাজ শুরু করা উত্তরপ্রদেশের তরুণদের জন্য: Rs.5 লাখ পর্যন্ত প্রকল্পের জন্য বিনা সুদের ঋণ, জেলা শিল্প কেন্দ্রের মাধ্যমে।',
   'sdata.up_myuva.support': 'Rs.5 লাখ পর্যন্ত সুদ ছাড়া ঋণ',
-  'elig.myuva.amount': 'Rs.5 লাখ পর্যন্ত প্রকল্প খরচ পাওয়া যায়, আর নির্দিষ্ট সময় পর্যন্ত আপনাকে সুদ দিতে হয় না।',
+  'elig.myuva.amount': 'Rs.5 লাখ পর্যন্ত প্রকল্প খরচ ঋণ থেকে মেটে। নির্দিষ্ট সময় পর্যন্ত এর জন্য আপনাকে সুদ দিতে হয় না।',
 
   'sdata.up_vssy.description': 'উত্তরপ্রদেশের চিরাচরিত কারিগরদের জন্য ছয় দিনের বিনামূল্যে প্রশিক্ষণ আর বিনামূল্যে সরঞ্জামের বাক্স — দর্জি, কুমোর, কামার, ছুতোর, নাপিত, মুচি আর অন্যরা।',
   'sdata.up_vssy.support': 'বিনামূল্যে প্রশিক্ষণ, বিনামূল্যে সরঞ্জামের বাক্স',
@@ -1755,15 +1755,15 @@ const bn = {
   'elig.ess.rate': 'আপনার দেওয়া খরচের 15% থেকে 45% ফেরত পাওয়া যায়; মহিলা, তরুণ আর তফসিলি জাতি উপজাতির ভাগ বেশি।',
   'elig.ess.stage': 'কিছু টাকা শুরু করার আগে আর বাকিটা ইউনিটে উৎপাদন শুরু হলে চাইতে পারেন।',
 
-  'sdata.wb_bcc.description': 'নিজের কাজ শুরু করা পশ্চিমবঙ্গের তরুণদের জন্য: Rs.5 লাখ পর্যন্ত প্রকল্প, রাজ্য জামিন থাকে আর খরচের 10% আপনি পান।',
-  'sdata.wb_bcc.support': 'রাজ্যের জামিনে ঋণ, 10% পাওয়া যায়',
-  'elig.bcc.amount': 'Rs.5 লাখ পর্যন্ত প্রকল্প খরচ পাওয়া যায় আর ঋণের জামিন রাজ্য দেয়।',
+  'sdata.wb_bcc.description': 'নিজের কাজ শুরু করা পশ্চিমবঙ্গের তরুণদের জন্য: Rs.5 লাখ পর্যন্ত প্রকল্পের জন্য ঋণ, রাজ্য জামিন থাকে, আর খরচের 10% ফেরত দিতে না হওয়া টাকা হিসেবে পান।',
+  'sdata.wb_bcc.support': 'রাজ্যের জামিনে ঋণ, খরচের 10% ফেরত দিতে হয় না',
+  'elig.bcc.amount': 'Rs.5 লাখ পর্যন্ত প্রকল্প খরচ ঋণ থেকে মেটে আর ঋণের জামিন রাজ্য দেয়।',
   'elig.bcc.subsidy': 'প্রকল্প খরচের 10% পাওয়া যায়, তা ফেরত দিতে হয় না।',
 
-  'sdata.ka_udyogini.description': 'ছোট ব্যবসা চালানো বা শুরু করা কর্ণাটকের মহিলাদের জন্য: Rs.3 লাখ পর্যন্ত ঋণ, আর কিছু শ্রেণির মহিলারা তার কিছু অংশ টাকা হিসেবে পান।',
-  'sdata.ka_udyogini.support': 'মহিলাদের ঋণ, কিছু অংশ টাকা হিসেবে',
+  'sdata.ka_udyogini.description': 'ছোট ব্যবসা চালানো বা শুরু করা কর্ণাটকের মহিলাদের জন্য: Rs.3 লাখ পর্যন্ত ঋণ। কিছু শ্রেণির মহিলাদের জন্য ঋণের কিছু অংশ ফেরত দিতে না হওয়া টাকা।',
+  'sdata.ka_udyogini.support': 'মহিলাদের ঋণ, কিছু অংশ ফেরত দিতে হয় না',
   'elig.udyogini.amount': 'তালিকায় থাকা ব্যবসার জন্য Rs.3 লাখ পর্যন্ত ঋণ পাওয়া যায়।',
-  'elig.udyogini.subsidy': 'তফসিলি জাতি, তফসিলি উপজাতি আর তালিকায় থাকা অন্য শ্রেণির মহিলারা ঋণের 30%, Rs.90,000 পর্যন্ত পান।',
+  'elig.udyogini.subsidy': 'আপনি যদি তফসিলি জাতি, তফসিলি উপজাতি বা তালিকায় থাকা অন্য কোনো শ্রেণির মহিলা হন, তাহলে ঋণের 30%, Rs.90,000 পর্যন্ত, ফেরত দিতে না হওয়া টাকা।',
   'elig.udyogini.income': 'পরিবারের আয়ের একটি সীমা আছে; বিধবা আর প্রতিবন্ধী মহিলাদের ক্ষেত্রে তা লাগে না।',
 
   'sdata.unnati_ner.description': 'উত্তর-পূর্বের আটটি রাজ্যের নতুন আর বেড়ে ওঠা ইউনিটের জন্য: আপনার বাড়ি, প্লান্ট আর যন্ত্রের টাকা, আর উৎপাদন শুরু হলে আরও সাহায্য।',
@@ -1777,7 +1777,7 @@ const bn = {
   'elig.vvp.where': 'এই কর্মসূচিতে ঘোষণা করা সীমান্তের দলে পড়া গ্রামই পড়ে।',
   'elig.vvp.what': 'বাড়িতে থাকার ব্যবস্থা, গ্রাম ঘোরানো, দুধ, পশু পালন, হাতের কাজ আর ছোট স্থানীয় ব্যবসা এই সাহায্য পায়।',
 
-  'sdata.dic.description': 'আপনার নিজের জেলার সরকারি অফিস। এটি ছোট ব্যবসার নাম লেখায়, আপনার ঋণ আর ছাড়ের আবেদন রাজ্য ও কেন্দ্রের প্রকল্পে পাঠায়, আর কোন প্রকল্প আপনি পেতে পারেন তা বলে দেয়।',
+  'sdata.dic.description': 'আপনার নিজের জেলার সরকারি অফিস। এটি ছোট ব্যবসার নাম লেখায়, ঋণের আর খরচের জন্য সরকারি টাকার আপনার আবেদন রাজ্য ও কেন্দ্রের প্রকল্পে পাঠায়, আর কোন প্রকল্প আপনি পেতে পারেন তা বলে দেয়।',
   'sdata.dic.support': 'নাম লেখানো আর প্রকল্পের আবেদনে বিনামূল্যে সাহায্য',
   'elig.dic.what': 'অফিসটি উদ্যম রেজিস্ট্রেশন করায়, রাজ্য ও কেন্দ্রের প্রকল্পে আপনার আবেদন পাঠায় আর ব্যবসার প্রশিক্ষণ ঠিক করে।',
 
@@ -1790,11 +1790,11 @@ const bn = {
   'sdata.kvk.support': 'বিনামূল্যে প্রশিক্ষণ, পরামর্শ আর মাটি পরীক্ষা',
   'elig.kvk.what': 'পশু পালন, মৌমাছি পালন, ছাতা চাষ, খাবার তৈরি আর বীজ উৎপাদনের উপর ছোট কোর্স চলে।',
 
-  'sdata.odop_up.description': 'উত্তরপ্রদেশে প্রতিটি জেলার জন্য একটি হাতের কাজ বা জিনিস বেছে নেওয়া আছে। আপনার কাজ যদি আপনার জেলার জন্য বাছা জিনিস হয়, তাহলে সরঞ্জামের বাক্স, প্রশিক্ষণ, মেলায় বিক্রির সাহায্য আর ঋণে আপনার অংশের টাকা পাওয়া যায়।',
-  'sdata.odop_up.support': 'সরঞ্জাম, প্রশিক্ষণ, বিক্রির সাহায্য আর ঋণে অংশ',
+  'sdata.odop_up.description': 'উত্তরপ্রদেশে প্রতিটি জেলার জন্য একটি হাতের কাজ বা জিনিস বেছে নেওয়া আছে। আপনার কাজ যদি আপনার জেলার জন্য বাছা জিনিস হয়, তাহলে সরঞ্জামের বাক্স, প্রশিক্ষণ, মেলায় বিক্রির সাহায্য আর প্রকল্প খরচের কিছু অংশের জন্য সরকারি টাকাসহ ঋণ পাওয়া যায়।',
+  'sdata.odop_up.support': 'সরঞ্জাম, প্রশিক্ষণ, বিক্রির সাহায্য আর খরচের কিছু অংশের জন্য সরকারি টাকাসহ ঋণ',
   'elig.odop.product': 'আপনার কাজ আপনার নিজের জেলার জন্য বাছা জিনিস হতে হবে — কোনটি তা আপনার জেলা শিল্প কেন্দ্রে জিজ্ঞেস করুন।',
   'elig.odop.toolkit': 'প্রশিক্ষণ নেওয়া কারিগররা সরঞ্জামের বাক্স পান আর রাজ্য ও দেশের মেলায় যেতে পারেন।',
-  'elig.odop.margin': 'এই প্রকল্পে ঋণ পাওয়া যায় আর তাতে আপনার অংশের টাকা দেওয়া হয়।',
+  'elig.odop.margin': 'এই প্রকল্পে ঋণ পাওয়া যায়, আর প্রকল্প খরচের কিছু অংশের জন্য সরকারি টাকাও।',
 
   'sdata.tehsil_certificates.description': 'প্রায় প্রতিটি প্রকল্প আয়, জাতি বা বাসিন্দার শংসাপত্র চায়, আর তা দেয় আপনার তহশিল বা তালুক অফিস। কোথাও আবেদন করার আগে এগুলি নিয়ে নিন, নয়তো আপনার আবেদন সেখানেই আটকে যায়।',
   'sdata.tehsil_certificates.support': 'অন্য প্রকল্প যে শংসাপত্র চায়',
@@ -1819,7 +1819,7 @@ const bn = {
 
   'sdata.atma_block.description': 'ব্লকের কৃষি দল খেতে নতুন পদ্ধতি দেখায়, চাষি খেত স্কুল চালায়, অন্য জেলায় ঘোরানোর ব্যবস্থা করে আর প্রশিক্ষণের দিনের জন্য কিছু টাকা দেয়।',
   'sdata.atma_block.support': 'বিনামূল্যে চাষের প্রশিক্ষণ আর শেখার ভ্রমণ',
-  'elig.atma.what': 'খেতে নতুন পদ্ধতির দেখানো, চাষি খেত স্কুল আর জেলার ভিতরে-বাইরে খরচ দেওয়া ভ্রমণ পড়ে।',
+  'elig.atma.what': 'খেতে নতুন পদ্ধতির দেখানো, চাষি খেত স্কুল আর জেলার ভিতরে-বাইরে শেখার ভ্রমণ পড়ে। এই ভ্রমণের খরচ আপনাকে দিতে হয় না।',
   'elig.atma.friend': 'প্রতিটি গ্রামে একজন চাষি বন্ধু থাকেন; প্রথমে তাঁর সঙ্গে দেখা করতে পারেন।',
 
   'sdata.gp_licence.description': 'গ্রামে দোকান বা ছোট ইউনিটের জন্য লাগা আপত্তি নেই চিঠি আর ব্যবসার লাইসেন্স আপনার গ্রাম পঞ্চায়েত দেয়; তার বছরের গ্রাম পরিকল্পনা থেকে আপনার কাজের জায়গায় শেড, জল বা রাস্তা পাওয়া যেতে পারে।',
@@ -1835,7 +1835,7 @@ const bn = {
   'sdata.svanidhi.support': 'রাস্তায় বিক্রি করা মানুষের কাজ চালানোর ঋণ',
   'elig.svanidhi.who': 'পুরসভার বিক্রির সমীক্ষায় আপনার নাম গোনা থাকতে হবে, বা বিক্রির শংসাপত্র অথবা সুপারিশের চিঠি থাকতে হবে।',
   'elig.svanidhi.ladder': 'প্রথম ঋণ Rs.10,000। সময়ে শোধ করলে পরের Rs.20,000 আর তার পরে Rs.50,000।',
-  'elig.svanidhi.cashback': 'ফোনে বা কার্ডে শোধ করলে টাকা ফেরত আসে, আর সময়ে শোধ করলে সুদে 7% ছাড়।',
+  'elig.svanidhi.cashback': 'ফোনে বা কার্ডে শোধ করলে টাকা ফেরত আসে। সময়ে শোধ করলে 7% সুদ আপনার হয়ে সরকার দেয়।',
 }
 
 export const SCHEME_STRINGS = { en, hi, ta, te, ml, kn, mr, bn }

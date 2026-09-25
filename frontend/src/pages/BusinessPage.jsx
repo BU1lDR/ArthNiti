@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
 import { useI18n } from '../i18n/LanguageContext'
+import { MAX_EMPLOYEES, MAX_RUPEES } from '../data/limits'
 
 const fieldClass = 'mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-base text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary-strong)]'
 
@@ -28,14 +29,18 @@ function BusinessPage() {
   const business = applicationData.business
   const [categoryError, setCategoryError] = useState(false)
   const categoryRef = useRef(null)
+  const [otherError, setOtherError] = useState(false)
+  const otherRef = useRef(null)
 
   const handleChange = (event) => {
     const { name, value } = event.target
+    if (name === 'categoryOther') setOtherError(false)
     updateSection('business', { [name]: value })
   }
 
   const handleCategory = (category) => {
     setCategoryError(false)
+    setOtherError(false)
     updateSection('business', { category })
   }
 
@@ -47,6 +52,28 @@ function BusinessPage() {
       setCategoryError(true)
       categoryRef.current?.scrollIntoView({ block: 'center' })
       return
+    }
+
+    // A typed kind of work is sent trimmed (FinancePage.jsx), and the backend
+    // refuses one under 2 characters. The box's own minLength counts spaces, so
+    // "  " passed it here and came back from /finance as an error about a page
+    // the reader had already left. Check the trimmed text instead.
+    if (business.category === 'other') {
+      const trimmed = String(business.categoryOther || '').trim()
+
+      if (trimmed.length < 2) {
+        setOtherError(true)
+        otherRef.current?.focus()
+        return
+      }
+
+      // Store the trimmed text so the box shows what will be sent. Not while a
+      // result is on screen: that result was already worked out from the
+      // trimmed text, and storing it counts as an edit, which would throw the
+      // still-correct result away.
+      if (trimmed !== business.categoryOther && !applicationData.result) {
+        updateSection('business', { categoryOther: trimmed })
+      }
     }
 
     navigate('/location')
@@ -111,8 +138,14 @@ function BusinessPage() {
                 <label className="mt-4 block">
                   <span className="font-bold">{t('business.otherLabel')}</span>
                   <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{t('business.otherHint')}</span>
-                  <input name="categoryOther" value={business.categoryOther} onChange={handleChange} type="text" minLength={2} placeholder="e.g. Mobile repair shop" className={fieldClass} required />
+                  <input ref={otherRef} name="categoryOther" value={business.categoryOther} onChange={handleChange} type="text" minLength={2} placeholder={t('business.otherPh')} className={fieldClass} required aria-invalid={otherError || undefined} aria-describedby={otherError ? 'category-other-error' : undefined} />
                 </label>
+              )}
+
+              {business.category === 'other' && otherError && (
+                <p id="category-other-error" role="alert" className="ui-notice ui-notice-danger mt-3 font-bold text-[var(--color-danger)]">
+                  {t('business.otherError')}
+                </p>
               )}
 
               {categoryError && (
@@ -156,7 +189,7 @@ function BusinessPage() {
               <div className="ui-disclosure-body grid gap-5 sm:grid-cols-2">
                 <label className="ui-field">
                   <span className="font-bold">{t('business.employees')}</span>
-                  <input name="employees" value={business.employees} onChange={handleChange} type="number" min="0" placeholder="e.g. 2" className={fieldClass} />
+                  <input name="employees" value={business.employees} onChange={handleChange} type="number" min="0" max={MAX_EMPLOYEES} placeholder="e.g. 2" className={fieldClass} />
                 </label>
                 <label className="ui-field">
                   <span className="font-bold">{t('business.debt')}</span>
@@ -194,6 +227,7 @@ function MoneyField({ name, value, onChange, placeholder, required = false }) {
         onChange={onChange}
         type="number"
         min="0"
+        max={MAX_RUPEES}
         placeholder={placeholder}
         required={required}
         className={fieldClass}

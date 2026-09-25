@@ -24,6 +24,11 @@ def build_mvp_summary(
     # the unused routers and the unit tests pass partial dicts without it.
     funding_gap = financial_analysis.get("funding_gap", 0) or 0
 
+    # Whether the household's loan repayments fit its income; see risk_service.
+    # "not_checked" when no household income was given, and as the default for
+    # the partial dicts the unused routers and the unit tests pass.
+    household_check = risk_analysis.get("household_check", "not_checked")
+
     recommendations = advisory.get("recommendations", [])
     recommendation_codes = advisory.get("recommendation_codes", [])
 
@@ -44,11 +49,20 @@ def build_mvp_summary(
     # the gap into the repayment pressure, which catches a gap too large to
     # repay; the `sum.needsFunding` branch below catches the one small enough
     # to repay but still not in hand.
+    #
+    # The household check rules "good" out too. The business surplus can carry
+    # a loan that the household's income cannot, and repayments above half of
+    # the household's monthly income, the proposed loan included, are what
+    # RBI's microfinance directions cap for microfinance loans (paras 5.1 and
+    # 5.2). It sits after the risk branch so a surplus problem is still named
+    # first, and before needsFunding because a gap is a plan still to be made,
+    # while an over-limit household is a problem the numbers already show.
     if (
         financial_status == "profitable"
         and risk_level == "low"
         and feasibility == "feasible"
         and funding_gap <= 0
+        and household_check != "over_limit"
     ):
         status = "good"
         message = "Your business situation looks positive."
@@ -57,6 +71,10 @@ def build_mvp_summary(
         status = "attention_needed"
         message = "Your business needs attention before taking additional financial risk."
         message_code = "sum.needsAttention"
+    elif household_check == "over_limit":
+        status = "attention_needed"
+        message = "Loan repayments are too high for the household's income."
+        message_code = "sum.householdOverLimit"
     elif (
         funding_gap > 0
         and financial_status == "profitable"
@@ -110,6 +128,29 @@ def build_mvp_summary(
         else:
             next_step = "Reduce repayment pressure before taking another loan."
             next_step_code = "nxt.reducePressure"
+        priority = "high"
+    elif household_check == "over_limit":
+        # The same split as the branch above, on the household's income rather
+        # than the business surplus. If the EMI already paid fits within half
+        # of that income on its own, what takes it over is the estimated loan
+        # for the funding gap, and "bring your repayments down" would point at a
+        # loan that does not exist yet.
+        if (
+            (risk_analysis.get("estimated_new_emi") or 0) > 0
+            and risk_analysis.get("household_check_without_new_loan") == "within_limit"
+        ):
+            next_step = (
+                "A loan for the funding gap would take repayments above half of the "
+                "household's monthly income. Plan a smaller start, or raise more of "
+                "the money first."
+            )
+            next_step_code = "nxt.householdNewLoanOver"
+        else:
+            next_step = (
+                "The household's current loan repayments already take more than half "
+                "of its monthly income. Bring them down before taking another loan."
+            )
+            next_step_code = "nxt.householdOverLimit"
         priority = "high"
     elif feasibility != "feasible":
         next_step = "Review the business plan before investing more money."

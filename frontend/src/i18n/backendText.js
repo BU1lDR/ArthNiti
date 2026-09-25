@@ -166,6 +166,11 @@ export function useBackendText() {
 
     riskReason: (risk) => tBackend(risk?.reason_code, risk?.reason),
 
+    // The household check's own sentence, beside the pressure reason. Pages print
+    // it where the household percent cannot be computed (an income of 0), so
+    // there is still a plain sentence rather than a missing figure.
+    householdReason: (risk) => tBackend(risk?.household_reason_code, risk?.household_reason),
+
     summaryMessage: (summary) => tBackend(summary?.message_code, summary?.simple_message),
 
     // `next_step_code` is null in one branch on purpose: when the step is

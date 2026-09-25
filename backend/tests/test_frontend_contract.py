@@ -79,6 +79,28 @@ def test_frontend_contract_risk_section():
     assert isinstance(risk["reason"], str)
 
 
+def test_frontend_contract_household_check_when_income_is_not_given():
+    # The frontend sends null for a blank household-income question. Omitting
+    # the key must read the same, and every household key must still be there,
+    # because the result pages subscript them without guarding.
+    for payload in (VALID_PAYLOAD, {**VALID_PAYLOAD, "household_monthly_income": None}):
+        response = client.post("/api/analysis/run", json=payload)
+
+        assert response.status_code == 200
+
+        risk = response.json()["risk_analysis"]
+
+        assert risk["household_monthly_income"] is None
+        assert risk["household_repayment_percent"] is None
+        assert risk["household_check"] == "not_checked"
+        assert risk["household_check_without_new_loan"] == "not_checked"
+        assert risk["household_limit_percent"] == 50
+        assert risk["household_microfinance_income_limit"] == 300000
+        assert risk["household_in_microfinance_range"] is None
+        assert isinstance(risk["household_reason"], str)
+        assert risk["household_reason_code"] == "rsn.householdNotChecked"
+
+
 def test_frontend_contract_business_section():
     response = client.post(
         "/api/analysis/run",
@@ -177,6 +199,8 @@ def test_frontend_contract_translation_codes_travel_with_their_prose():
 
     risk = body["risk_analysis"]
     assert isinstance(risk["reason_code"], str)
+    assert isinstance(risk["household_reason_code"], str)
+    assert isinstance(risk["household_reason"], str)
 
     summary = body["mvp_summary"]
     assert isinstance(summary["message_code"], str)

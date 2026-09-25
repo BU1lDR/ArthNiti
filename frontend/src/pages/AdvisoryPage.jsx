@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
 import Button from '../components/Button'
-import { useApp } from '../context/AppContext'
+import { firstUnansweredStep, isStarted, useApp } from '../context/AppContext'
 import { BarRow, UnitChart } from '../components/Charts'
 import { useI18n } from '../i18n/LanguageContext'
 import { useBackendText } from '../i18n/backendText'
 
 function AdvisoryPage() {
-  const { applicationData } = useApp()
+  const { applicationData, resultCleared } = useApp()
   const { t } = useI18n()
   const bt = useBackendText()
   const result = applicationData?.result
@@ -60,11 +60,17 @@ function AdvisoryPage() {
       {!result ? (
         <section className="ui-card mt-8 text-center sm:p-8">
           <div className="ui-feature-icon mx-auto" aria-hidden="true">📋</div>
-          <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">{t('ad.notReady')}</h2>
+          <h2 className="mt-4 text-2xl font-bold text-[var(--color-text)]">
+            {resultCleared ? t('res.changedTitle') : t('ad.notReady')}
+          </h2>
           <p className="mx-auto mt-3 max-w-xl leading-7 text-[var(--color-text-muted)]">
-            {t('res.notReadyText')}
+            {resultCleared ? t('res.changedText', { button: t('finance.submit') }) : t('res.notReadyText')}
           </p>
-          <Button to="/finance" className="mt-6">{t('res.finish')}</Button>
+          {/* Where AnalysisPage's empty-state button goes: the first step still
+              missing an answer, or /finance, where the check is run. */}
+          <Button to={firstUnansweredStep(applicationData) ?? '/finance'} className="mt-6">
+            {resultCleared ? t('res.changedButton') : isStarted(applicationData) ? t('res.finish') : t('res.start')}
+          </Button>
         </section>
       ) : (
         <>
@@ -124,7 +130,7 @@ function AdvisoryPage() {
               icon="🛡️"
               title={t('money.risk')}
               value={riskText(riskLevel, t)}
-              description={riskDescription(riskLevel, repaymentPressure, t)}
+              description={riskDescription(riskLevel, repaymentPressure, risk?.household_check, t)}
             />
             <AdvisoryCard
               icon="🏛️"
@@ -207,6 +213,13 @@ function AdvisoryPage() {
                   )}
                 </DetailBlock>
               )}
+              {/* The same loan payments as above, against the household's income
+                  instead of the business surplus. Same content as /analysis. */}
+              {hasHouseholdCheck(risk) && (
+                <DetailBlock title={t('ch.householdTitle')}>
+                  <HouseholdCheck risk={risk} t={t} bt={bt} termsShownAbove={hasNumber(repaymentPressure) && Boolean(newLoanNote)} />
+                </DetailBlock>
+              )}
               {observations.length > 0 && (
                 <DetailBlock title={t('an.noticed')}>
                   <ul className="space-y-2">
@@ -271,6 +284,91 @@ function DetailBlock({ title, children }) {
   )
 }
 
+// The household check — see the longer note on HouseholdCheck in AnalysisPage.
+// Same lines in the same order, so the two pages cannot describe one check two
+// ways. It is an estimate, never a lender's decision: within the limit is drawn
+// neutral rather than green, and no line says anyone is eligible or will lend.
+function HouseholdCheck({ risk, t, bt, termsShownAbove }) {
+  const check = String(risk.household_check).trim()
+  if (check === 'not_checked') {
+    return <p>{t('ch.householdNotChecked', { step: t('nav.finance') })}</p>
+  }
+  const percent = risk.household_repayment_percent
+  const limit = risk.household_limit_percent
+  const limitText = hasNumber(limit) ? Number(limit).toLocaleString('en-IN') : null
+  const key = HOUSEHOLD_KEYS[check.toLowerCase()]
+  const label = key && limitText ? t(key, { limit: limitText }) : titleCaseEnum(check)
+  const isOver = check.toLowerCase() === 'over_limit'
+  const reason = bt.householdReason(risk)
+  const newLoanNote = householdLoanNote(risk, t, termsShownAbove)
+  const rbiNote = householdRbiNote(risk, limitText, t)
+  return (
+    <>
+      <p className={`font-bold ${isOver ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}>{label}</p>
+      {hasNumber(percent) ? (
+        <>
+          <p className="mt-1">{t('ch.householdPercent', { percent: formatPercent(percent, t) })}</p>
+          <div className="mt-3">
+            <BarRow
+              label={t('ch.householdBar')}
+              icon="🏠"
+              valueText={formatPercent(percent, t)}
+              fraction={Number(percent) / 100}
+              tone={isOver ? 'bad' : 'neutral'}
+              marks={limitText ? [{ at: Number(limit) / 100 }] : []}
+            />
+            {limitText && <p className="ui-chart-caption">{t('ch.householdCaption', { limit: limitText })}</p>}
+          </div>
+        </>
+      ) : (
+        reason && <p className="mt-1">{reason}</p>
+      )}
+      {newLoanNote && <p className="ui-chart-caption">{newLoanNote}</p>}
+      <p className="ui-chart-caption">{t('ch.householdEstimate')}</p>
+      {rbiNote && <p className="mt-3">{rbiNote}</p>}
+    </>
+  )
+}
+
+// household_check is a backend enum, like risk_level. not_checked has its own
+// sentence and is handled before this map is read; an unknown value title-cases.
+const HOUSEHOLD_KEYS = { within_limit: 'ch.householdWithin', over_limit: 'ch.householdOver' }
+
+// A response written before the household check existed has no household_check
+// at all, and then nothing is drawn rather than an empty heading.
+function hasHouseholdCheck(risk) {
+  const check = risk?.household_check
+  return check !== undefined && check !== null && String(check).trim() !== ''
+}
+
+// The full sentence carries the assumed rate and tenure; the short one is used
+// where the pressure chart has just printed them, or where the response did not
+// send them. The short one says on its own that the amount is our estimate
+// rather than pointing back at a chart that may not be on the page. Same as
+// AnalysisPage.
+function householdLoanNote(risk, t, termsShownAbove) {
+  const newLoanEmi = risk.estimated_new_emi
+  if (!hasNumber(newLoanEmi) || Number(newLoanEmi) <= 0) return null
+  const amount = formatCurrency(newLoanEmi, t)
+  const hasTerms = hasNumber(risk.assumed_interest_rate_percent) && hasNumber(risk.assumed_tenure_months)
+  if (termsShownAbove || !hasTerms) return t('ch.householdIncludesNewShort', { amount })
+  return t('ch.householdIncludesNew', {
+    amount,
+    rate: risk.assumed_interest_rate_percent,
+    years: Number(risk.assumed_tenure_months) / 12,
+  })
+}
+
+// Printed only on a strict true or false; null means the backend could not tell.
+function householdRbiNote(risk, limitText, t) {
+  const incomeLimit = risk.household_microfinance_income_limit
+  if (!hasNumber(incomeLimit) || !limitText) return null
+  const values = { income: formatCurrency(incomeLimit, t), limit: limitText }
+  if (risk.household_in_microfinance_range === true) return t('ch.householdRbiCovered', values)
+  if (risk.household_in_microfinance_range === false) return t('ch.householdRbiNotCovered', values)
+  return null
+}
+
 // The advice sentences. These are our own copy, not backend prose, so every
 // branch resolves to a key and the numbers are composed into the templates
 // rather than concatenated into an English sentence.
@@ -301,8 +399,14 @@ function financialDescription(profit, margin, t) {
   return left + ' ' + t('ad.marginIs', { value: formatPercent(margin, t) })
 }
 
-function riskDescription(level, pressure, t) {
-  const base = riskAdvice(level, t)
+// "Your loan payment looks manageable" is about the money the business leaves
+// each month. When the same payments take more than half of the household's
+// income, that sentence would say the opposite of the household check printed
+// below it, so the low band gets a sentence that says both. Moderate and high
+// already warn against new borrowing, which the household check agrees with.
+function riskDescription(level, pressure, householdCheck, t) {
+  const householdOver = String(householdCheck ?? '').trim().toLowerCase() === 'over_limit'
+  const base = level === 'low' && householdOver ? t('ad.riskLowHouseholdOver') : riskAdvice(level, t)
   if (!hasNumber(pressure)) return base
   return base + ' ' + t('ad.pressureIs', { value: formatPercent(pressure, t) })
 }

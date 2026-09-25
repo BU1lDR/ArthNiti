@@ -1,12 +1,23 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from 'react'
+import { districtsForState } from '../data/indiaLocations'
+import { MAX_EMPLOYEES, MAX_RUPEES } from '../data/limits'
 
 const AppContext = createContext(null)
 
 const STORAGE_KEY = 'sih-application'
-// Bump this whenever the shape below changes, so a payload written by an older
-// build is discarded rather than half-restored into fields that moved.
-const STORAGE_VERSION = 1
+// Bump this whenever the shape below changes. A payload is read only when its
+// version is in READABLE_VERSIONS; any other version is discarded rather than
+// half-restored into fields that moved.
+//
+// 2 added `resultCleared`. 3 added `finance.householdIncome`. Neither moved or
+// renamed anything, so versions 1 and 2 are still read: each is version 3 with
+// the later fields missing, and hydrate() fills them in from EMPTY (the flag as
+// false, the income as ''). A later bump that renames or moves a field must
+// drop the older versions from this set rather than let hydrate() half-restore
+// them.
+const STORAGE_VERSION = 3
+const READABLE_VERSIONS = new Set([1, 2, 3])
 
 const EMPTY = {
   // State and district belong to the location step, which is the single place
@@ -44,9 +55,19 @@ const EMPTY = {
     availableCapital: '',
     monthlyExpenses: '',
     monthlyEmi: '',
+    // Optional. '' means the question was not answered, and FinancePage sends
+    // that as null rather than 0: a 0 would be a household with no income, and
+    // the backend would then call every repayment more than half of it.
+    householdIncome: '',
   },
 
   result: null,
+
+  // True when changing an answer threw away a result that was on screen, so a
+  // result page can say that an answer changed and the check has to be run
+  // again, instead of looking as though nothing was ever checked. False again
+  // once a new result arrives, and after starting over.
+  resultCleared: false,
 }
 
 // Has the reader entered anything worth clearing?
@@ -56,8 +77,8 @@ const EMPTY = {
 // StartOverButton used to test 6 of the 16 answers, so someone who had typed
 // their expected monthly revenue and nothing else — a perfectly ordinary way to
 // start — had their figures sitting in sessionStorage with no control anywhere in
-// the app to clear them short of closing the tab. On a shared demo laptop that is
-// the whole reason the storage is per-session in the first place.
+// the app to clear them short of closing the tab. Someone else may use the same
+// device next, and that is the whole reason the storage is per-session.
 //
 // Note the defaults that are not blank: locationType 'rural', language 'Hindi',
 // literacyLevel 'low', employees 0. That is why this is a difference from EMPTY
@@ -90,8 +111,8 @@ export function isStarted(data) {
 // `profile` is deliberately absent. Name, language, dialect and literacy level
 // are echoed back by the backend rather than computed from, so changing one
 // cannot make a number wrong — and clearing on them would mean that switching
-// language on /profile silently threw the results away, which is the single
-// thing this demo does on purpose.
+// language on /profile silently threw the results away, when switching language
+// is something a reader must be able to do at any point.
 const ANSWER_SECTIONS = new Set(['business', 'location', 'finance'])
 
 // Merge over the defaults section by section rather than trusting the stored
@@ -114,13 +135,17 @@ function hydrate(data) {
     },
     finance: { ...EMPTY.finance, ...(data.finance || {}) },
     result: data.result ?? null,
+    // Only a real `true` counts, and never beside a result: the flag says a
+    // result was thrown away, which cannot be so while one is present.
+    resultCleared: data.resultCleared === true && !data.result,
   }
 }
 
 // sessionStorage rather than localStorage, deliberately. Someone's revenue, debt
-// and EMI should not sit on a shared demo laptop after they walk away, and a
-// closed tab being a clean slate is exactly what we want between two judges.
-// Within one tab it survives the refresh, which is the whole point: before this,
+// and EMI should not stay on the device after they walk away, because someone
+// else may use the same device next, and a closed tab being a clean slate is
+// what protects them. Within one tab it survives the refresh, which is the whole
+// point: before this,
 // reloading any result page dropped it straight to its empty state and the only
 // way back was to re-enter all four forms.
 function readStored() {
@@ -129,7 +154,7 @@ function readStored() {
     if (!raw) return EMPTY
 
     const parsed = JSON.parse(raw)
-    if (!parsed || parsed.v !== STORAGE_VERSION) return EMPTY
+    if (!parsed || !READABLE_VERSIONS.has(parsed.v)) return EMPTY
 
     return hydrate(parsed.data)
   } catch {
@@ -170,6 +195,10 @@ export function AppProvider({ children }) {
           ...data,
         },
         result: ANSWER_SECTIONS.has(section) ? null : current.result,
+        // Set only when this change is the one that threw a result away. Once
+        // set it stays set through later edits, which have no result left to
+        // clear, until a new result arrives or the reader starts over.
+        resultCleared: ANSWER_SECTIONS.has(section) && current.result ? true : current.resultCleared,
       }
     })
   }
@@ -178,10 +207,12 @@ export function AppProvider({ children }) {
     setApplicationData((current) => ({
       ...current,
       result,
+      resultCleared: false,
     }))
   }
 
-  // Starting over between two demos should not mean clearing the tab by hand.
+  // Starting over should not mean closing the tab by hand, and the next person
+  // on the same device should not find the last person's answers.
   const resetApplication = () => {
     try {
       window.sessionStorage.removeItem(STORAGE_KEY)
@@ -195,6 +226,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider
       value={{
         applicationData,
+        resultCleared: applicationData.resultCleared === true,
         updateSection,
         setResult,
         resetApplication,
@@ -203,6 +235,83 @@ export function AppProvider({ children }) {
       {children}
     </AppContext.Provider>
   )
+}
+
+// A number field hands the page '' for anything it cannot read, so blank covers
+// the unreadable case as well as the unanswered one.
+function isBlank(value) {
+  return value === null || value === undefined || String(value).trim() === ''
+}
+
+// Whether an answer would pass the browser's own check on a number field here:
+// min 0, the field's max, and the default step of 1, which refuses decimals.
+function isWholeAmount(value, max) {
+  if (isBlank(value)) return false
+  const amount = Number(value)
+  return Number.isInteger(amount) && amount >= 0 && amount <= max
+}
+
+// Blank is fine for a question the page does not require; an answer that is
+// there must still be one the page would accept.
+function isOptionalAmount(value, max) {
+  return isBlank(value) || isWholeAmount(value, max)
+}
+
+// The first step of the journey whose required answers are missing, as its
+// route: '/profile', '/business', '/location' or '/finance'. null when every
+// step could be submitted.
+//
+// Each test mirrors what that page itself refuses to continue without, so a
+// reader sent to the step this names lands on something the page will point
+// out. That includes a typed "Other" kind of work: the backend refuses a
+// business_category under 2 characters once spaces are trimmed, and
+// BusinessPage now trims before it checks, so the two agree. A state is always
+// picked from the list, so every real one passes.
+export function firstUnansweredStep(data) {
+  const profile = data?.profile || {}
+  const business = data?.business || {}
+  const location = data?.location || {}
+  const finance = data?.finance || {}
+
+  // The name field is a plain required text box, which accepts spaces.
+  if (profile.name === null || profile.name === undefined || String(profile.name) === '') {
+    return '/profile'
+  }
+
+  const category = String(business.category || '')
+  const categorySent = category === 'other' ? String(business.categoryOther || '').trim() : category
+
+  if (
+    business.businessName === null ||
+    business.businessName === undefined ||
+    String(business.businessName) === '' ||
+    category === '' ||
+    categorySent.length < 2 ||
+    !isWholeAmount(business.initialInvestment, MAX_RUPEES) ||
+    !isWholeAmount(business.monthlyRevenue, MAX_RUPEES) ||
+    !isWholeAmount(business.monthlyOperatingExpenses, MAX_RUPEES) ||
+    !isOptionalAmount(business.employees, MAX_EMPLOYEES) ||
+    !isOptionalAmount(business.existingDebt, MAX_RUPEES)
+  ) {
+    return '/business'
+  }
+
+  const state = String(location.state || '')
+
+  if (state.trim().length < 2 || !districtsForState(state).includes(location.district)) {
+    return '/location'
+  }
+
+  if (
+    !isWholeAmount(finance.availableCapital, MAX_RUPEES) ||
+    !isWholeAmount(finance.monthlyExpenses, MAX_RUPEES) ||
+    !isOptionalAmount(finance.monthlyEmi, MAX_RUPEES) ||
+    !isOptionalAmount(finance.householdIncome, MAX_RUPEES)
+  ) {
+    return '/finance'
+  }
+
+  return null
 }
 
 export function useApp() {

@@ -81,7 +81,15 @@ function walk(dir) {
   return out
 }
 
-const files = walk(SRC).filter((f) => !DICTS.some((d) => f.endsWith(d.replace('frontend/src/', '').replace(/\//g, '\\'))))
+// The dictionaries define keys rather than use them, so they are left out of the
+// scan. walk() returns paths in the platform's separator (join() on Windows gives
+// backslashes) while DICTS is written with forward slashes, so both sides go
+// through toPosix() before they are compared. The comparison used to turn DICTS
+// into backslashes instead, which matched on Windows only: on Linux no file was
+// excluded, and every key a dictionary defines was also counted as used.
+const toPosix = (p) => p.replace(/\\/g, '/')
+const DICT_PATHS = new Set(DICTS.map(toPosix))
+const files = walk(SRC).filter((f) => !DICT_PATHS.has(toPosix(f)))
 
 // Any single- or double-quoted literal shaped like a dotted key. Template literals
 // with an interpolation cannot be resolved statically and are reported separately.

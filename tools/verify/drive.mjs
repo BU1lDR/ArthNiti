@@ -130,6 +130,13 @@ const FORMS = {
   },
 }
 
+// Answered, submitted, then edited. Changing an answer on /business, /location
+// or /finance throws the result away and sets `resultCleared`, so each result
+// page must say the old result was removed (res.changedTitle), not show it, and
+// not fall to the "not ready yet" state of someone who never submitted. The
+// answers are `good`'s, because the flag only ever arises once there are answers.
+FORMS.cleared = structuredClone(FORMS.good)
+
 const RESULTS = {
   good: JSON.parse(readFileSync('screenshots/verify/case_good.json', 'utf8')),
   nulls: JSON.parse(readFileSync('screenshots/verify/case_nulls.json', 'utf8')),
@@ -137,6 +144,35 @@ const RESULTS = {
   // Explicitly null, not just absent: the blank case has never submitted, so
   // every result page must show its own "not ready yet" state.
   blank: null,
+  // Null because the edit discarded it. What it USED to be is good's response,
+  // which is what the cleared checks look for and must not find.
+  cleared: null,
+}
+
+// Extra fields in the seeded payload, beside the answers and the result.
+const SEED_EXTRA = {
+  cleared: { resultCleared: true },
+}
+
+// --- the sessionStorage envelope ---------------------------------------------
+// AppContext reads {v, data} and discards a payload whose v is not in its
+// READABLE_VERSIONS, silently, by returning the blank form. FORMS above are
+// written in the version 2 shape (version 1 plus `resultCleared`), so the seed
+// says 2, and the script refuses to start if AppContext no longer reads that
+// version: every result page would fall to its empty state, and the findings
+// would point everywhere except at the seed.
+const SEED_VERSION = 2
+const APP_CONTEXT = 'frontend/src/context/AppContext.jsx'
+{
+  const m = readFileSync(APP_CONTEXT, 'utf8').match(/^const READABLE_VERSIONS = new Set\(\[([\d,\s]*)\]\)/m)
+  if (!m) throw new Error(`READABLE_VERSIONS not found in ${APP_CONTEXT}; update the parse in drive.mjs`)
+  const readable = m[1].split(',').map((s) => s.trim()).filter(Boolean).map(Number)
+  if (!readable.includes(SEED_VERSION)) {
+    throw new Error(
+      `${APP_CONTEXT} no longer reads version ${SEED_VERSION} payloads (READABLE_VERSIONS is ` +
+        `${readable.join(', ')}). Rewrite FORMS in drive.mjs to the new shape and raise SEED_VERSION.`,
+    )
+  }
 }
 
 const RESULT_ROUTES = ['/analysis', '/schemes', '/advisory', '/report']
@@ -156,7 +192,30 @@ const FIT_KEYS = { state: 'sc.fitState', region: 'sc.fitRegion', national: 'sc.f
 const { RESULT_STRINGS } = await import(pathToFileURL(resolve('frontend/src/i18n/resultStrings.js')).href)
 // Same per-key English fallback as t(), so a key missing in one language is
 // judged against the English the page would really print.
-const fitText = (lang, basis) => RESULT_STRINGS[lang]?.[FIT_KEYS[basis]] ?? RESULT_STRINGS.en[FIT_KEYS[basis]]
+const resultText = (lang, key) => RESULT_STRINGS[lang]?.[key] ?? RESULT_STRINGS.en[key]
+const fitText = (lang, basis) => resultText(lang, FIT_KEYS[basis])
+
+// --- the cleared-result check -------------------------------------------------
+// What each result page prints when there is no result and none was ever made.
+// A cleared result must not print it: that sentence tells someone who DID
+// submit that they never finished, and sends them back to the start.
+const NOT_READY_KEYS = {
+  '/analysis': 'res.notReady',
+  '/schemes': 'sch.finishTitle',
+  '/advisory': 'ad.notReady',
+  '/report': 'rp.notReady',
+}
+const CLEARED_KEYS = ['res.changedTitle', 'res.changedButton']
+// Checked here rather than at use: resultText() of a key missing from `en` is
+// undefined, and text.includes(undefined) looks for the word "undefined", so a
+// renamed key would turn the "must not appear" half of the check into a pass.
+for (const key of [...CLEARED_KEYS, ...Object.values(NOT_READY_KEYS)]) {
+  if (typeof RESULT_STRINGS.en[key] !== 'string') throw new Error(`${key} is not defined in resultStrings.js en`)
+}
+// The result the edit threw away. Its scheme names render in English in every
+// language (the card check below finds them that way), so they are a direct
+// test that none of the old result reached the page.
+const DISCARDED_SCHEMES = (RESULTS.good?.scheme_matches || []).map((s) => s.name)
 // Score-shaped only: a scheme's own prose legitimately carries percentages
 // (PM Vishwakarma's "5% interest"), and the score is only ever 90 or 100.
 const SCORE_PCT = /(?<![\d.,-])(90|100)\s*%/
@@ -175,7 +234,7 @@ const cardProbe = (names) => `(() => {
 })()`
 const ALL_ROUTES = ['/', '/login', '/profile', '/business', '/location', '/finance', ...RESULT_ROUTES, '/no-such-page']
 
-// case, language, routes
+// case, language, routes. 8 passes, 40 page loads: 11 + 4 + 4 + 4 + 4 + 1 + 8 + 4.
 const PASSES = [
   ['good', 'en', ALL_ROUTES],
   ['good', 'ta', RESULT_ROUTES],
@@ -186,6 +245,10 @@ const PASSES = [
   // Blank forms: the four journey pages plus the result pages, which must all
   // fall to their "not ready yet" state rather than rendering a zeroed report.
   ['blank', 'en', ['/profile', '/business', '/location', '/finance', ...RESULT_ROUTES]],
+  // A result thrown away by an edited answer. In Hindi, the default language,
+  // so the expected sentence comes from a real translation rather than from the
+  // English fallback.
+  ['cleared', 'hi', RESULT_ROUTES],
 ]
 
 // --- minimal CDP client, session-aware ---------------------------------------
@@ -304,7 +367,10 @@ async function main() {
       await cdp.send('Page.navigate', { url: APP + '/' })
       await waitForRender(cdp)
 
-      const payload = JSON.stringify({ v: 1, data: { ...FORMS[caseName], result: RESULTS[caseName] } })
+      const payload = JSON.stringify({
+        v: SEED_VERSION,
+        data: { ...FORMS[caseName], result: RESULTS[caseName], ...(SEED_EXTRA[caseName] || {}) },
+      })
       await cdp.evaluate(`
         sessionStorage.setItem('sih-application', ${JSON.stringify(payload)});
         localStorage.setItem('sih-language', ${JSON.stringify(lang)});
@@ -352,7 +418,13 @@ async function main() {
           if (text.includes(bad)) problems.push(`BAD TOKEN: "${bad}"`)
         }
         // Lowercase enum values and backend field names must never reach screen.
-        for (const raw of ['attention_needed', 'break_even', 'not_feasible', 'profit_margin', 'match_level', 'pressure_ratio', 'fit_basis', 'wholesale_price_per_kg', 'registered_units', 'count_suppressed']) {
+        for (const raw of [
+          'attention_needed', 'break_even', 'not_feasible', 'profit_margin', 'match_level', 'pressure_ratio',
+          'fit_basis', 'wholesale_price_per_kg', 'registered_units', 'count_suppressed',
+          // The household repayment check: its enum values and field names.
+          'household_check', 'within_limit', 'over_limit', 'not_checked',
+          'household_repayment_percent', 'household_in_microfinance_range',
+        ]) {
           if (text.includes(raw)) problems.push(`RAW ENUM/FIELD ON SCREEN: "${raw}"`)
         }
 
@@ -367,6 +439,26 @@ async function main() {
           for (const claim of ['You have enough', 'enough of your planned investment']) {
             if (text.includes(claim)) problems.push(`FALSE REASSURANCE: "${claim}" with a blank form`)
           }
+        }
+
+        // A result thrown away by an edited answer. The page must say so in the
+        // reader's language, must not show the "not ready yet" state of someone
+        // who never submitted, and must show nothing of the old result: no
+        // chart, no rupee figure, none of its scheme names. Read from #main so
+        // the chrome and the footer cannot satisfy or trip it.
+        if (caseName === 'cleared') {
+          const mainText = await cdp.evaluate(`document.querySelector('#main')?.innerText || ''`)
+          for (const key of CLEARED_KEYS) {
+            if (!mainText.includes(resultText(lang, key))) problems.push(`CLEARED STATE MISSING: ${key}`)
+          }
+          const notReady = NOT_READY_KEYS[route]
+          if (notReady && mainText.includes(resultText(lang, notReady))) {
+            problems.push(`WRONG EMPTY STATE: ${notReady} shown for a cleared result`)
+          }
+          if (barCount || unitCount) problems.push(`OLD RESULT SHOWN: ${barCount} bar(s), ${unitCount} coin chart(s)`)
+          if (/₹\s?\d/.test(mainText)) problems.push('OLD RESULT SHOWN: a rupee figure')
+          const shown = DISCARDED_SCHEMES.filter((name) => mainText.includes(name))
+          if (shown.length) problems.push(`OLD RESULT SHOWN: ${shown.length} scheme name(s), e.g. ${shown[0]}`)
         }
 
         // After the text dump and the screenshot, because it opens every

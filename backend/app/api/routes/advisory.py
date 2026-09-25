@@ -22,15 +22,22 @@ def recommend(data: AdvisoryRequest):
         expected_monthly_revenue=data.expected_monthly_revenue
     )
 
+    # This request carries no plan amount (no initial_investment), so there is
+    # no funding gap to price as a new loan: estimated_new_emi is 0, the total
+    # is the EMI entered, and the household check is the EMI-alone test. The
+    # response says so in its own figures rather than guessing at a loan.
     risk_assessment = calculate_repayment_pressure(
         monthly_surplus=financial_metrics["monthly_profit"],
-        monthly_emi=data.monthly_emi
+        monthly_emi=data.monthly_emi,
+        household_monthly_income=data.household_monthly_income
     )
 
     advice = generate_advice(
         financial_status=financial_metrics["financial_status"],
         profit_margin_percent=financial_metrics["profit_margin_percent"],
-        available_capital=financial_metrics["available_capital"]
+        available_capital=financial_metrics["available_capital"],
+        household_check=risk_assessment["household_check"],
+        household_check_without_new_loan=risk_assessment["household_check_without_new_loan"]
     )
 
     market_context = []

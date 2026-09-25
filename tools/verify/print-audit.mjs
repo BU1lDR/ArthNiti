@@ -25,7 +25,8 @@
 //      carries that class. The footer is `.ui-footer-gov` + `.ui-footer-bottom`
 //      (App.jsx GovFooter). `.ui-footer` is a live rule in index.css that styles
 //      nothing, so the selector list reads complete while the government footer,
-//      helpline column and all, prints onto the page.
+//      "Where to get help" column (common.helpTitle) and all, prints onto the
+//      page.
 //
 //   3. TOKENS   — `@media print` restates the whole `--mark-*` palette so that
 //      what comes out of the printer does not depend on the theme the laptop was

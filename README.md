@@ -2,10 +2,10 @@
 
 Hyper-local business advice and financial structuring for rural micro-entrepreneurs. We built it for Smart India Hackathon 2026 and now keep it going as a standalone project.
 
-Someone running a small business in a village — a tailor, a weaver, a woman keeping four buffaloes — opens this on a cheap Android phone, answers nineteen plain questions in their own language, and gets four things back:
+Someone running a small business in a village — a tailor, a weaver, a woman keeping four buffaloes — opens this on a cheap Android phone, answers twenty plain questions in their own language, and gets four things back:
 
 - whether the business actually makes money
-- how risky the loan repayment looks, counting the loan they would need if they do not yet have all the money the plan requires (at an assumed 12% over 5 years, which the page states)
+- how risky the loan repayment looks, counting the loan they would need if they do not yet have all the money the plan requires (at an assumed 12% over 5 years, which the page states), and, if they give their household's monthly income, whether the household's loan repayments stay within half of it
 - which government schemes cover their kind of work where they live, from Central ministries down to the Gram Panchayat counter (it checks the kind of work and the place, not full eligibility)
 - a one-page sheet to print and carry to a bank
 
@@ -25,7 +25,7 @@ You'll need:
 
 | | What we're on | |
 |---|---|---|
-| Python | 3.14.6 | |
+| Python | 3.14.6 | the pinned dependencies set a floor of 3.10. Only 3.14.6 has actually been run |
 | Node | 24.18.1 | 24+ really is required — the verifier scripts use a global `WebSocket` |
 | npm | 11.16.0 | |
 | Edge | whatever's current | only for the browser verifiers |
@@ -36,14 +36,16 @@ Nothing to configure to run it. No database to provision, and no `.env` or API k
 
 ```bash
 python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r backend/requirements.txt
+.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt   # or requirements.txt to only run it
 
 cd frontend && npm install && cd ..
 ```
 
+`backend/requirements.txt` is the runtime: FastAPI, uvicorn and everything they pull in, each pinned to an exact version, Starlette included (1.6.0). There are no hashes. `backend/requirements-dev.txt` includes that file and adds pytest and httpx2, which is what the test suite needs.
+
 You never have to *activate* the venv. Every command in this file calls `.venv/Scripts/python.exe` directly, which works from any shell. We're all on Windows and Git Bash, so that's what the snippets assume.
 
-One thing that looks wrong and isn't: `backend/requirements.txt` asks for **`httpx2`**, not `httpx`. That's the httpx 2.x line published by the pydantic org, and Starlette 1.6 uses it directly. In this venv `import httpx` fails while FastAPI's `TestClient` works fine. Please don't "fix" it.
+One thing that looks wrong and isn't: `backend/requirements-dev.txt` asks for **`httpx2`**, not `httpx`. That's the httpx 2.x line published by the pydantic org, and Starlette 1.6 uses it directly. In this venv `import httpx` fails while FastAPI's `TestClient` works fine. Please don't "fix" it.
 
 Then two terminals, backend first:
 
@@ -71,15 +73,22 @@ taskkill //F //T //PID <pid>          # yes, doubled slashes, that's Git Bash
 ### The other commands
 
 ```bash
-cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 323 tests, about a second
+cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 606 tests, a few seconds
 cd frontend && npm run build                                   # → frontend/dist
 cd frontend && npm run lint                                    # ESLint 10
 cd frontend && npm run preview                                 # serves the build on 4173
 ```
 
-The `cd backend` in front of pytest matters. Run it from the repo root and you get 26 collection errors, because the tests import `app.*` and there's no `pyproject.toml` or `conftest.py` putting `backend/` on the path. It looks like a broken suite and it's just the working directory.
+The `cd backend` in front of pytest matters. Run it from the repo root and you get collection errors, because the tests import `app.*` and there's no `pyproject.toml` or `conftest.py` putting `backend/` on the path. It looks like a broken suite and it's just the working directory.
 
-There's no CI, no Makefile and no Dockerfile. The commands above are the whole story.
+### CI
+
+`.github/workflows/ci.yml` runs on every push and pull request, on `ubuntu-latest`, as two jobs:
+
+- **backend**: installs `requirements-dev.txt` and runs pytest from `backend/`, on Python 3.10 and 3.14.
+- **frontend**: on Node 24, `npm ci`, lint, build, `parity4.mjs`, `keycheck.mjs` and `market-lib-test.mjs`, plus `glyph-audit.mjs`, which only reports and always exits 0.
+
+**It has not run yet.** The branch that adds it has not been pushed, so it has never run on GitHub or on Linux, and Python 3.10 has not been tried at all. The browser gates in `tools/verify/` are not in it: they drive a local Edge at a hardcoded Windows path, so they only run on a Windows machine with Edge installed. There's still no Makefile and no Dockerfile.
 
 ## The demo path
 
@@ -92,15 +101,23 @@ Landing, then an optional login, then four questions pages, then four result pag
 | 1 | `/profile` | name, language, dialect, reading comfort |
 | 2 | `/business` | kind of work, investment, expected revenue, running costs, employees, existing debt |
 | 3 | `/location` | state → district (cascading), village, rural/semi-urban/urban, market type, customers |
-| 4 | `/finance` | capital in hand, household + business costs, EMI. Submitting here fires the only API call in the app |
-| | `/analysis` | profit, margin, risk, feasibility, local market rows, charts |
+| 4 | `/finance` | capital in hand, household + business costs, the household's monthly loan repayments, and optionally the household's monthly income. Submitting here fires the only API call in the app |
+| | `/analysis` | profit, margin, risk, feasibility, the household loan check, local market rows, charts |
 | | `/schemes` | schemes listed for your work and state, grouped by administrative tier |
-| | `/advisory` | recommendations and a next step |
-| | `/report` | the printable one-page sheet |
+| | `/advisory` | recommendations, a next step, and the household loan check |
+| | `/report` | the printable one-page sheet, household loan check included |
 
 Anything else hits a 404 page. Nothing enforces the order, since the nav links straight to any step — so `/finance` can be submitted empty, which comes back as a 422 that we render as a readable sentence rather than a stack trace.
 
-For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Uttar Pradesh / Lucknow**. Those fill every section on the page: 14–16 schemes spread across 6 of the 7 tiers, both of the fit labels Uttar Pradesh can show ("Made for your state" and "For all of India"), and a district-level market row: how many businesses in Lucknow have registered that kind of work. Agriculture in Lucknow shows three mandi wholesale prices instead. Fill in the village name, market type and customer description on the location step too, since all three get printed back. Switch language on a *result* page rather than a form page if you can — the generated advice and the scheme text change too, not just the labels, and that's the moment that lands.
+Five behaviours worth knowing before you click through:
+
+- **The household loan check.** If the reader gives the household's monthly income, the backend compares every loan repayment the household makes, plus our estimate for a loan covering the money the plan still needs, against half of that income, and `/analysis`, `/advisory` and `/report` show the result. Half is the limit in RBI's 2022 microfinance directions (paras 5.1–5.3). This checks the figures the reader typed. It is not a lending decision, and nothing on the page calls the result RBI-compliant or says a lender will lend. Left blank, the check is skipped and the page says so. A household earning more than ₹3,00,000 a year is outside RBI's microfinance range (para 3.1), so for it the 50% line is shown only as a warning sign.
+- **Start over asks first.** The button opens a confirmation dialog, and "No" has the focus.
+- **Changing an answer clears the results, and the page says so.** After an edit on steps 2–4, the result pages say the answers changed instead of showing old figures. An empty result page links to the first step that still has a missing answer, or to `/finance` if none does.
+- **The footer shows when the scheme rules were checked** (01/09/2026 to 07/09/2026). The helpline number is gone, because we could not verify it. The footer now points to the District Industries Centre or the block office instead.
+- **Inputs are capped** at ₹100 crore for any rupee amount and 10,000 employees, on the form and in the API.
+
+For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Uttar Pradesh / Lucknow**. Those fill every section on the page: 14–16 schemes spread across 6 of the 7 tiers, both of the fit labels Uttar Pradesh can show ("Made for your state" and "For all of India"), and a district-level market row: how many businesses in Lucknow have registered that kind of work. Agriculture in Lucknow shows three mandi wholesale prices instead. Fill in the village name, market type and customer description on the location step too, since all three get printed back, and give a household income on `/finance`, or the household check is skipped. Switch language on a *result* page rather than a form page if you can — the generated advice and the scheme text change too, not just the labels, and that's the moment that lands.
 
 ## Where things are
 
@@ -112,16 +129,19 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 | `backend/app/services/` | all the business logic. Pure functions, no classes, no I/O |
 | `backend/app/core/data_loader.py` | cached JSON loading. What it hands back is shared, so treat it as read-only |
 | `backend/app/data/` | `schemes.json` (30 schemes), `market_data.json` (20 rows from data.gov.in, Lucknow and Varanasi), `market_data.provenance.json` (how the last fetch ran) |
-| `backend/tests/` | 26 test files, 323 tests |
+| `backend/tests/` | 30 test files, 606 tests |
 | `frontend/src/App.jsx` | the shell, all the chrome, 10 routes and a catch-all |
 | `frontend/src/pages/` | 9 page components |
 | `frontend/src/components/` | `Button`, `BrandMark`, `BrandWordmark`, `InstructionManual`, `Charts`, `chartData` |
 | `frontend/src/context/AppContext.jsx` | the entire client state, mirrored into `sessionStorage` |
 | `frontend/src/i18n/` | 8 languages, 4 dictionary files, the `t()` and `tBackend()` provider |
 | `frontend/src/data/indiaLocations.js` | 36 states and UTs, 768 districts |
+| `frontend/src/data/limits.js` | the input caps, mirroring `backend/app/schemas/limits.py`. A test fails if the two disagree |
+| `frontend/src/data/reviewDates.js` | the dates the footer prints for when the scheme rules were checked. A test fails if they drift from `schemes.json` |
 | `frontend/src/services/api.js` | the only network call in the app |
 | `frontend/src/index.css` | design tokens, the `.ui-*` system, and the print stylesheet |
-| `tools/` | 28 `.mjs` files, nearly all of them verifiers, plus the market data fetch and its maps — [tools/README.md](tools/README.md) explains them |
+| `tools/` | 27 `.mjs` files, nearly all of them verifiers, plus the market data fetch and its maps — [tools/README.md](tools/README.md) explains them |
+| `.github/workflows/ci.yml` | the CI workflow, which has not run yet (see [CI](#ci)) |
 | `presentation/` | empty for now. Saad and Tripti |
 
 ## How it fits together
@@ -132,7 +152,7 @@ The other seven (`/health`, `/api/entrepreneur/profile`, `/api/business/analyze`
 
 CORS currently allows any loopback port through a regex. That needs to become an explicit list before this goes anywhere real.
 
-The frontend is React 19, Vite 8, Tailwind 4 and react-router 7. No TypeScript, no charting library, no i18n library, no state library, no frontend test framework — all of that is deliberate for a two-week prototype. The charts are hand-rolled on CSS in `components/Charts.jsx` so they survive dark mode and `window.print()`, and every one of them prints its number as text next to the bar.
+The frontend is React 19, Vite 8, Tailwind 4 and react-router 7. No TypeScript, no charting library, no i18n library, no state library, no frontend test framework. Those were choices for a two-week hackathon build and not all of them have been revisited since. Treat the missing frontend tests as open, not decided: apart from lint, the build and the dictionary scripts, the frontend is checked only by the Windows-only browser scripts in `tools/verify/`. The charts are hand-rolled on CSS in `components/Charts.jsx` so they survive dark mode and `window.print()`, and every one of them prints its number as text next to the bar.
 
 Client state sits in `AppContext` and is mirrored into `sessionStorage` rather than `localStorage`. That's on purpose: someone's revenue, debt and EMI shouldn't still be sitting on a shared demo laptop after they walk away, and a closed tab should be a clean slate between two judges. Within a single tab it survives a refresh, which is what we actually needed. Language, dialect, theme and text size *do* use `localStorage`, because a UI preference isn't financial data.
 
@@ -164,14 +184,14 @@ Both datasets are used under the Government Open Data Licence – India. Below t
 
 Eight: `en`, `hi`, `ta`, `te`, `ml`, `kn`, `mr`, `bn`. The default is **Hindi**, not English, because that's who this is for. English is the fallback.
 
-648 distinct keys across 4 dictionary files, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
+693 distinct keys across 4 dictionary files, 5,544 strings in all, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
 
 The dialect layer is a curated set of phrases, not a translation. Nine of the thirty listed varieties override a handful of the most visible strings. In the demo, say "dialect-aware phrasing" — not "translated into Bhojpuri".
 
 Digits stay Latin and money stays `en-IN`-grouped even in Tamil, because that's what's printed on Indian currency and on every government form.
 
 ```bash
-node tools/parity4.mjs     # key parity across 4 files x 8 languages, no server needed
+node tools/parity4.mjs     # 8 checks across 4 files x 8 languages, figures included, no server needed
 node tools/keycheck.mjs    # the other half: does every key the code asks for actually exist
 ```
 
@@ -184,7 +204,7 @@ From a fresh clone, in this order:
 ```bash
 node tools/parity4.mjs                 # no server, about a second, best signal per second
 node tools/verify/refresh-cases.mjs    # needs the BACKEND up — generates the test fixtures
-node tools/verify/drive.mjs            # needs VITE — the main gate, 36 page loads; exits 1 on a finding
+node tools/verify/drive.mjs            # needs VITE — the main gate, 8 passes, 40 page loads; exits 1 on a finding
 node tools/verify/mobile-audit.mjs     # needs VITE — phone widths, 40 page loads
 ```
 
@@ -222,11 +242,11 @@ ls tools/*.mjs tools/verify/*.mjs | wc -l       # the script count
 | Aryan, Manjeet | Backend |
 | Saad, Tripti | Presentation, product story, research |
 
-Work on **`before-main`**. Everything this file describes lives there, and that's what you want checked out. The remote has two branches, `before-main` and `main`.
+The remote has two branches, `before-main` and `main`, and **`before-main`** is the one to check out. It does not yet hold everything this file describes. `LICENSE`, `DATA_SOURCES.md` and `THIRD_PARTY_NOTICES.md`, the sourced market data, the funding-gap and scheme-fit fixes, and the household check, CI and input caps above were all made on local branches that haven't been pushed. As measured on 25 September 2026, the working branch `fix/standalone-backlog` is 6 commits ahead of `origin/before-main` (`git rev-list --left-right --count origin/before-main...HEAD` gives `0 / 6`), and the last of them holds this branch's own changes.
 
-On the remote, `before-main` is simply ahead of `main` — `git rev-list --left-right --count origin/main...origin/before-main` gives `0 / 172`. There's nothing on `main` that `before-main` doesn't have, so merging is a fast-forward.
+On the remote, `before-main` is simply ahead of `main`: `git rev-list --left-right --count origin/main...origin/before-main` gives `0 / 185`. There's nothing on `main` that `before-main` doesn't have, so merging is a fast-forward.
 
-Compare the `origin/` refs, though, not your local branch names. A local `main` left over from early backend work can be sitting several commits ahead of `origin/main` and never have been pushed — one here is, by six — and then `main...before-main` reports `1 / 167` and looks like a genuine divergence. It isn't. Those commits exist on one laptop. This README said `1 / 166` and called it a real merge for exactly that reason.
+Compare the `origin/` refs, though, not your local branch names. A local `main` left over from early backend work can be sitting several commits ahead of `origin/main` and never have been pushed. One here is, by six, and then `main...before-main` reports `1 / 181` and looks like a genuine divergence. It isn't. Those commits exist on one laptop. This README said `1 / 166` and called it a real merge for exactly that reason.
 
 Never commit to `main`. The repo is private and shared between six of us, so a push lands in everyone's working copy — tell people before you do it.
 
@@ -237,7 +257,9 @@ Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`
 These are the current limits, written down so nobody overclaims:
 
 - No LLM, no database, no authentication. All three were deliberate for the hackathon build. Whether they stay that way depends on what the project gets used for next.
-- The non-English wording hasn't been checked by a native speaker. Parity, placeholders and identical-to-English are all script-verified; *naturalness* isn't. We've already caught two real mistakes by eye, which suggests there are more.
+- The non-English wording hasn't been checked by a native speaker, and that now covers 693 keys, the household-check wording included. Parity, placeholders, identical-to-English and the figures are all script-verified; *naturalness* isn't. We've already caught two real mistakes by eye, which suggests there are more.
+- The household income is whatever the reader types, and nothing checks it. Who counts as the household for an unmarried adult (their parents and their parents' unmarried children, themselves included) is our reading of RBI's definition, and nobody has verified it. A reader who types 0 instead of leaving the field blank is treated as having no income.
+- CI is unproven. It has never run on GitHub or on Linux, and the browser gates are not in it, because they only run on Windows with Edge installed.
 - Dialect coverage is 9 of 30 varieties, each a handful of phrases.
 - The market data covers two districts, Lucknow and Varanasi. Everywhere else gets an empty market section. The business counts can't be fetched again as they were, because the Udyam list is live. And a price is marked stale when the data is fetched, not when the page loads, so the file needs refreshing at least weekly.
 - Nothing enforces the order of the journey, and the result pages can't be deep-linked from a cold tab.

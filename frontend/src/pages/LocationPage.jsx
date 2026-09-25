@@ -121,7 +121,9 @@ function LocationPage() {
         <div className="ui-formsection">
           <div className="ui-formsection-head">
             <span className="ui-formsection-num" aria-hidden="true">1</span>
-            <h2 className="ui-formsection-title">{t('location.state')} · {t('location.district')}</h2>
+            {/* One key rather than two labels joined in JSX: see the
+                composition rule in CLAUDE.md. */}
+            <h2 className="ui-formsection-title">{t('location.stateAndDistrict')}</h2>
           </div>
           <div className="ui-formsection-body space-y-6">
             {/* State first, because the district list is filtered by it. */}

@@ -24,7 +24,8 @@
 // and it has to out-specify Tailwind's utilities layer to apply at all.
 //
 // Run the Vite dev server first, then: node tools/verify/motion-audit.mjs
-//   --broken   puts every defect back at runtime and MUST exit 1
+//   --broken   puts every defect back at runtime and MUST exit 1; exit 2 means a
+//              planted defect went unreported
 //
 // That flag is not a convenience. A check that has only ever reported zero has not
 // been shown to work — this repo has been bitten by that twice (the SPLIT-FIGURE
@@ -77,9 +78,12 @@ const BROKEN_CSS = `
 .ui-skip-link { transition: left 200ms ease !important; }
 
 /* REDUCED. This is the layer argument made executable. Cascade 5 reverses layer
-   order for !important, so utilities-important beats base-important — which is
-   what would happen if the guard were ever moved out of @layer base, or if a
-   Tailwind \`!\` modifier were added to a transition utility at a call site. */
+   order for !important, so base-important beats utilities-important, and any
+   layered important beats an unlayered one. With the guard in @layer base these
+   three rules LOSE, which is the reason it sits there, so inject() first moves
+   the guard out of @layer base at runtime. What is refuted is then the real
+   regression: the guard moved back out of the layer, where a Tailwind \`!\`
+   modifier on a transition utility at a call site beats it. */
 @layer utilities { .ui-utility-button { transition-duration: 300ms !important; } }
 
 /* REDUCED-ZERO. A guard that collapses to 0s instead of 0.01ms fires no
@@ -378,6 +382,9 @@ async function main() {
 
   const findings = []
   const report = { tokens: {}, targets: [], forbidden: [], reduced: [], tailwind: null }
+  // How many reduced-motion guards --broken moved out of @layer base; read after
+  // the finally block, so it lives out here.
+  let guardMoved = 0
 
   try {
     const cdp = new CDP(await browserWsUrl())
@@ -393,14 +400,35 @@ async function main() {
     // Page.addScriptToEvaluateOnNewDocument, which runs before the document is
     // parsed and would land ahead of them. Re-append after every navigation
     // instead, once the app's styles are already in the head.
+    //
+    // Before appending, it takes the reduced-motion guard out of @layer base and
+    // re-adds it unlayered. Without that the REDUCED rules in BROKEN_CSS lose to
+    // the guard, and the three REDUCED arms pass whether or not they work, which
+    // they did from 9 Sept 2026, when the guard moved into the layer, until 25 Sept.
     const inject = async () => {
       if (!BROKEN) return
-      await cdp.evaluate(`(() => {
+      guardMoved += await cdp.evaluate(`(() => {
+        const out = []
+        const walk = (list, layer) => {
+          for (let i = list.length - 1; i >= 0; i--) {
+            const r = list[i]
+            if (r instanceof CSSLayerBlockRule) walk(r.cssRules, r)
+            else if (layer && layer.name === 'base' && r instanceof CSSMediaRule
+              && /prefers-reduced-motion/.test(r.media.mediaText)) {
+              out.push(r.cssText)
+              layer.deleteRule(i)
+            }
+          }
+        }
+        for (const sheet of document.styleSheets) {
+          if (sheet.ownerNode && sheet.ownerNode.id === 'motion-audit-broken') continue
+          try { walk(sheet.cssRules, null) } catch { /* a sheet whose rules cannot be read */ }
+        }
         const s = document.createElement('style')
         s.id = 'motion-audit-broken'
-        s.textContent = ${JSON.stringify(BROKEN_CSS)}
+        s.textContent = ${JSON.stringify(BROKEN_CSS)} + out.join(' ')
         document.head.appendChild(s)
-        return true
+        return out.length
       })()`)
     }
 
@@ -690,6 +718,18 @@ async function main() {
     console.log(`      ${f.note}`)
   }
   console.log(`\nreport.json in ${OUT}`)
+  // Exit 1 alone does not prove the refuter works: from 9 to 25 Sept 2026 it exited
+  // 1 while three of its ten planted kinds went unreported. So every planted kind
+  // must appear, and exit 2 means one did not.
+  if (BROKEN) {
+    const planted = ['TOKENS', 'PROPS', 'INERT', 'NORUN', 'DELAY', 'FORBIDDEN', 'ONLOAD', 'REDUCED', 'REDUCED-ZERO', 'REDUCED-DELAY']
+    const seen = new Set(findings.map((f) => f.kind))
+    const missed = planted.filter((k) => !seen.has(k))
+    if (!guardMoved) console.log('\n--broken found no reduced-motion guard inside @layer base to move out, so the REDUCED arms were not refuted.')
+    if (missed.length) console.log(`\n--broken: planted kinds not reported: ${missed.join(', ')}`)
+    if (missed.length || !guardMoved) process.exit(2)
+    console.log(`\n--broken: all ${planted.length} planted kinds reported.`)
+  }
   process.exit(findings.length ? 1 : 0)
 }
 

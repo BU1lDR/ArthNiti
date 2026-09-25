@@ -1,10 +1,12 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import BrandMark from './components/BrandMark'
 import BrandWordmark from './components/BrandWordmark'
 import Button from './components/Button'
 import InstructionManual from './components/InstructionManual'
 import { isStarted, useApp } from './context/AppContext'
+import { SCHEMES_CHECKED_FROM, SCHEMES_CHECKED_TO, formatReviewDate } from './data/reviewDates'
 import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
 import BusinessPage from './pages/BusinessPage'
@@ -106,29 +108,100 @@ function TextSizeControl() {
 // the replacement: the only way back to an empty form without closing the tab.
 // It renders only once there is something to lose, which keeps it from being
 // clicked idly on a fresh load.
+//
+// It asks first. One tap used to wipe every answer with no way back, and the
+// control sits in the same strip as the language and text-size buttons, where
+// a thumb meant for one of those can land on it.
+//
+// A native <dialog> opened with showModal(), so the browser supplies what a
+// modal needs: the page behind cannot be reached, Escape closes it, and focus
+// stays inside. It is rendered into <body> rather than inside the utility strip,
+// so it does not take on the strip's small light text.
+//
+// "No" comes first in the markup and is the one focused on opening. Enter or a
+// stray tap on the default control must keep the answers, never clear them.
 function StartOverButton() {
   const { applicationData, resetApplication } = useApp()
   const { t } = useI18n()
   const navigate = useNavigate()
+  const dialogRef = useRef(null)
+  const triggerRef = useRef(null)
+  const titleId = useId()
+  const textId = useId()
 
   // isStarted lives in AppContext because it is derived from EMPTY. The list of
   // fields that used to be spelled out here covered 6 of the 16 answers, so it
   // went stale silently every time the form grew.
   if (!isStarted(applicationData)) return null
 
+  const openDialog = () => {
+    const dialog = dialogRef.current
+    if (!dialog || dialog.open) return
+
+    dialog.showModal()
+    // The first button in the dialog is "No". Button does not pass a ref
+    // through, so it is found in the markup instead.
+    dialog.querySelector('button')?.focus()
+  }
+
+  const keepAnswers = () => {
+    dialogRef.current?.close()
+  }
+
+  const clearAnswers = () => {
+    dialogRef.current?.close()
+    resetApplication()
+    navigate('/')
+    // With nothing left to clear, this button and its dialog unmount, so the
+    // focus close() just gave back to the button would fall to <body> and a
+    // keyboard or screen-reader user would be sent to the top of the document.
+    // Put it on the page instead. preventScroll, because useOpenAtTop owns the
+    // scroll position on a route change.
+    document.getElementById('main')?.focus({ preventScroll: true })
+  }
+
   return (
-    <button
-      type="button"
-      className="ui-utility-button"
-      onClick={() => {
-        resetApplication()
-        navigate('/')
-      }}
-      title={t('common.startOver')}
-    >
-      <span aria-hidden="true">↺</span>
-      <span className="hidden sm:inline">{t('common.startOver')}</span>
-    </button>
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="ui-utility-button"
+        onClick={openDialog}
+        title={t('common.startOver')}
+        // The words beside the icon are not shown on a phone, so the button
+        // carries its name itself instead of being announced as nothing.
+        aria-label={t('common.startOver')}
+        aria-haspopup="dialog"
+      >
+        <span aria-hidden="true">↺</span>
+        <span className="hidden sm:inline">{t('common.startOver')}</span>
+      </button>
+
+      {createPortal(
+        <dialog
+          ref={dialogRef}
+          aria-labelledby={titleId}
+          aria-describedby={textId}
+          // Fires for Escape as well as for either button, so focus goes back
+          // to the control that opened the dialog in every case. After "Yes"
+          // that control is gone, because there is nothing left to clear.
+          onClose={() => triggerRef.current?.focus()}
+          className="ui-card m-auto w-[min(28rem,calc(100%-2rem))] p-6 text-[var(--color-text)] backdrop:bg-[rgba(0,0,0,0.55)]"
+        >
+          <h2 id={titleId} className="text-lg font-extrabold">{t('common.startOverTitle')}</h2>
+          <p id={textId} className="mt-2 text-base">{t('common.startOverText')}</p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Button variant="primary" onClick={keepAnswers} className="w-full sm:w-auto">
+              {t('common.startOverNo')}
+            </Button>
+            <Button variant="secondary" onClick={clearAnswers} className="w-full sm:w-auto">
+              {t('common.startOverYes')}
+            </Button>
+          </div>
+        </dialog>,
+        document.body,
+      )}
+    </>
   )
 }
 
@@ -320,7 +393,9 @@ function AppShell({ children }) {
         </div>
       </nav>
 
-      <main className="ui-main" id="main">
+      {/* tabIndex -1 so script can focus it (after Start over) without adding
+          it to the Tab order. The skip link's #main target works either way. */}
+      <main className="ui-main" id="main" tabIndex={-1}>
         {!isLanding && <Breadcrumb pathname={location.pathname} />}
         {(isJourneyPage || isResultPage) && (
           <JourneyBar isResultPage={isResultPage} currentPath={location.pathname} />
@@ -367,7 +442,7 @@ function GovFooter() {
 
                 The mark sits BESIDE the text, not above it. Stacked, it was in
                 the flow ahead of this column's heading and pushed it ~50px below
-                "Your business journey" and "Helpline" — so the three columns
+                "Your business journey" and "Where to get help" — so the three columns
                 started their text on three different lines. Beside it, all three
                 headings share a baseline and so do the three body lines. See
                 .ui-footer-brandblock. */}
@@ -393,10 +468,8 @@ function GovFooter() {
             </p>
           </div>
           <div>
-            <p className="ui-footer-title">{t('common.helpline')}</p>
-            {/* The real national MSME helpline, so the page ends on something a
-                user can actually act on. */}
-            <p>Udyami Helpline 1800-11-6666</p>
+            <p className="ui-footer-title">{t('common.helpTitle')}</p>
+            <p>{t('common.helpText')}</p>
           </div>
         </div>
       </div>
@@ -404,7 +477,16 @@ function GovFooter() {
       <div className="ui-footer-bottom">
         <div className="ui-footer-bottom-inner">
           <span>{t('common.disclaimer')}</span>
-          <span>{t('common.lastReviewed')}: 07/09/2026</span>
+          {/* A range, not one date: the schemes were not all checked on the same
+              day. The dates come from data/reviewDates.js, which a backend test
+              holds to schemes.json, and the sentence is one key so no language
+              gets an English colon glued to its words. */}
+          <span>
+            {t('common.schemesChecked', {
+              from: formatReviewDate(SCHEMES_CHECKED_FROM),
+              to: formatReviewDate(SCHEMES_CHECKED_TO),
+            })}
+          </span>
         </div>
       </div>
     </>
@@ -492,8 +574,8 @@ function LandingPage() {
               forms. The greeting is the one string where a dialect is instantly
               recognisable, which is the whole point of the feature.
 
-              The brand is not lost: the wordmark is in the utility bar and the
-              name is in the masthead, both directly above this line. */}
+              The brand is not lost: the wordmark is in the masthead, directly
+              above this line. */}
           <p className="ui-eyebrow">{t('greeting.hello')}</p>
           <h1 className="ui-page-title max-w-3xl text-[clamp(2.1rem,5vw,3.9rem)]">
             {t('landing.title')}

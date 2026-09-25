@@ -81,7 +81,11 @@ const FORMS_GOOD = {
 //               'hidden' as a scroll lock, and its CTA navigates while that lock
 //               may still be in effect. A locked viewport is exactly the
 //               condition under which a scroll reset could silently no-op.
-//   startover   navigate() from the utility bar, after resetApplication()
+//   startover   the utility bar's ↺ opens a native <dialog> with showModal(),
+//               and its confirm button runs resetApplication() then
+//               navigate('/') from inside that modal. Two clicks: `pre` opens
+//               the dialog, `find` confirms. The trigger itself no longer
+//               navigates, so clicking only the trigger lands nowhere.
 //   cta         the bottom-of-page buttons on the result pages — the controls
 //               that sit at the LARGEST offset in the whole app
 //   backlink    every page's own "← back" link
@@ -95,6 +99,11 @@ const FORMS_GOOD = {
 // it is specifically the bottom one that matters here, so those hops take the
 // LAST match inside .ui-main. Writing the expression out per hop keeps each row
 // self-documenting instead of hiding the choice in a helper.
+//
+// `pre`, when present, is the same kind of expression: the control that opens a
+// dialog, clicked after the source page has been scrolled and before `find` is
+// looked up. The manual and startover hops use it. A `pre` that finds nothing is
+// a NO-CONTROL finding, the same as a missing `find`.
 const lastInMain = (href) =>
   `[...document.querySelectorAll('.ui-main a[href="${href}"]')].pop()`
 
@@ -109,10 +118,27 @@ const HOPS = [
   { from: '/schemes', to: '/', via: 'breadcrumb', find: `document.querySelector('.ui-breadcrumb a[href="/"]')` },
   { from: '/report', to: '/login', via: 'login', find: `document.querySelector('.ui-masthead a[href="/login"]')` },
   { from: '/advisory', to: '/business', via: 'footer', find: `document.querySelector('.ui-footer-inner a[href="/business"]')` },
-  // The utility bar's start-over button. Matched on the glyph rather than on its
-  // title, which is translated — and it only exists once isStarted(data) is true,
-  // which the seeded fixture satisfies.
-  { from: '/analysis', to: '/', via: 'startover', find: `[...document.querySelectorAll('button.ui-utility-button')].find((b) => b.textContent.includes('\\u21BA'))` },
+  // The utility bar's start-over button. It opens a confirm dialog and does not
+  // navigate by itself, so `pre` clicks it and `find` clicks the dialog's
+  // confirm. The trigger is matched on the glyph rather than on its title, which
+  // is translated, and it only exists once isStarted(data) is true, which the
+  // seeded fixture satisfies.
+  //
+  // The confirm is found by structure, never by its label, which is translated
+  // too: the open dialog holds exactly two buttons, "No" first (the one the
+  // component focuses on opening, so Enter keeps the answers) and "Yes" second.
+  // Anything other than two buttons returns null and reports as NO-CONTROL. If
+  // the order were ever swapped, this would click "No", the dialog would close
+  // with the answers kept, and the hop would report NO-NAV rather than pass.
+  //
+  // --broken still refutes this hop. The dialog sets no scroll lock (unlike the
+  // manual below), and after "Yes" the trigger unmounts, so the dialog's
+  // onClose focus() has nothing to focus and cannot scroll the page to the top.
+  {
+    from: '/analysis', to: '/', via: 'startover',
+    pre: `[...document.querySelectorAll('button.ui-utility-button')].find((b) => b.textContent.includes('\\u21BA'))`,
+    find: `(() => { const b = [...document.querySelectorAll('dialog[open] button')]; return b.length === 2 ? b[1] : null })()`,
+  },
 
   // The four form steps. Each Continue calls navigate() from its submit handler.
   { from: '/profile', to: '/business', via: 'continue', find: `document.querySelector('form button[type="submit"]')` },
@@ -146,9 +172,9 @@ const HOPS = [
   { from: '/advisory', to: '/report', via: 'cta', find: lastInMain('/report') },
   { from: '/advisory', to: '/schemes', via: 'cta', find: lastInMain('/schemes') },
 
-  // The instruction dialog, opened from the landing strip. `pre` opens it, which
-  // is what puts body overflow: hidden in effect; the CTA then navigates out of
-  // a locked viewport.
+  // The instruction dialog, opened from the landing strip. `pre` finds and clicks
+  // the opener, which is what puts body overflow: hidden in effect; the CTA then
+  // navigates out of a locked viewport.
   //
   // THIS HOP IS OVER-DETERMINED, AND IT IS THE ONE HOP --broken CANNOT REFUTE.
   // It passes with the fix removed, which was measured rather than assumed:
@@ -166,7 +192,7 @@ const HOPS = [
   // for the former; do not read a --broken run's count as 33-of-33 refuted.
   {
     from: '/', to: '/profile', via: 'manual',
-    pre: `document.querySelector('button.ui-manual-open').click()`,
+    pre: `document.querySelector('button.ui-manual-open')`,
     find: `document.querySelector('.ui-manual-panel a[href="/profile"]')`,
   },
 
@@ -349,9 +375,21 @@ async function main() {
       // `pre` runs AFTER the scroll, deliberately. The manual hop needs the
       // landing page already scrolled at the moment the dialog opens, because
       // opening it is what puts body overflow: hidden in effect — a lock applied
-      // at offset 0 would test nothing.
+      // at offset 0 would test nothing. The startover hop needs the same order
+      // for a plainer reason: its dialog's confirm is what navigates, so the
+      // offset has to be in place before either click.
       if (hop.pre) {
-        await cdp.evaluate(`(() => { ${hop.pre}; return true })()`)
+        const opened = await cdp.evaluate(`(() => {
+          const el = ${hop.pre}
+          if (!el) return { ok: false, why: 'opening control not found' }
+          el.click()
+          return { ok: true }
+        })()`)
+        if (!opened.ok) {
+          findings.push({ kind: 'NO-CONTROL', hop: label, note: `${hop.via}: ${opened.why}` })
+          report.hops.push({ ...hop, scrolledTo: before.y, after: null, error: opened.why })
+          continue
+        }
         await sleep(500)
       }
 

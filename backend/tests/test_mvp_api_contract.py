@@ -96,6 +96,30 @@ def test_mvp_defaults_work_without_accessibility_fields():
     assert summary["location_type"] == "rural"
 
 
+def test_mvp_summary_with_a_blank_household_income():
+    # null is what the frontend sends for the question left blank.
+    response = client.post(
+        "/api/analysis/run",
+        json={**MVP_PAYLOAD, "household_monthly_income": None},
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    risk = data["risk_analysis"]
+    summary = data["mvp_summary"]
+
+    assert risk["household_check"] == "not_checked"
+    assert risk["household_check_without_new_loan"] == "not_checked"
+    assert risk["household_reason_code"] == "rsn.householdNotChecked"
+    assert risk["household_repayment_percent"] is None
+    assert risk["household_in_microfinance_range"] is None
+    assert risk["household_limit_percent"] == 50
+    assert risk["household_microfinance_income_limit"] == 300000
+    assert summary["status"] in {"good", "attention_needed", "review"}
+    assert summary["message_code"] != "sum.householdOverLimit"
+
+
 def test_existing_analysis_sections_are_preserved_with_mvp_summary():
     response = client.post(
         "/api/analysis/run",
@@ -112,3 +136,24 @@ def test_existing_analysis_sections_are_preserved_with_mvp_summary():
     assert "scheme_matches" in data
     assert "advisory" in data
     assert "mvp_summary" in data
+
+def test_the_unified_route_forwards_every_request_field(monkeypatch):
+    # The route names each field by hand, so a field added to the request
+    # model but not to the call is accepted, validated and then dropped, and
+    # nothing fails. That is how household_monthly_income was first left out:
+    # every request came back not_checked whatever the reader typed.
+    from app.api.routes import analysis as analysis_route
+    from app.schemas.analysis import UnifiedAnalysisRequest
+
+    seen = {}
+    real = analysis_route.run_unified_analysis
+
+    def spy(**kwargs):
+        seen.update(kwargs)
+        return real(**kwargs)
+
+    monkeypatch.setattr(analysis_route, "run_unified_analysis", spy)
+    response = client.post("/api/analysis/run", json=MVP_PAYLOAD)
+
+    assert response.status_code == 200
+    assert set(seen) == set(UnifiedAnalysisRequest.model_fields)

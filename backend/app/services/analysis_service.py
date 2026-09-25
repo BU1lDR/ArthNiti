@@ -27,6 +27,7 @@ def run_unified_analysis(
     village: str = "",
     market_type: str = "",
     customers: str = "",
+    household_monthly_income: float | None = None,
 ):
     """
     Run all available business advisory engines and
@@ -55,6 +56,10 @@ def run_unified_analysis(
         monthly_surplus=financial_analysis["monthly_profit"],
         monthly_emi=monthly_emi,
         funding_gap=financial_analysis["funding_gap"],
+        # The household's own monthly income, from all sources, or None when it
+        # was not given. It is checked against the same total repayment as the
+        # pressure figure; see risk_service for the RBI rule and its limits.
+        household_monthly_income=household_monthly_income,
     )
 
     # 3. Business feasibility analysis
@@ -94,6 +99,8 @@ def run_unified_analysis(
         profit_margin_percent=financial_analysis["profit_margin_percent"],
         available_capital=available_capital,
         funding_gap=financial_analysis["funding_gap"],
+        household_check=risk_analysis["household_check"],
+        household_check_without_new_loan=risk_analysis["household_check_without_new_loan"],
     )
 
     # 7. Low-literacy-friendly MVP summary
