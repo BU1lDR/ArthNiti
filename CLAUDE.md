@@ -16,7 +16,7 @@ Until 3 Nov IST, "demo path over refactors" applies again to new work. `docs/HAC
 - **23 Sept 2026. Purpose: a portfolio piece, and mainly a B2B product** for NBFCs, MFIs, SHG federations, CSC operators and similar. **Real people will act on the output**, so correctness, data honesty, DPDP compliance and security are requirements, not polish.
 - **Ownership: Aryan Verma** owns the project and the scheme data. `LICENSE` is proprietary, which conflicts with the hackathon's open-source rule (see **Legal** under Still open).
 - **26 Oct 2026. Solo, and entered in the Meta hackathon.** Spend only the free Meta credits ($150), never pay, keep the account balance at ₹0.00: the app's spend cap enforces it for this app's calls (see Data protection).
-- **The hyperlocal claim stays, backed by real data**: 20 sourced market rows for Lucknow and Varanasi from data.gov.in under GODL-India (`DATA_SOURCES.md`). `match_level` is the honesty marker for how local a figure is.
+- **The hyperlocal claim stays, backed by real data**: 125 sourced market rows for 13 districts from data.gov.in under GODL-India (`DATA_SOURCES.md`). `match_level` is the honesty marker for how local a figure is.
 - **DPDP is in scope.** In a B2B deployment the client is the Data Fiduciary and we are its Data Processor. Never write "compliant", "secure", "anonymous" or "untraceable"; the Rules apply from 13 May 2027. What a deployer needs is in `docs/PROCESSOR_SCHEDULE.md`.
 
 **Still open:** whether an on-screen non-affiliation line comes back or the government look goes, and what `/login` becomes.
@@ -48,9 +48,8 @@ This file loads into every session and every subagent. **The long-form history �
 | `docs/frontend_integration.md` | the request, response and error contract of `POST /api/analysis/run` and the two intake routes | an engineer calling the API |
 | `docs/PROCESSOR_SCHEDULE.md` | what is sent, held and logged; config; C1–C11, D1–D10; lawyer items | the client's technical and compliance staff, their lawyer, the deployer |
 | `docs/HACKATHON.md` | the Meta entry: dates, built before vs during, where the model is used and where not, demo path, submission checklist | the owner, a judge |
-| `OUR_MVP.md` | the product view: what is built and what is not | anyone who needs the product picture |
 
-**Standing instruction: update `README.md` every time the MVP changes.** A change that adds a route, a language, a scheme tier, an endpoint, a verifier script or a dependency is not finished until the README reflects it. **README, CLAUDE.md and OUR_MVP.md state counts, and every count is measured, never carried forward.** When a count changes, `grep -rn "<number>" README.md CLAUDE.md OUR_MVP.md`. Measure with:
+**Standing instruction: update `README.md` every time the MVP changes.** A change that adds a route, a language, a scheme tier, an endpoint, a verifier script or a dependency is not finished until the README reflects it. **README and CLAUDE.md state counts, and every count is measured, never carried forward.** When a count changes, `grep -rn "<number>" README.md CLAUDE.md`. Measure with:
 
 - `node tools/parity4.mjs` for the dictionary keys;
 - `cd backend && ../.venv/Scripts/python.exe -m pytest tests -q` for the tests;
@@ -62,7 +61,12 @@ Stale docs: `frontend/README.md` is Vite boilerplate. `docs/requirements.txt` is
 
 ### The model's job
 
-The analysis has **no model**: every number and sentence of advice is hand-written Python `if`/`else` in `backend/app/services/`. The only model use is the optional **intake helper** (`/talk`, added for the Meta hackathon): Muse Voice Transcribe turns a recording into text and Muse Spark proposes form answers from it. It is off unless the server has `ARTHNITI_AI_ENABLED=true` **and** the build has `VITE_AI_HELPER=true`. Each answer carries the person's own words, `validate_extraction` drops one whose words are not in the transcript, and nothing reaches the form before the person has seen it. **A model never computes a figure, a risk band, a scheme match or the advice, and never sees scheme, market or advice data.** Say "AI-assisted intake", **never "AI-driven advice"**. Detail: `docs/HACKATHON.md` §3–§6, `OUR_MVP.md` §15.
+The analysis has **no model**: every number, risk band, scheme match and sentence of advice is hand-written Python `if`/`else` in `backend/app/services/`. The model is used in two optional places, both off unless the server has `ARTHNITI_AI_ENABLED=true` **and** the build has `VITE_AI_HELPER=true`, both added for the Meta hackathon:
+
+- **Intake** (`/talk`): Muse Voice Transcribe turns a recording into text and Muse Spark proposes form answers from it. Each answer carries the person's own words, `validate_extraction` drops one whose words are not in the transcript, and nothing reaches the form before the person has seen it.
+- **The written plan** (`/advisory`, `POST /api/advisor/plan`): Muse Spark writes a short plan in the reader's language around `{{blanks}}` that the rules fill. It is shown no figure, name or place: only the rules' verdict words, their advice sentences (one with a digit in it is left out), and the kind and level of each matched scheme. `verify_plan` refuses a reply with a digit in any script, a number word, a link, an abbreviation, the wrong script or an unknown blank; the route tries at most twice and otherwise shows no plan.
+
+**A model never computes a figure, a risk band, a scheme match or the advice.** Say "AI-assisted intake" and "AI-written, rule-verified plan", **never "AI-driven advice"**. Detail: `docs/HACKATHON.md` §3–§6.
 
 ---
 
@@ -82,7 +86,7 @@ npm run lint     # ESLint 10
 
 - **development** serves 8 routers and Swagger at `/docs`;
 - **production** serves only `/health` and `/api/analysis/run`;
-- with `ARTHNITI_AI_ENABLED=true`, both also serve the 2 intake routes (the 9th router).
+- with `ARTHNITI_AI_ENABLED=true`, both also serve the 2 intake routes and the plan route (the 9th and 10th routers).
 
 The backend variables are in `core/settings.py`. The `VITE_*` ones are in `frontend/.env.example`; with none set, the build runs in demo mode. **The Meta helper spends the owner's free credits.** Read `docs/HACKATHON.md` §5 before setting `MODEL_API_KEY`; the README has the key entry and the capped three-call smoke test.
 
@@ -100,21 +104,24 @@ Never open or print `.env`. It holds the data.gov.in key. `.env.example` is the 
 backend/app/
   main.py               create_app(settings, model_client=None): CORS, the 422 handler (_public_error),
                         a response-validation handler, the log middleware; 8 routers in dev, 2 in
-                        production, plus the intake router in both when the helper is on
-  smoke_meta.py         `python -m app.smoke_meta`: 3 real Meta calls, prints the cost and the tokens
+                        production, plus the intake and advisor routers in both when the helper is on
+  smoke_meta.py         `python -m app.smoke_meta`: 3 real Meta calls, prints the cost and the tokens;
+                        `--plan` makes 2 instead (one plan in English, one in Hindi)
   core/                 settings.py (ARTHNITI_* env), processing_log.py (JSON lines on stdout),
                         data_loader.py (lru_cached JSON; the object is SHARED: read-only),
                         meta_client.py (the only code that calls Meta), spend.py (the spend ledger)
-  api/routes/           9 routers, one file each
+  api/routes/           10 routers, one file each (intake.py and advisor.py are the helper's)
   schemas/              Pydantic request/response models; limits.py holds MAX_RUPEES (₹100 crore),
                         MAX_EMPLOYEES (10,000) and the string max_lengths (frontend/src/data/limits.js)
   services/             all business logic: pure functions, no classes, no I/O. intake_service.py
-                        builds the helper's prompt and validates the model's answers; the call is in core/
-  data/                 schemes.json (30 schemes, 7 tiers), market_data.json (20 rows),
+                        builds the helper's prompt and validates the model's answers; plan_service.py
+                        does the same for the written plan; options_service.py prices the 12, 24, 36
+                        and 60 month loans; the call is in core/
+  data/                 schemes.json (30 schemes, 7 tiers), market_data.json (125 rows),
                         market_data.provenance.json
   gen_schemes.py        the SOURCE of schemes.json; test_gen_schemes.py holds the two equal
-backend/tests/          48 test files, conftest.py and 4 fixture modules (deployment, intake, market,
-                        privacy); 1558 tests
+backend/tests/          52 test files, conftest.py and 5 fixture modules (deployment, intake, market,
+                        plan, privacy); 1922 tests
 backend/requirements.txt       every runtime dependency pinned, transitive ones too (no hashes)
 backend/requirements-dev.txt   -r requirements.txt + pytest + httpx2 (httpx2 is correct, not a typo)
 .github/workflows/ci.yml       pytest (3.10 + 3.14) + no-server frontend gates. written without being run (no Linux or Python 3.10 here): the Actions tab has the result
@@ -128,7 +135,8 @@ frontend/src/
                         brand.js (APP_NAME), and the dictionaries strings.js, resultStrings.js,
                         backendStrings.js, schemeStrings.js
   data/                 indiaLocations.js (36 states/UTs, 768 districts), limits.js, reviewDates.js,
-                        talkAnswers.js (helper answers to form fields)
+                        talkAnswers.js (helper answers to form fields), planShape.js (what a stored
+                        plan must look like)
   pages/                11 page components
   components/           Button, BrandMark, BrandWordmark, Figure, HelperFilledBanner, InstructionManual,
                         ShortNotice, Charts, chartData.js
@@ -138,11 +146,11 @@ tools/                  verifiers (tools/verify/), parity4, keycheck, notice-ver
                         screenshots/ is output only
 ```
 
-**The backend has 9 routers. The frontend calls `POST /api/analysis/run`, and, only with the helper on, `POST /api/intake/transcribe` and `/api/intake/extract`.** The others, `GET /health` and `POST /api/{entrepreneur/profile, business/analyze, financial/analyze, schemes/match, advisory/recommend, market/context}`, are thin wrappers with tests. Don't delete them, and don't assume a change there reaches the UI. Production does not mount them.
+**The backend has 10 routers. The frontend calls `POST /api/analysis/run`, and, only with the helper on, `POST /api/intake/transcribe`, `/api/intake/extract` and `/api/advisor/plan`.** The others, `GET /health` and `POST /api/{entrepreneur/profile, business/analyze, financial/analyze, schemes/match, advisory/recommend, market/context}`, are thin wrappers with tests. Don't delete them, and don't assume a change there reaches the UI. Production does not mount them.
 
 CORS is `ARTHNITI_CORS_ORIGINS`, a list of exact origins (https-only and required in production; `*` refused in both modes). Unset in development, it is the loopback regex `http://(localhost|127\.0\.0\.1)(:\d+)?`. Credentials off, GET and POST, `Content-Type` only.
 
-**Routes:** `/` → optional `/login` → `/profile` → `/business` → `/location` → `/finance` → `/analysis`, `/schemes`, `/advisory`, `/report` (print view), plus `/privacy` (the full notice), `/talk` (the helper; with `VITE_AI_HELPER` off it falls to `*`) and `*` → `NotFoundPage`. `/login` asks only for a name, authenticates nothing and has no password. Nothing guards the journey order, so `/finance` can be submitted empty and gets a 422, which `api.js` renders as a sentence. The analysis call fires on the `/finance` submit, and only with the consent box ticked.
+**Routes:** `/` → optional `/login` → `/profile` → `/business` → `/location` → `/finance` → `/analysis`, `/schemes`, `/advisory`, `/report` (print view), plus `/privacy` (the full notice), `/talk` (the helper; with `VITE_AI_HELPER` off it falls to `*`) and `*` → `NotFoundPage`. `/login` asks only for a name, authenticates nothing and has no password. Nothing guards the journey order, so `/finance` can be submitted empty and gets a 422, which `api.js` renders as a sentence. The analysis call fires on the `/finance` submit, and only with the consent box ticked. `/advisory` also shows the loan options (12, 24, 36 and 60 months) and, with the helper on, the plan card.
 
 ### Chrome
 
@@ -168,14 +176,15 @@ The look is deliberately modelled on Indian e-governance portals. `AppShell` ren
 
 Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSION, data}`**, on purpose: on a shared laptop, financial answers must not outlive the tab. `profile` = name, language, dialect. State and district live only on `location`. `location.marketType` is an array.
 
-- **`STORAGE_VERSION` is 5, and `READABLE_VERSIONS` is {1, 2, 3, 4, 5}.** Bump the version whenever `EMPTY`'s shape changes (5 added `aiFilled`). A bump that **renames or moves** a field must drop the older versions from the set.
+- **`STORAGE_VERSION` is 6, and `READABLE_VERSIONS` is {1, 2, 3, 4, 5, 6}.** Bump the version whenever `EMPTY`'s shape changes (5 added `aiFilled`, 6 added `request` and `plan`). A bump that **renames or moves** a field must drop the older versions from the set.
 - **`hydrate()` merges section by section over `EMPTY`**, `pick()` drops keys `EMPTY` no longer has, and `result` passes through untouched. A field left `undefined` would silently turn a controlled input into an uncontrolled one.
 - **`isStarted(data)` is a difference from `EMPTY`, not a truthiness test**, because several defaults are not blank ('rural', 'Hindi', 0). `marketType` needs its own arm.
 - **Start over** (↺) opens a native `<dialog>` via `showModal()`, with No first and focused. Yes runs close → `resetApplication()` → `navigate('/')` → focus `#main`. `resetApplication` leaves `{v: STORAGE_VERSION, data: EMPTY}` in storage and does not touch localStorage.
-- **Editing `business`, `location` or `finance` clears the result**, except the `LOCAL_ONLY` fields (businessName, village, marketType, customers), which never leave the tab (`updateSection` sets `result: null`, and `resultCleared: true` if a result was thrown away). `profile` is deliberately excluded, because switching language must never discard results. `updateSection` returns the same object when nothing changed, which is a guard, not an optimisation. The empty result pages show `res.changed*` when `resultCleared` is set, and their button goes to `firstUnansweredStep(data) ?? '/finance'`.
+- **Editing `business`, `location` or `finance` clears the result**, except the `LOCAL_ONLY` fields (businessName, village, marketType, customers), which never leave the tab (`updateSection` sets `result`, `request` and `plan` to null, and `resultCleared: true` if a result was thrown away). `profile` is deliberately excluded, because switching language must never discard results. `updateSection` returns the same object when nothing changed, which is a guard, not an optimisation. The empty result pages show `res.changed*` when `resultCleared` is set, and their button goes to `firstUnansweredStep(data) ?? '/finance'`.
 - **A request in flight cannot overwrite newer answers** (`FinancePage`): the earlier request is aborted; `answersKey(payload)` covers every sent field (the consent record is added after it), and if the answers changed the response is dropped and `finance.changedWhileChecking` is shown; the page navigates only if the path is unchanged. `api.js` combines the caller's signal with the 20 s timeout through `AbortSignal.any` and tells them apart by which signal fired.
 - **The consent, age and zero-income ticks live in `FinancePage` state only**: not in `EMPTY`, not in sessionStorage, not in `answersKey`. `/talk` has its own consent and age ticks, in `TalkPage` state only.
 - **`aiFilled`** lists the form paths the helper filled (`applyHelperFill`, `fillFromHelper`). `applyEdit` drops a path once the reader edits it, and `HelperFilledBanner` shows on a form page that received an answer. It never leaves the tab and is not part of `isStarted`. The helper writes string values and never writes a household income of 0.
+- **`request` and `plan`** are stored beside `result`. `request` is the 12 fields as sent (`setResult(result, payload)`) and `plan` is the written plan for that result, or null. `hydrate` reads them back only with a result, and `applyPlan` keeps a plan only for the request it was written for, so one that arrives after the answers changed is dropped. A plan stays in the language it was written in (`plan.otherLanguage` says so after a language switch). `PlanWriter` has its own consent tick, in component state only, unticked after every plan.
 - localStorage holds UI preferences only: `sih-language`, `sih-dialect`, `sih-theme`, `sih-textsize`. `sih-contrast` is inert.
 
 ### i18n
@@ -185,11 +194,11 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 | File | Keys × 8 | Holds |
 |---|---|---|
 | `strings.js` | 222 | chrome, landing, the four form steps, `notice.*`, `consent.*`, `errf.*` |
-| `resultStrings.js` | 303 | result pages, `/login`, `/privacy`, `/404`, the helper page (`talk.*`, 40 keys), the enum→label targets (`st.*`, `risk.*`, `lvl.*`, `lvlnote.*`) |
+| `resultStrings.js` | 343 | result pages, `/login`, `/privacy`, `/404`, the helper page (`talk.*`, 40 keys), the loan-options card (`fo.*`, 20) and the plan card (`plan.*`, 20), the enum→label targets (`st.*`, `risk.*`, `lvl.*`, `lvlnote.*`) |
 | `backendStrings.js` | 59 | sentences a **Python service composes** (`adv.*`, `obs.*`, `rsn.*`, `sum.*`, `nxt.*`, `why.*`, `src.*`, `cmd.*`, `mknote.*`) |
 | `schemeStrings.js` | 188 | prose **typed into schemes.json** (`sdata.*`, `elig.*`, `doc.*`, `scat.*`) |
 
-**772 keys, 6,176 strings** (measured 27 Oct 2026). No key may be defined in two files, so **the per-file counts must add up to the total exactly**. A difference of one means a number is wrong.
+**812 keys, 6,496 strings** (measured 27 Oct 2026). No key may be defined in two files, so **the per-file counts must add up to the total exactly**. A difference of one means a number is wrong.
 
 - **`node tools/parity4.mjs`** runs 9 checks and exits 1 on a failure: every `en` key in every language; no duplicate key; no key in two files; no non-English value identical to English; placeholders and digit runs match English; no non-ASCII digits; `schemeStrings` figures match `schemes.json`; the notice hash (see Data protection). `DIGIT_ALLOW`/`SOURCE_ALLOW` entries carry a reason, and one no longer needed fails the run. **`node tools/keycheck.mjs`** checks that every key the code uses exists and flags leaked keys, untranslated codes and unmapped enums (6 keys are unreferenced, on purpose). Run both after touching a dictionary.
 - **`t(key)`** falls back from the dialect to the language to `en` to **the key itself**, so a typo shows up on the page as a dotted name. **`tBackend(code, english)`** falls back to the backend's English and never prints a code.
@@ -219,7 +228,7 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 - **Every number is capped:** `le=MAX_RUPEES, allow_inf_nan=False`, and `employees` `le=MAX_EMPLOYEES`, on all five request models, and every `str` field has a `max_length` from `limits.py` (`test_string_limits.py`). `test_input_bounds.py` reads the routes from OpenAPI and fails if `limits.py` and `limits.js` disagree.
 - **A 422 `detail` is a list of `{type, loc, msg}`** (`_public_error` strips `input` and `ctx`). `loc` must stay, because `readError` in `api.js` names the field from its last element through `FIELD_LABELS`. **Each label echoes the wording of the question** that collects the field ("the money you already have", never "available capital"). The `errf.*` translations follow the same rule.
 
-**Response: 7 top-level keys** (`analysis_service.py`): `financial_analysis`, `risk_analysis` (19 keys), `business_analysis`, `market_context` (a list), `scheme_matches` (a list of 16-key entries), `advisory` and `mvp_summary` (7 keys).
+**Response: 8 top-level keys** (`analysis_service.py`): `financial_analysis`, `risk_analysis` (19 keys), `business_analysis`, `market_context` (a list), `scheme_matches` (a list of 16-key entries), `advisory`, `financing_options` (6 keys) and `mvp_summary` (7 keys).
 
 - **`docs/frontend_integration.md` lists every key and enum. Update it with any change to them.**
 - Contract tests subscript the keys, so a *removed* key fails and an *added* one passes silently. To confirm the current set, call the service and print the keys.
@@ -246,6 +255,11 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 - `estimated_new_emi` prices the funding gap as a loan at an assumed **12% a year over 60 months** (annuity). The pages say it is an assumption (`ch.pressureIncludesNew`).
 - Bands: **under 30 low, 30–50 moderate, over 50 high**, classified on the *rounded* figure. A surplus ≤ 0 gives `high` with a `None` ratio.
 - **`existing_debt` is excluded**: it is the principal of the loan `monthly_emi` already repays.
+
+**Loan options** (`options_service.py`, the `financing_options` key; it has no rule of its own)
+
+- For each tenure of 12, 24, 36 and 60 months: the largest loan towards the funding gap (whole thousands, or the whole gap) that `calculate_repayment_pressure` still calls `low` and that keeps the household check off `over_limit`, at the same assumed 12% a year. A tenure that allows no loan is left out.
+- `recommended_by_rules` is the shortest tenure that covers the whole gap, else `None`. `status` is `covered`, `partial`, `no_gap`, `no_surplus`, `household_over_limit` or `no_room`. It is a calculation at an assumed rate, never a quote.
 
 **Household check** (RBI Master Direction on microfinance loans, 2022, paras 5.1–5.3 and 3.1; Annex I)
 
@@ -280,7 +294,7 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 **Market context**
 
 - The lookup takes the reader's own district's `scope:"district"` rows first, then that state's `scope:"state"` rows (as `match_level:"state"`), then `[]`. **Another district's row is never returned.** Don't widen the fallback; grow `tools/market-crosswalk.json` and fetch again.
-- **All 20 rows are Lucknow ×10 and Varanasi ×10, in UP.** Agriculture gets 3 mandi prices per district (the median over the last 30 reporting days, with a P10–P90 range). The other 7 category buttons get one Udyam count each (Lucknow tailoring: 5,826 of 249,493), suppressed under 10. There are no poultry rows, and every other district shows the empty state.
+- **All 125 rows are `scope:"district"`, for 13 districts in 12 states** (measured 27 Oct 2026): Lucknow and Varanasi (UP, fetched 24 Sept) and 11 added on 27 Oct (Coimbatore, Warangal, Ernakulam, Mysuru, Pune, Jaipur, Indore, Ludhiana, Nadia, Guntur, Gaya). Agriculture gets up to 3 mandi prices per district (the median over the last 30 reporting days, with a P10–P90 range; Guntur has none and Gaya one). The other 7 category buttons get one Udyam count each (Lucknow tailoring: 5,826 of 249,493), suppressed under 10. There are no poultry rows, and every other district shows the empty state.
 
 ### The scheme dataset
 
@@ -304,7 +318,7 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 - **A field the backend never reads must not claim to shape the result** (`form.localOnly`).
 - **`settings.py` refuses a bad value at startup.** Add no silent fallback.
 - **The server records `age_confirmed` and does not enforce it.**
-- **The helper sends the person's words to Meta and nothing else** (typed text, or a recording of up to 60 s). `talk.sendsText` says so before use, free-credit data use included. Meta is a new processor and a cross-border transfer (`PROCESSOR_SCHEDULE.md` §10). The helper routes keep no text and record no consent (`test_intake_log_privacy.py`).
+- **The helper sends the person's words to Meta and nothing else** (typed text, or a recording of up to 60 s). `talk.sendsText` says so before use, free-credit data use included. Meta is a new processor and a cross-border transfer (`PROCESSOR_SCHEDULE.md` §10). The helper routes keep no text and record no consent (`test_intake_log_privacy.py`). **The plan route sends Meta no figure, name or place**: only a description the rules built (the kind of business from a fixed list, village, town or city, verdict words, the rules' advice sentences (one with a digit in it is left out), and the kind and level of each scheme, never its name). The answers go to our backend only. It keeps no consent record, and a refused reply is logged as the codes of the checks it failed (`test_advisor_log_privacy.py`). Its tick lives in `PlanWriter` state only.
 - **Every Meta call is charged to the spend ledger first** (`core/spend.py`, worst-case cost) and refused once the total would pass `ARTHNITI_AI_SPEND_CAP_USD` (default $10, at most $100, never the whole $150). It fails closed, counts this app's calls only, and deleting the file resets it. `settings.py` refuses `-contributor` models, which let Meta train on content. Add no Meta call that bypasses `MetaClient`.
 - **Never write a Meta key into a file, test, doc, log or message.** Environment only; the backend reads no `.env`. Tests use fake keys, and `conftest.py` fails any test that connects off this machine or writes the real ledger.
 
@@ -354,7 +368,7 @@ Deliberately not added, and still decided: a charting library, an i18n library, 
 
 ```bash
 python -m pip install -r backend/requirements-dev.txt
-cd backend && ../.venv/Scripts/python.exe -m pytest tests -q      # 1558 passed, ~13s
+cd backend && ../.venv/Scripts/python.exe -m pytest tests -q      # 1922 passed, ~16s
 ```
 
 - **The backend is tested with pytest.** The frontend has no test framework; `node --test` covers three pure modules (below) and the browser gates cover the pages. Some tests pin user-visible wording, so edit them together with a copy change.
@@ -363,7 +377,7 @@ cd backend && ../.venv/Scripts/python.exe -m pytest tests -q      # 1558 passed,
 - `conftest.py` pins `ARTHNITI_ENV=development`, clears the other `ARTHNITI_*` variables and `MODEL_API_KEY`, and blocks any connection that is not to this machine and any write to the real ledger (`test_network_guard.py`; it covers blocking sockets, not asyncio on Windows). Build a production app with `create_app(load_settings({...}))`.
 - Verifiers that submit `/finance` tick the consent box first.
 
-**No server needed:** `node tools/parity4.mjs`, `node tools/keycheck.mjs`, `node tools/verify/glyph-audit.mjs`, and `node --test` on `tools/verify/market-lib-test.mjs` (185 tests), `talk-lib-test.mjs` (45, the answer mapping and the WAV encoder) and `app-state-test.mjs` (22, the stored state). The two newer ones load JSX through Vite's `ssrLoadModule`.
+**No server needed:** `node tools/parity4.mjs`, `node tools/keycheck.mjs`, `node tools/verify/glyph-audit.mjs`, and `node --test` on `tools/verify/market-lib-test.mjs` (185 tests), `talk-lib-test.mjs` (45, the answer mapping and the WAV encoder) and `app-state-test.mjs` (41, the stored state). The two newer ones load JSX through Vite's `ssrLoadModule`.
 
 **Backend up:**
 
@@ -397,7 +411,7 @@ Traps:
 
 Also open, stated where they apply: the household definition, market coverage, dialect coverage and the translation review, CI written without being run, the Windows-only gates.
 
-**Meta helper** (the full list is `docs/HACKATHON.md` §8): nothing has run against the live API until the owner's first `python -m app.smoke_meta`, so `MAX_COMPLETION_TOKENS`, the reasoning effort, `prompt_cache_key` and the speech `keywords` are as documented, not as observed. The helper routes have no authentication, no per-user limit and no consent record (the ledger and the hourly limit are the only brakes), and `/privacy` says nothing about the helper (`PROCESSOR_SCHEDULE.md` §10.5). No `safety_identifier` is sent and zero data retention is not requested. Malayalam has no speech model (typing works) and Meta has no text-to-speech. `talk.errRecording` says "speak for less than a minute" even for a recording that was too short.
+**Meta helper** (the full list is `docs/HACKATHON.md` §8): the owner ran `python -m app.smoke_meta` and `--plan` on 27 Oct 2026. Observed: the key is valid; `json_schema` output, `reasoning_effort: "low"`, `prompt_cache_key` and `max_completion_tokens` 8000 are accepted; both plans (English, Hindi) passed the checks on the first try, in 10.6 s and 11.9 s, at about 1.1 to 1.2 cents each (`PROCESSOR_SCHEDULE.md` §10.7). Still as documented and not observed: the speech `keywords`, a real person's speech and the Billing balance (the Usage page showed ₹0.00 after the first smoke test, and has not been checked since `--plan`). **The plan card has not been driven in a browser** (`talk-ui` has no plan scenario), and the `plan.*` and `fo.*` wording in the 7 other languages is machine-written. The helper routes have no authentication, no per-user limit and no consent record (the ledger and the hourly limit are the only brakes), and `/privacy` says nothing about the helper (`PROCESSOR_SCHEDULE.md` §10.5). No `safety_identifier` is sent and zero data retention is not requested. Malayalam has no speech model (typing works) and Meta has no text-to-speech. `talk.errRecording` says "speak for less than a minute" even for a recording that was too short.
 
 **Legal:** the hackathon asks for open-source, public entries and `LICENSE` is proprietary. The owner has to choose a licence or ask the organisers; nothing is changed. The September build has commits by Manjeet and Netra and no written assignment on file; the owner's position (26 Oct 2026) is that none is needed, which is a legal question and not a code one. The Official Rules are behind a login and have not been read.
 

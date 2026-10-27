@@ -125,7 +125,7 @@ The browser's own form history is a separate store. `autoComplete="off"` is set 
 
 **Production** serves only `GET /health` and `POST /api/analysis/run`. `/docs`, `/redoc` and `/openapi.json` are switched off, and the other six routers are not mounted, so their routes return 404. With `ARTHNITI_AI_ENABLED=true` it also serves `POST /api/intake/transcribe` and `POST /api/intake/extract` (§10).
 
-**Development** serves all 8 routers (9 with the helper on) and the API docs, and logs a startup warning that lists what is open. Development `/docs` loads Swagger UI's JavaScript from a public CDN.
+**Development** serves all 8 routers (10 with the helper on) and the API docs, and logs a startup warning that lists what is open. Development `/docs` loads Swagger UI's JavaScript from a public CDN.
 
 With consent switched off in production, the server logs one INFO line at startup saying so.
 
@@ -486,7 +486,11 @@ The `/talk` page lets a person say or type a few sentences about their business 
 1. **Speech to words:** `POST /api/intake/transcribe?language=<code>`. The backend sends the recording to Meta's speech model (`muse-voice-transcribe-1.0` by default) and returns the words.
 2. **Words to candidate answers:** `POST /api/intake/extract`. The backend sends the words to Meta's language model (`muse-spark-1.3` by default) and asks for the form answers it can find in them.
 
-The helper computes no figure and writes no advice. The result, the schemes and the advice come from the same fixed rules as when the answers are typed. It does not look for the name or the business name, which stay in the tab (§2.3).
+A third call comes from the plan card on `/advisory`, and only after the person ticks the card's own box:
+
+3. **Wording for a plan:** `POST /api/advisor/plan`. The backend runs the analysis again from the answers, sends Meta's language model a description of the result with no figure, state, district or name in it (§10.2), and gets back wording with `{{blanks}}` where the figures belong. The server puts the rules' own figures and scheme names into the blanks. It refuses a reply with a digit in any script, a number written as a word, a link, an abbreviation, a symbol, the wrong script or a blank it was not given, tries once more with the reasons, and otherwise answers 502 and shows no plan. The card labels the plan as AI-written. **No code checks that a plan is wise, or that a non-English plan is good Marathi or good Tamil.** A scheme's name inside it is the English name from the scheme file.
+
+The helper computes no figure and writes no advice. The result, the schemes and the advice come from the same fixed rules as when the answers are typed; the plan only words what the rules already decided. It does not look for the name or the business name, which stay in the tab (§2.3).
 
 The server keeps an answer from the model only if all of these hold:
 
@@ -501,8 +505,8 @@ There are two switches, and both are off by default:
 
 | Switch | Set in | With it off |
 |---|---|---|
-| `ARTHNITI_AI_ENABLED=true` | the backend environment (§3.1) | the intake routes are not mounted and answer 404. The page shows `talk.errUnavailable` ("The helper is not available right now…") |
-| `VITE_AI_HELPER=true` | the frontend build (§3.2) | `/talk`, its landing button and its profile card do not exist, and `/talk` shows the not-found page |
+| `ARTHNITI_AI_ENABLED=true` | the backend environment (§3.1) | the intake routes and the plan route are not mounted and answer 404. The page shows `talk.errUnavailable` ("The helper is not available right now…") |
+| `VITE_AI_HELPER=true` | the frontend build (§3.2) | `/talk`, its landing button and its profile card do not exist, `/talk` shows the not-found page, and `/advisory` has no plan card |
 
 ### 10.2 What is sent to Meta
 
@@ -512,17 +516,18 @@ The browser never contacts Meta. The backend calls `https://api.meta.ai/v1` with
 |---|---|
 | Speech | the recording as a WAV (mono, 16-bit, 16 or 24 kHz, at most 3,000,000 bytes; the page stops recording at 60 seconds). The spoken language's name, for example "Hindi", as a hint. 15 fixed words that help it hear numbers and places (`lakh`, `crore`, `EMI`, `rupees`, `Lucknow`, `Varanasi`, `Uttar Pradesh` and the eight kinds of work). The model name |
 | Words | one message of our fixed instructions, which names the spoken language. One message holding the person's words (1 to 2,000 characters). A fixed JSON schema for the reply. The model name, `reasoning_effort` set to `low`, a cap of 4,000 output tokens and a `prompt_cache_key` of `form_answers` |
+| Plan | one message of our fixed instructions, which names the language to write in and lists the blanks the plan may use, each with a fixed meaning (a scheme blank says who runs the scheme and what kind of help it gives, never its name). One message holding: the kind of business, as one word from our own list and never what the person typed; whether it is in a village, a small town or a city; the rules' verdicts, as fixed sentences; and the rules' own advice sentences, with any sentence that holds a digit left out. On a second try, a fixed hint for each check the last reply failed. A fixed JSON schema for the reply. The model name, `reasoning_effort` set to `low`, a cap of 8,000 output tokens (the model's reasoning counts against it) and a `prompt_cache_key` of `business_plan` |
 
-Nothing else is sent: not the other answers, not the name, not the consent record and not the person's IP address. **The person can say or type anything.** The page asks them not to say a name, phone number or bank details (`talk.sendsText`), and nothing checks that they do not.
+Nothing else is sent: not the other answers, not the name, not the consent record and not the person's IP address. The plan call sends no figure, no state or district, no scheme name and nothing the person typed. **For the speech and words calls, the person can say or type anything.** The page asks them not to say a name, phone number or bank details (`talk.sendsText`), and nothing checks that they do not.
 
 ### 10.3 What is held
 
 | Where | What | How long |
 |---|---|---|
-| Backend memory | the recording and the words | one request. Neither is written to disk or to a log |
+| Backend memory | the recording and the words; for a plan, the answers, the description sent to Meta and the reply | one request. None of it is written to disk or to a log |
 | Spend file, `ARTHNITI_AI_SPEND_FILE` (default `backend/.ai_spend`, git-ignored) | one line per model call: a whole number of millionths of a dollar, the call's worst-case price. No words, no key, no identity | until someone deletes it. The app deletes nothing |
 | `/talk` page memory | the recording until it is sent, the words (editable), the answers found | until the person leaves the page |
-| Browser `sessionStorage` | the answers the person ticked, as any other answer, and the names of the fields the helper filled (`aiFilled`) | as in §2.4 |
+| Browser `sessionStorage` | the answers the person ticked, as any other answer, and the names of the fields the helper filled (`aiFilled`); beside the result, the answers it was made from (`request`) and the plan, if one was written | as in §2.4. Editing an answer on the business, location or finance page clears the result, the request and the plan |
 | Meta | Meta decides | Meta decides |
 
 What Meta's public pages and the account's billing page said when read on 26 October 2026. **The deployer must check it against the terms that apply to the deployer's own account:**
@@ -534,8 +539,8 @@ What Meta's public pages and the account's billing page said when read on 26 Oct
 
 ### 10.4 What is logged
 
-- **The processing log** (§4) writes its same eight keys for the two routes. `path` is the route template, never the query string. It holds no recording, no words, no answer and no consent record, and the intake routes compute no payload code. `backend/tests/test_intake_log_privacy.py` sends a marker through every route and every error path and fails if the marker reaches the log.
-- **stderr:** one WARNING from the logger `arthniti.errors` for a failed model call, holding the kind of failure and the HTTP status. Meta's error message is not kept.
+- **The processing log** (§4) writes its same eight keys for the three routes. `path` is the route template, never the query string. It holds no recording, no words, no answer and no consent record, and these routes compute no payload code. `backend/tests/test_intake_log_privacy.py` and `test_advisor_log_privacy.py` send a marker through every route and every error path (for the plan route, in every answer, with a consent record among them) and fail if the marker, or the model's own words, reach the log, an error body or the description sent to Meta.
+- **stderr:** one WARNING from the logger `arthniti.errors` for a failed model call, holding the kind of failure and the HTTP status. Meta's error message is not kept. A plan that failed the checks adds one WARNING per try, holding only the codes of the checks it failed (`digit`, `missing`), never a word of the reply.
 - **The uvicorn access log** (§3.3) holds the client IP address and the query string, so it holds `?language=` for every call to `/api/intake/transcribe`. `--no-access-log` turns it off.
 - **Startup:** one INFO line when the helper is on, with the model names, the hourly limit, the cap and the spend-file path. Never the key.
 
@@ -544,8 +549,10 @@ What Meta's public pages and the account's billing page said when read on 26 Oct
 - `/talk` has its own consent box, kept in page memory only, and an age box when `VITE_REQUIRE_AGE_CHECK` is set. Pressing **Record** or **Find my answers** with a box unticked sends nothing, says why and moves focus to the box. The buttons are not disabled, so the reason can be seen.
 - The `/talk` wording (`talk.*` in `resultStrings.js`) is **outside the versioned notice** (`NOTICE_KEYS`). Editing it does not change `NOTICE_VERSION`.
 - **`/privacy` does not mention the helper.** A deployer who switches the helper on has to add that and bump `NOTICE_VERSION` (§5.4).
-- The two routes take and keep **no consent record**, so the server cannot tell whether the box was ticked. They do not see the age box either.
-- The seven non-English `talk.*` sets, including the sentence about Meta, have not been reviewed by a native speaker (§9.1).
+- The plan card on `/advisory` has its own box, kept in page memory only and unticked again after every plan. The plan route refuses (422) a request whose `send_to_meta` is not a real `true`; it cannot tell whether a person ticked a box or a script set the field.
+- The three routes take and keep **no consent record**, so the server cannot tell whether a box was ticked. They do not see the age box either.
+- The seven non-English `talk.*` sets, including the sentence about Meta, have not been reviewed by a native speaker (§9.1). The same holds for the `plan.*` sets, which include the sentence that says what the plan card sends.
+- The `plan.*` wording is also outside the versioned notice.
 
 **Lawyer:** whether the helper needs consent text of its own, in what words and in which languages.
 
@@ -569,6 +576,7 @@ The key pays for every call. These controls bound the cost. None of them identif
 - There is no sign-in and no limit per person.
 - No `safety_identifier` is sent. Meta recommends one so that it can act against a single end user. Without it, misuse by one visitor can be acted on against the whole key. The app has no per-person identity by design.
 - `python -m app.smoke_meta` makes two language-model calls and one speech call (one second of silence) and records **$0.0451** against the cap. That is a worst-case figure. One language-model call is priced at about 2 to 3 cents against the cap, so the default $10 allows a few hundred.
+- `python -m app.smoke_meta --plan` makes two plan calls (English and Hindi). Measured on 27 Oct 2026 it recorded **$0.0797** against the cap, took 10.6 s and 11.9 s, and used 1,001 tokens in and 2,357 and 2,514 out, most of the output being reasoning. At the prices in the app's table that is about 1.1 to 1.2 cents of real cost a plan, so the cap books roughly three and a half times the cost. A plan call is the longest and dearest the app makes, and a plan that fails the checks is tried once more, so one request can book two calls against the cap.
 
 ### 10.8 Before switching it on
 
@@ -578,7 +586,7 @@ The key pays for every call. These controls bound the cost. None of them identif
 - [ ] uvicorn runs with `--no-access-log` (§3.3).
 - [ ] `/privacy` mentions the helper and `NOTICE_VERSION` is bumped (§5.4).
 - [ ] Every `talk.*` language that is offered has been reviewed by a native speaker (§9.1).
-- [ ] The proxy limits the two intake routes harder than the rest (D4), because the app has no sign-in.
-- [ ] `python -m app.smoke_meta` has run once with the production key, and the spend file holds the total that was printed.
+- [ ] The proxy limits the two intake routes and the plan route harder than the rest (D4), because the app has no sign-in.
+- [ ] `python -m app.smoke_meta` and `python -m app.smoke_meta --plan` have each run once with the production key, and the spend file holds the total that was printed.
 - [ ] Meta-side alerts are set, and Meta has been asked whether zero data retention can be switched on for the account.
 - [ ] `VITE_AI_HELPER=true` is set at build time, last.

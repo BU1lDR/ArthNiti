@@ -824,7 +824,7 @@ a fake backend. None of them reaches Meta, reads a key or costs anything:
 
 ```bash
 node --test tools/verify/talk-lib-test.mjs    # wav.js and talkAnswers.js: 45 tests, no server
-node --test tools/verify/app-state-test.mjs   # AppContext's applyEdit, applyHelperFill and storage: 22 tests, no server
+node --test tools/verify/app-state-test.mjs   # AppContext's applyEdit, applyHelperFill, applyResult, applyPlan and storage: 41 tests, no server
 node tools/verify/talk-ui.mjs                 # the page in a real Edge: 17 scenarios, 259 checks, about 30 s (--only=S3,S5 runs some)
 ```
 

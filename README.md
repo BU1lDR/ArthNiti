@@ -9,15 +9,15 @@ Someone running a small business in a village — a tailor, a weaver, a woman ke
 - which government schemes cover their kind of work where they live, from Central ministries down to the Gram Panchayat counter (it checks the kind of work and the place, not full eligibility)
 - a one-page sheet to print and carry to a bank
 
-Eight Indian languages, with dialect-aware phrasing layered on top. Thirty real schemes across all seven administrative tiers. Where the deployer switches it on, a person can also say or type their answers instead of filling in the form (see [the voice and text helper](#the-voice-and-text-helper-optional)).
+Eight Indian languages, with dialect-aware phrasing layered on top. Thirty real schemes across all seven administrative tiers. Where the deployer switches it on, a person can also say or type their answers instead of filling in the form, and ask for a short plan written in their language around the figures the rules worked out (see [the voice and text helper](#the-voice-and-text-helper-optional)).
 
 **Where it stands.** One person, Aryan Verma, builds and owns this. It began in September 2026 as a six-person college team project for the Smart India Hackathon (SIH) 2026 internal round, held on 14 September, where the team wasn't selected. Since 26 October 2026 it is an individual project, entered in the Meta Global AI Developer Hackathon, Indie Track (26 October to 4 November 2026; submissions are due 4 November, 9:00 PM ET, which is 5 November, 07:30 IST). Beyond the hackathon it stays a portfolio piece and, mainly, a product for businesses that work with real users. It is proprietary; see [LICENSE](LICENSE). This is not open source, even though the repo may be shared. It is still a prototype, not production software, and the rest of this file tries not to pretend otherwise. [docs/HACKATHON.md](docs/HACKATHON.md) says what existed before the hackathon and what was added during it. Anything below about "the demo" or "the round" dates from the team build and is not a current goal.
 
 ## Two things to know before you read the code
 
-**No model writes a number or a line of advice.** Every figure and every sentence the user sees comes out of hand-written Python in `backend/app/services/` — plain `if`/`else`, nothing more. `OUR_MVP.md` §15 makes the argument for that choice. The one place a model is used is the optional voice and text helper at `/talk`, added for the Meta hackathon: Meta's Model API turns a recording into words (Muse Voice Transcribe) and picks form answers out of the words (Muse Spark), and the answers land in the ordinary form for the person to check. It is off unless the deployer switches it on twice, once on the server and once in the frontend build. With both off there is no model call anywhere. The rule holds whatever gets added: a model may help someone fill in the form, and they check what it filled in, but it never computes a figure, a risk band or a scheme match, and it never writes the advice. Please don't describe the app as giving AI-generated advice. If someone asks you to "improve the AI", find out first whether they mean the intake or the rules.
+**No model writes a number or a line of advice.** Every figure and every sentence the user sees comes out of hand-written Python in `backend/app/services/` — plain `if`/`else`, nothing more. A model is used in two optional places, both added for the Meta hackathon. The first is the voice and text helper at `/talk`: Meta's Model API turns a recording into words (Muse Voice Transcribe) and picks form answers out of the words (Muse Spark), and the answers land in the ordinary form for the person to check. The second is the written plan on `/advisory`: Muse Spark words a short plan around blanks, the code refuses any reply that carries a digit or a link of its own, and the rules put their own figures into the blanks. The model is shown no figure, name or place. Nothing checks that a plan is wise, only that every figure in it is the rules' own. Both are off unless the deployer switches them on twice, once on the server and once in the frontend build. With both off there is no model call anywhere. The rule holds whatever gets added: a model may help someone fill in the form, or word what the rules already concluded, and the person checks what it wrote, but it never computes a figure, a risk band or a scheme match, and it never decides what the advice is. Please don't describe the app as giving AI-generated advice; say "AI-assisted intake" and "AI-written, rule-verified plan". If someone asks you to "improve the AI", find out first whether they mean the intake, the plan or the rules.
 
-There's no database either. All client state lives in the browser's `sessionStorage`. The answers leave the browser once, when step 4 is submitted, so the backend can work the result out. The backend stores none of them. It writes one log line per request, which holds no answer but does hold a code computed from them ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §4). With the helper on, a person's recording or words also go to Meta through the backend each time they use `/talk`, and the backend keeps one more file: a running total of what those calls cost, one whole number per call, with no words, no key and no identity in it (§10).
+There's no database either. All client state lives in the browser's `sessionStorage`. The answers leave the browser once, when step 4 is submitted, so the backend can work the result out. The backend stores none of them. It writes one log line per request, which holds no answer but does hold a code computed from them ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §4). With the helper on, a person's recording or words also go to Meta through the backend each time they use `/talk`, a short description of their business (no figure, name or place) goes each time they ask for a plan on `/advisory`, and the backend keeps one more file: a running total of what those calls cost, one whole number per call, with no words, no key and no identity in it (§10).
 
 ## Getting it running
 
@@ -73,7 +73,7 @@ taskkill //F //T //PID <pid>          # yes, doubled slashes, that's Git Bash
 ### The other commands
 
 ```bash
-cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 1558 tests in 48 files, about 13 seconds
+cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 1922 tests in 52 files, about 16 seconds
 node --test tools/verify/talk-lib-test.mjs tools/verify/app-state-test.mjs tools/verify/market-lib-test.mjs   # no server, no key
 cd frontend && npm run build                                   # → frontend/dist; needs an https VITE_API_BASE_URL
 cd frontend && npm run build:local                             # the same, against the backend on 127.0.0.1:8000
@@ -88,7 +88,7 @@ The `cd backend` in front of pytest matters. Run it from the repo root and you g
 Two switches turn the demo into something a real person can use.
 
 - **Backend: `ARTHNITI_ENV=production`.** Production changes four things:
-  - it mounts only `GET /health` and `POST /api/analysis/run` (and the two `/api/intake/*` routes, if the helper is switched on);
+  - it mounts only `GET /health` and `POST /api/analysis/run` (and the helper's three routes, `/api/intake/*` and `/api/advisor/plan`, if the helper is switched on);
   - it serves no API docs;
   - it refuses a request that carries no consent record;
   - it won't start without `ARTHNITI_CORS_ORIGINS`, a comma-separated list of exact `https://` origins.
@@ -108,7 +108,7 @@ Two switches turn the demo into something a real person can use.
 
 ### The voice and text helper (optional)
 
-Off by default. It lets a person say or type their answers at `/talk`; Meta's Model API turns speech into words and picks form answers out of the words, and the person checks them in the ordinary form. The helper computes nothing. [docs/HACKATHON.md](docs/HACKATHON.md) says what it is for and how it was built, and [docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §10 says what it sends, keeps and logs, which a deployer needs before switching it on.
+Off by default. It does two things. It lets a person say or type their answers at `/talk`: Meta's Model API turns speech into words and picks form answers out of the words, and the person checks them in the ordinary form. And on `/advisory` it can write a plan: after the person ticks a box, Muse Spark words a short plan in their language around blanks, and the rules fill the blanks with their own figures. A reply with a digit or a link of its own, or a blank that is unknown or missing, is refused, asked for once more and then dropped, and the advice the rules wrote stays on the page whatever happens. The helper computes nothing. [docs/HACKATHON.md](docs/HACKATHON.md) says what it is for and how it was built, and [docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §10 says what it sends, keeps and logs, which a deployer needs before switching it on.
 
 It needs both switches, and the server one needs a key:
 
@@ -118,7 +118,7 @@ It needs both switches, and the server one needs a key:
 | backend | `ARTHNITI_AI_MODEL`, `ARTHNITI_AI_ASR_MODEL` | `muse-spark-1.3` and `muse-voice-transcribe-1.0` unless set. A `-contributor` model is refused, because those may be trained on |
 | backend | `ARTHNITI_AI_HOURLY_LIMIT` | calls an hour in all, counted by this process. Default 100 |
 | backend | `ARTHNITI_AI_SPEND_CAP_USD`, `ARTHNITI_AI_SPEND_FILE` | the most the app will let itself bill in all (default 10, at most 100), and the file that keeps the running total (default `backend/.ai_spend`, gitignored) |
-| frontend build | `VITE_AI_HELPER=true` | shows the `/talk` page and its two entry points. Any other value leaves `/talk` a 404 |
+| frontend build | `VITE_AI_HELPER=true` | shows the `/talk` page and its two entry points, and the plan card on `/advisory`. Any other value leaves `/talk` a 404 and hides the card |
 
 Every call is priced at its worst case against the cap *before* it is sent, and a call that would pass the cap is refused. That keeps this app's own bill inside a number you chose. It is not Meta's limit and it is not a guarantee: deleting the file resets the total, and each server process counts its own hourly limit. Check the balance on Meta's billing page as well.
 
@@ -129,10 +129,11 @@ cd backend
 read -rs MODEL_API_KEY; export MODEL_API_KEY       # paste the key, press Enter. Nothing shows
 export ARTHNITI_AI_ENABLED=true
 ../.venv/Scripts/python.exe -m app.smoke_meta      # 3 real calls (2 text, 1 of silence): up to about $0.045 against the cap
+../.venv/Scripts/python.exe -m app.smoke_meta --plan   # 2 real calls, a plan in English and one in Hindi: about $0.08 against the cap
 ../.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-and in another terminal `cd frontend && VITE_AI_HELPER=true npm run dev`. The smoke script needs only the key and sets the helper switch itself. The test suite clears `MODEL_API_KEY`, and a guard in `tests/conftest.py` fails any test that connects to anything but this machine (it covers blocking sockets, not asyncio on Windows).
+and in another terminal `cd frontend && VITE_AI_HELPER=true npm run dev`. The smoke script needs only the key and sets the helper switch itself. On 27 October 2026 both runs passed against the live service, and the second recorded $0.0797 against the cap for calls whose reported token counts come to about 2 cents at the listed prices (the cap books the worst case before each call, by design). The test suite clears `MODEL_API_KEY`, and a guard in `tests/conftest.py` fails any test that connects to anything but this machine (it covers blocking sockets, not asyncio on Windows).
 
 ### CI
 
@@ -158,15 +159,17 @@ Landing, then an optional login, then four question pages, then four result page
 | 4 | `/finance` | capital in hand, household + business costs, the household's monthly loan repayments, optionally the household's monthly income, and an unticked box agreeing to the privacy notice. Submitting here sends the answers to `POST /api/analysis/run`, which is the only call that produces a result |
 | | `/analysis` | profit, margin, risk, feasibility, the household loan check, local market rows, charts |
 | | `/schemes` | schemes listed for your work and state, grouped by administrative tier |
-| | `/advisory` | recommendations, a next step, and the household loan check |
+| | `/advisory` | recommendations, a next step, the household loan check, the loan options (12, 24, 36 and 60 months), and, with the helper on, the plan card |
 | | `/report` | the printable one-page sheet, household loan check included |
 | | `/privacy` | the full privacy notice: who is responsible, what is sent and kept, and how to withdraw. Linked from the footer of every page |
 
 Anything else hits a 404 page. Nothing enforces the order, since the nav links straight to any step — so `/finance` can be submitted empty, which comes back as a 422 that we render as a readable sentence rather than a stack trace.
 
-Six behaviours worth knowing before you click through:
+Eight behaviours worth knowing before you click through:
 
 - **The household loan check.** If the reader gives the household's monthly income, the backend compares every loan repayment the household makes, plus our estimate for a loan covering the money the plan still needs, against half of that income, and `/analysis`, `/advisory` and `/report` show the result. Half is the limit in RBI's 2022 microfinance directions (paras 5.1–5.3). This checks the figures the reader typed. It is not a lending decision, and nothing on the page calls the result RBI-compliant or says a lender will lend. Left blank, the check is skipped and the page says so. An income of exactly 0 has to be confirmed with a tick first, because it means no income at all and turns the advice into "do not take a new loan". A household earning more than ₹3,00,000 a year is outside RBI's microfinance range (para 3.1), so for it the 50% line is shown only as a warning sign.
+- **Loan options.** When the money in hand falls short of the investment, `/advisory` shows one card for each loan length (12, 24, 36 and 60 months). A card is the largest loan, in whole thousands of rupees and no bigger than the shortfall, whose repayment still counts as low pressure (under 30% of the monthly surplus) and keeps the household check within half of its income, at the same assumed 12% a year the risk figure uses. The rules mark the shortest length that covers the whole shortfall, and a card that does not cover it says how much is still missing. When no loan is safe, the page says why (no surplus, a household already over its limit, or no room left after the current loans). These are planning figures and not a quote: no lender has offered these terms, and nothing on the page says one will.
+- **The written plan.** With the helper on, `/advisory` ends in a card that can write a short plan in the reader's language. The card has its own unticked box, because pressing the button sends a description of the business to Meta; the box is cleared after every plan. The plan is the model's wording with the rules' figures put in, in bold, and it is labelled as AI-written. It takes about ten seconds. If the model fails, the checks refuse its reply twice, or the spend cap is reached, the card says so and the rest of the page is unchanged.
 - **Nothing is sent without a tick.** Step 4 has an unticked box agreeing to the privacy notice, and the check won't run until it's ticked. A short version of the notice sits on `/login`, `/profile` and `/finance`. With no organisation configured, the notices say this is a demonstration and ask for made-up figures.
 - **Start over asks first.** The button opens a confirmation dialog, and "No" has the focus. It clears what this tab holds. It can't recall answers already sent, and the dialog says so.
 - **Changing an answer clears the results, and the page says so.** After an edit on steps 2–4, the result pages say the answers changed instead of showing old figures. The answers that are never sent (business name, village, market type, customers) don't clear anything. An empty result page links to the first step that still has a missing answer, or to `/finance` if none does.
@@ -179,18 +182,18 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 
 | Path | |
 |---|---|
-| `backend/app/main.py` | the FastAPI app, CORS, and the routers: all 8 in development, 2 in production. The helper adds a 9th, the two `/api/intake/*` routes, in either mode |
-| `backend/app/api/routes/` | 9 routers, one file per domain (`intake.py` is the helper's) |
+| `backend/app/main.py` | the FastAPI app, CORS, and the routers: all 8 in development, 2 in production. The helper adds a 9th, the two `/api/intake/*` routes, and a 10th, `/api/advisor/plan`, in either mode |
+| `backend/app/api/routes/` | 10 routers, one file per domain (`intake.py` and `advisor.py` are the helper's) |
 | `backend/app/schemas/` | Pydantic request and response models |
-| `backend/app/services/` | all the business logic. Pure functions, no classes, no I/O. `intake_service.py` builds the helper's prompts and decides which of the model's answers to keep |
+| `backend/app/services/` | all the business logic. Pure functions, no classes, no I/O. `intake_service.py` builds the helper's prompts and decides which of the model's answers to keep; `plan_service.py` builds the plan's prompt, refuses a reply that breaks its rules and puts the rules' figures into the blanks; `options_service.py` works out the loan options |
 | `backend/app/core/settings.py` | the `ARTHNITI_*` deployment settings, checked at startup |
 | `backend/app/core/processing_log.py` | one JSON log line per request, with no answer in it |
 | `backend/app/core/data_loader.py` | cached JSON loading. What it hands back is shared, so treat it as read-only |
 | `backend/app/core/meta_client.py` | the only code that talks to Meta (standard-library `urllib`, no SDK). Charges the spend cap before every call |
 | `backend/app/core/spend.py` | the spend cap and its ledger file |
-| `backend/app/smoke_meta.py` | `python -m app.smoke_meta`: three real calls to check the integration against the live service |
-| `backend/app/data/` | `schemes.json` (30 schemes), `market_data.json` (20 rows from data.gov.in, Lucknow and Varanasi), `market_data.provenance.json` (how the last fetch ran) |
-| `backend/tests/` | 48 test files, 1558 tests |
+| `backend/app/smoke_meta.py` | `python -m app.smoke_meta`: three real calls to check the integration against the live service; `--plan` makes two instead, to check the written plan |
+| `backend/app/data/` | `schemes.json` (30 schemes), `market_data.json` (125 rows from data.gov.in, 13 districts), `market_data.provenance.json` (how the last fetch ran) |
+| `backend/tests/` | 52 test files, 1922 tests |
 | `frontend/src/App.jsx` | the shell, all the chrome, 11 routes, a 12th (`/talk`) when the helper is on, and a catch-all |
 | `frontend/src/pages/` | 11 page components (`TalkPage` is the helper's) |
 | `frontend/src/components/` | `Button`, `BrandMark`, `BrandWordmark`, `Figure`, `HelperFilledBanner`, `InstructionManual`, `ShortNotice`, `Charts`, `chartData` |
@@ -200,8 +203,9 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 | `frontend/src/i18n/` | 8 languages, 4 dictionary files, the `t()` and `tBackend()` provider |
 | `frontend/src/data/indiaLocations.js` | 36 states and UTs, 768 districts |
 | `frontend/src/data/limits.js` | the input caps, mirroring `backend/app/schemas/limits.py`. A test fails if the two disagree |
+| `frontend/src/data/planShape.js` | what a written plan must look like. A stored or received plan that does not match is thrown away, not shown |
 | `frontend/src/data/reviewDates.js` | the dates the footer prints for when the scheme rules were checked. A test fails if they drift from `schemes.json` |
-| `frontend/src/services/api.js` | the only file that makes network calls: the analysis, and the helper's two when it is on |
+| `frontend/src/services/api.js` | the only file that makes network calls: the analysis, and the helper's three when it is on |
 | `frontend/.env.example` | the `VITE_*` build settings, documented |
 | `frontend/src/index.css` | design tokens, the `.ui-*` system, and the print stylesheet |
 | `tools/` | 31 `.mjs` files, nearly all of them verifiers, plus the market data fetch and its maps, and one Python stand-in for the backend (`verify/talk_fake_backend.py`) — [tools/README.md](tools/README.md) explains them |
@@ -210,11 +214,13 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 
 ## How it fits together
 
-The backend is FastAPI with 8 routers, and the frontend calls exactly one of them. A production backend mounts only that one and `/health` (plus the helper's routes, below, when they are on). Every result goes through `POST /api/analysis/run`, which answers with 7 top-level sections: `financial_analysis`, `risk_analysis`, `business_analysis`, `market_context`, `scheme_matches`, `advisory` and `mvp_summary`.
+The backend is FastAPI with 8 routers, and the frontend calls exactly one of them. A production backend mounts only that one and `/health` (plus the helper's routes, below, when they are on). Every result goes through `POST /api/analysis/run`, which answers with 8 top-level sections: `financial_analysis`, `risk_analysis`, `business_analysis`, `market_context`, `scheme_matches`, `financing_options`, `advisory` and `mvp_summary`.
 
 The other seven (`/health`, `/api/entrepreneur/profile`, `/api/business/analyze`, `/api/financial/analyze`, `/api/schemes/match`, `/api/advisory/recommend`, `/api/market/context`) are thin wrappers over the same services, and they're covered by tests. All but `/health` exist in development only. Don't delete them, but don't assume a change in one shows up in the UI either.
 
 A ninth router, `/api/intake/*`, exists only with the helper switched on, in production as well as development. The frontend calls its two routes from `/talk` and nowhere else: `transcribe` takes a recording and returns the words, and `extract` takes words and returns the form answers it found in them, each with the stretch of the person's own words that it rests on. An answer is kept only if that quoted stretch is really in what the person said. `POST /api/analysis/run` behaves the same with or without the helper, and nothing the helper returns reaches it except as values the person has been shown in the form. [docs/frontend_integration.md](docs/frontend_integration.md) has the measured contract.
+
+A tenth router, `POST /api/advisor/plan`, exists under the same two switches. The frontend calls it from `/advisory` and nowhere else, with the answers a result was made from and the reader's tick. The route runs the analysis again with the same rules, shows the model a description with no figure, name or place in it, and takes back words with blanks in them. `plan_service.py` refuses the reply unless it has no digit of its own, no link, the right script for the language, only known blanks and enough of them, and the right number of steps and cautions. It asks once more with the reasons, and two refusals end in a 502 and no plan. Then the rules' own figures replace the blanks. **The checks prove that every figure is the rules' own. They do not prove that a plan is wise.** In a plan that is not in English, a scheme's name is still the English one. [docs/frontend_integration.md](docs/frontend_integration.md) has the measured contract here as well.
 
 CORS in development allows any `localhost` or `127.0.0.1` port. In production it allows only the exact `https://` origins in `ARTHNITI_CORS_ORIGINS`, and the backend won't start without them. Neither mode allows credentials.
 
@@ -242,7 +248,7 @@ We filter on availability *before* scoring, on two axes: the entrepreneur's stat
 
 The score is 60 for the kind of work plus 40 if the scheme names your state, or 30 if it is open everywhere. It checks no eligibility rule (age, income, loan size and so on), so the UI never prints it as a percentage. Each card says **"Made for your state"** (the scheme names only your state), **"For a few states, including yours"** (it names yours among several, as UNNATI does for the eight North-Eastern states) or **"For all of India"** instead, from the `fit_basis` field, and the eligibility list carries a line saying those rules have not been checked against the reader's answers. `match_score` stays in the API for sorting.
 
-`market_data.json` has 20 rows, all government open data from data.gov.in, fetched on 24 September 2026. It's worth being blunt about how thin the coverage is: two districts, Lucknow and Varanasi, both in Uttar Pradesh. Agriculture gets three mandi wholesale prices per district, from Agmarknet. The other seven kinds of work get a count of businesses registered on Udyam, the Ministry of MSME's list. Poultry has nothing yet. Every other district lands on the market section's empty state. There's no state-level row to fall back to, because a Lucknow figure says nothing about Kanpur. That's a data coverage limit rather than a bug, and it's the real reason UP/Lucknow is the safe demo location.
+`market_data.json` has 125 rows, all government open data from data.gov.in. Lucknow and Varanasi were fetched on 24 September 2026 and eleven more districts on 27 October 2026. It's worth being blunt about how thin the coverage is: 13 districts in 12 states (the list is in `DATA_SOURCES.md`). Agriculture gets up to three mandi wholesale prices per district, from Agmarknet. The other seven kinds of work get a count of businesses registered on Udyam, the Ministry of MSME's list. Poultry has nothing yet. Every other district lands on the market section's empty state. There's no state-level row to fall back to, because a Lucknow figure says nothing about Kanpur. That's a data coverage limit rather than a bug, and it is one reason UP/Lucknow is the safe demo location.
 
 Both datasets are used under the Government Open Data Licence – India. Below the market cards the page prints each dataset's attribution once, in English, then two lines in the reader's language: that the publishers don't endorse the app, and that open data can have errors and gaps. Leave all three there. The licence requires the attribution, and being honest about where the numbers come from is part of the product, not clutter to tidy away. [DATA_SOURCES.md](DATA_SOURCES.md) has the method, the provenance and what's still unresolved.
 
@@ -250,7 +256,7 @@ Both datasets are used under the Government Open Data Licence – India. Below t
 
 Eight: `en`, `hi`, `ta`, `te`, `ml`, `kn`, `mr`, `bn`. The default is **Hindi**, not English, because that's who this is for. English is the fallback.
 
-772 distinct keys across 4 dictionary files, 6,176 strings in all, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
+812 distinct keys across 4 dictionary files, 6,496 strings in all, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
 
 The dialect layer is a curated set of phrases, not a translation. Nine of the thirty listed varieties override a handful of the most visible strings. In the demo, say "dialect-aware phrasing" — not "translated into Bhojpuri".
 
@@ -291,7 +297,6 @@ Run the browser verifiers after any UI change, and `refresh-cases.mjs` after tou
 | [docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) | for the organisation deploying it: what is collected, sent, logged and kept, every setting, consent, CORS, and what that organisation has to do itself | you're deploying it, or a client's security or compliance staff ask |
 | [docs/frontend_integration.md](docs/frontend_integration.md) | the API contract of `POST /api/analysis/run`: request, response, errors | you're calling the API or changing its shape |
 | [docs/HACKATHON.md](docs/HACKATHON.md) | the Meta Global AI Developer Hackathon entry: the dates, what existed before it and what was built during it, how the AI is used and where it is not, the demo path, the submission checklist | you're judging, submitting or demoing the entry |
-| [OUR_MVP.md](OUR_MVP.md) | the product view: what's built and what isn't | you need the product picture |
 | [tools/README.md](tools/README.md) | the verification suite | a verifier failed, or you're writing a new one |
 | [LICENSE](LICENSE) | proprietary licence: all rights reserved by the owner | before you copy, share or deploy any of it |
 | [DATA_SOURCES.md](DATA_SOURCES.md) | where every dataset and image came from, what licence it's under, and which ones are still unresolved | you're adding data or an image, or a buyer asks |
@@ -323,15 +328,15 @@ Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`
 
 These are the current limits, written down so nobody overclaims:
 
-- No database and no authentication, both deliberate for the prototype. Whether they stay that way depends on what the project gets used for next. No model produces any figure or advice. The only model in the repo is the optional intake helper.
-- **The helper has been run only against stand-ins.** The tests, the 259 browser checks of `/talk` and the cost measurement all use a fake model and a fake key, because the owner's free credit is the only money in play. Whether Meta's live service behaves as its documentation says (the reply size limit, the reasoning setting, the prompt-cache key, the speech keywords) is not known until `python -m app.smoke_meta` has been run with a real key. Treat the helper as unverified against the live service until then.
-- The helper's limits. Malayalam has no speech recognition in Meta's model, so it can only be typed. A spoken amount ("50 thousand", "1.5 lakh") is converted to rupees by the model and no code checks it, so the page shows the person the words it came from. The two routes have no sign-in and no per-person limit; the spend cap and the hourly limit bound the cost, and nothing bounds who calls them. The app sends no `safety_identifier` to Meta, because it has no per-person identity by design, and it does not ask Meta for zero data retention. The consent tick on `/talk` is page state only: the server keeps no record of it, and `/privacy` does not mention the helper yet ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §10.5). The tick is checked when Record or Find my answers is pressed, and from Record until the recording has been sent it cannot be unticked.
-- The non-English wording hasn't been checked by a native speaker, and that now covers 772 keys, the household-check wording, the privacy notice and the 40 `talk.*` keys of the helper included. The non-English notice shouldn't be shown to real users until someone has reviewed it ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §9.1). Parity, placeholders, identical-to-English and the figures are all script-verified; *naturalness* isn't. We've already caught two real mistakes by eye, which suggests there are more.
+- No database and no authentication, both deliberate for the prototype. Whether they stay that way depends on what the project gets used for next. No model produces any figure or decides any advice. The only model use in the repo is the optional helper: it fills in the form from speech or text, and it words a plan around blanks that the rules fill.
+- **The helper has been run live twice, and everything else about it uses a stand-in.** On 27 October 2026 the owner ran `python -m app.smoke_meta` and `--plan` with a real key. The key worked, and the reply-size limit (8,000 tokens), the reasoning setting, the JSON-schema output and the prompt-cache key were accepted. A plan in English and one in Hindi passed the checks on the first try, in 10.6 and 11.9 seconds. Not yet seen live: the speech `keywords`, a real person speaking, and Meta's Billing page after the second run. The tests and the 259 browser checks of `/talk` use a fake model and a fake key. **The plan card on `/advisory` has not been driven in a browser at all**: the plan route, the checks and the stored state are tested, and the card's wording in the 7 other languages is machine-written.
+- The helper's limits. Malayalam has no speech recognition in Meta's model, so it can only be typed. A spoken amount ("50 thousand", "1.5 lakh") is converted to rupees by the model and no code checks it, so the page shows the person the words it came from. The three routes have no sign-in and no per-person limit; the spend cap and the hourly limit bound the cost, and nothing bounds who calls them. The app sends no `safety_identifier` to Meta, because it has no per-person identity by design, and it does not ask Meta for zero data retention. The consent tick on `/talk` and the one on the plan card are page state only: the server keeps no record of either, and `/privacy` does not mention the helper yet ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §10.5). The tick is checked when Record or Find my answers is pressed, and from Record until the recording has been sent it cannot be unticked.
+- The non-English wording hasn't been checked by a native speaker, and that now covers 812 keys, the household-check wording, the privacy notice, the 40 `talk.*` keys of the helper and the 20 `plan.*` and 20 `fo.*` keys of the plan and the loan options included. The non-English notice shouldn't be shown to real users until someone has reviewed it ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §9.1). Parity, placeholders, identical-to-English and the figures are all script-verified; *naturalness* isn't. We've already caught two real mistakes by eye, which suggests there are more.
 - The household income is whatever the reader types, and nothing checks it. Who counts as the household for an unmarried adult (their parents and their parents' unmarried children, themselves included) is our reading of RBI's definition, and nobody has verified it. A reader who types 0 instead of leaving the field blank has to confirm it with a tick, and is then treated as having no income.
 - Nothing here settles whether a deployment meets the DPDP Act. The deploying organisation is the Data Fiduciary and we are its processor. The build gives it a notice, a consent record, a processing log with no answer in it, and production defaults. The organisation still has its own obligations (schedule §7 and §8), and some points need its lawyer (§9.3). The DPDP Rules apply from May 2027.
 - CI was written without being run, on a machine with no Linux and no Python 3.10. The Actions tab is the evidence, this file is not. The browser gates are not in it, because they only run on Windows with Edge installed.
 - Dialect coverage is 9 of 30 varieties, each a handful of phrases.
-- The market data covers two districts, Lucknow and Varanasi. Everywhere else gets an empty market section. The business counts can't be fetched again as they were, because the Udyam list is live. And a price is marked stale when the data is fetched, not when the page loads, so the file needs refreshing at least weekly.
+- The market data covers 13 districts (listed in `DATA_SOURCES.md`). Everywhere else gets an empty market section. The business counts can't be fetched again as they were, because the Udyam list is live. And a price is marked stale when the data is fetched, not when the page loads, so the file needs refreshing at least weekly.
 - Nothing enforces the order of the journey, and the result pages can't be deep-linked from a cold tab.
 - Untested on phones: landscape, real touch scrolling on physical hardware, and the on-screen keyboard covering a focused input.
 - A typed-in "Other" business category matches no schemes. That's correct, and there's an empty state for it.

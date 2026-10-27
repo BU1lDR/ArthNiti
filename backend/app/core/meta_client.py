@@ -14,8 +14,10 @@ price that is too high rather than too low, and a client cannot be built
 without one. A call that fails after it was sent is charged all the same,
 because Meta may have billed it.
 
-The wire format follows Meta's documentation. It has not been checked against
-the live API; `python -m app.smoke_meta`, run with a real key, does that.
+The wire format follows Meta's documentation, and `python -m app.smoke_meta` has
+run against the live API (the owner, 27 Oct 2026): the chat and speech calls were
+accepted. The speech call has only heard one second of silence. What was seen is in
+docs/HACKATHON.md section 4.
 
 What an error may hold is decided here, once. A MetaError carries a kind, the
 HTTP status, and Meta's own error code and parameter name (kept only if they are
