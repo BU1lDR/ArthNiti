@@ -281,57 +281,71 @@ async function main() {
         }
       }
 
-      // The wordmark keeps its navy plate: --wordmark-niti is #FFF4E0, a cream
-      // that is invisible on white, so this pairing is not optional. The strip is
-      // #08243F in BOTH themes, which is why one file covers both.
-      await cdp.evaluate("localStorage.setItem('sih-theme','light');true")
-      await cdp.send('Page.navigate', { url: APP + '/' })
-      await sleep(1500)
+      // ---- 3. the wordmark alone, on transparency, in both colour cases ----
+      //
+      // This step used to capture ONE file on a navy plate, and the comment here
+      // used to say that plate was not optional: --wordmark-niti was #FFF4E0, a
+      // cream invisible on white, and the utility strip the wordmark lived in was
+      // #08243F in BOTH themes, so one file covered both. Every clause of that
+      // died on 11 Sept 2026 when the wordmark moved into the masthead. It sits on
+      // var(--color-surface) now, which flips — so the tokens gained a LIGHT case
+      // (#8A5A0A / #12233A / #B86F10) that is dark-on-light and needs no plate at
+      // all, and the two themes stopped sharing one rendering. Hence two files,
+      // both transparent: a dark slide is the plate for the dark case.
+      //
+      // The step was also BROKEN by that move rather than merely stale, which is
+      // the part worth keeping written down. It grew .ui-utilitybar's padding to
+      // 34px and then clamped the clip to that band's box — but the band no longer
+      // contains .ui-wordmark, and growing it pushed the masthead 68px further
+      // down, so the clamp resolved to bottom < top, i.e. a negative-height clip.
+      // A capture step that hardcodes which container its subject sits in breaks
+      // silently the moment the subject moves; clearing the surfaces and clipping
+      // to the element's own box does not.
+      for (const theme of ['light', 'dark']) {
+        await cdp.evaluate([
+          `localStorage.setItem('sih-theme', '${theme}');`,
+          "localStorage.setItem('sih-language', 'en');",
+          "localStorage.setItem('sih-textsize', 'md');",
+          "localStorage.removeItem('sih-dialect');",
+          'true',
+        ].join(''))
+        await cdp.send('Page.navigate', { url: APP + '/' })
+        await sleep(1500)
+        await cdp.evaluate(clearBackground([
+          'html', 'body', '.ui-shell',
+          '.ui-utilitybar', '.ui-masthead', '.ui-masthead-inner', '.ui-brand',
+          '.ui-tricolour', '.ui-topbar', '.ui-navbar', '.ui-breadcrumb',
+        ]))
 
-      // GROW THE PLATE BEFORE PADDING THE CLIP. The strip is min-height 34px and
-      // the wordmark is 23px of it, so there are barely 5px above and below —
-      // padding the clip by 14 reached straight past the navy into the masthead
-      // underneath and pulled a slice of the lotus into the bottom third of the
-      // file. Vertical padding on .ui-utilitybar grows the navy band itself, so
-      // the plate is real paint rather than a clip that hopes to stay inside one.
-      // Injected for the capture only; the page is not reloaded after this.
-      await cdp.evaluate([
-        '(() => {',
-        '  const s = document.createElement("style")',
-        '  s.textContent = ".ui-utilitybar{padding:34px 0 !important}"',
-        '  document.head.appendChild(s)',
-        '  return true',
-        '})()',
-      ].join('\n'))
-      await sleep(250)
-
-      const wm = await cdp.evaluate(boxOf('.ui-wordmark'))
-      const strip = await cdp.evaluate(boxOf('.ui-utilitybar'))
-      if (wm && strip) {
-        // Clamped to the navy band as well as padded, so the file cannot contain
-        // a pixel of anything else even if the injection above stops working.
-        const padX = 26, padY = 22
-        const top = Math.max(strip.y, wm.y - padY)
-        const bottom = Math.min(strip.y + strip.height, wm.y + wm.height + padY)
+        const wm = await cdp.evaluate(boxOf('.ui-wordmark'))
+        if (!wm) continue
+        // The pad is small ON PURPOSE. The tricolour band sits ~11px under the
+        // brand block, and a generous margin here would clip a slice of it into
+        // the file the way the lockup's first run pulled in a grey hairline. The
+        // usable margin is added afterwards, off a measured alpha bounding box,
+        // where it cannot pick up a neighbour.
+        const pad = 5
+        // 40x rather than the lockup's 6x, because the wordmark is only ~74 CSS
+        // px wide in the masthead. This is a re-render at that resolution and not
+        // an upscale — the name is live text and the swoosh is an SVG path, so
+        // both are re-rasterised from vectors. Nothing here is interpolated.
+        const scale = 40
         const shot = await cdp.send('Page.captureScreenshot', {
           format: 'png',
           clip: {
-            x: Math.max(0, wm.x - padX), y: top,
-            // 12x: the wordmark is ~64 CSS px wide in the utility strip, which is
-            // unusable in a deck at any lower factor.
-            width: wm.width + padX * 2, height: bottom - top, scale: 12,
+            x: Math.max(0, wm.x - pad), y: Math.max(0, wm.y - pad),
+            width: wm.width + pad * 2, height: wm.height + pad * 2, scale,
           },
         })
-        writeFileSync(`${BRAND}/arthniti-wordmark-on-navy.png`, Buffer.from(shot.data, 'base64'))
-        written.push(`arthniti-wordmark-on-navy.png  (${Math.round((wm.width + padX * 2) * 12)}px wide, #08243F plate)`)
-        notes['wordmark'] = {
-          cssWidth: Math.round(wm.width),
-          cssHeight: Math.round(wm.height),
-          plateHeight: Math.round(bottom - top),
-          // Must be 0. Anything else means the clamp fired, i.e. the strip was
-          // not grown and the padding was silently cut short on that side.
-          clampedTop: Math.round(top - (wm.y - padY)),
-          clampedBottom: Math.round((wm.y + wm.height + padY) - bottom),
+        const name = `arthniti-wordmark-${theme === 'light' ? 'on-light' : 'on-dark'}.png`
+        writeFileSync(`${BRAND}/${name}`, Buffer.from(shot.data, 'base64'))
+        written.push(`${name}  (${Math.round((wm.width + pad * 2) * scale)}px wide, transparent)`)
+        notes[name] = {
+          cssWidth: +wm.width.toFixed(1),
+          cssHeight: +wm.height.toFixed(1),
+          scale,
+          arth: await cdp.evaluate('getComputedStyle(document.querySelector(".ui-wordmark-arth")).color'),
+          niti: await cdp.evaluate('getComputedStyle(document.querySelector(".ui-wordmark-niti")).color'),
         }
       }
     }

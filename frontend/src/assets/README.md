@@ -45,7 +45,9 @@ tidiness.
 | `brand/arthniti-mark-dark-1024.png` | 1024×1329, transparent | dark posters |
 | `brand/arthniti-lockup-on-light.png` | 1949px wide, transparent — mark + name + tagline | a title slide on white |
 | `brand/arthniti-lockup-on-dark.png` | 1949px wide, transparent — same, light ink | a title slide on navy |
-| `brand/arthniti-wordmark-on-navy.png` | 1391px wide, on a `#08243F` plate | a header strip, a footer band |
+| `brand/arthniti-wordmark-on-light.png` | 2617×1251, transparent — dark ink on nothing | white or light slides, docs, print |
+| `brand/arthniti-wordmark-on-dark.png` | 2617×1251, transparent — warm light ink | dark slides, a navy band |
+| `brand/arthniti-wordmark-on-navy.png` | 1391px wide, on a `#08243F` plate | **superseded 13 Sept 2026** — see below |
 | `hero-backdrop.jpeg` | 735×386 — **a copy of the live backdrop** | showing the landing page in the deck |
 | `hero.png` | 343×361 | **nothing — see "Stale" below** |
 
@@ -98,22 +100,44 @@ inline swoosh, and that is **deliberately live text rather than an image** — i
 takes its colours from tokens, scales with `--ui-scale`, is read aloud by a
 screen reader, and does not blur on a projector.
 
-The PNG here exists because a deck is not the app. Its spec, if you need to set
-it by hand:
+The PNGs here exist because a deck is not the app. **There are two of them, one
+per colour case, and both are transparent.** Its spec, if you need to set it by
+hand:
 
 ```
 family          "Noto Sans", Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif
-अर्थ             #F6C15C   weight 800   no letter-spacing
-Niti            #FFF4E0   weight 500   letter-spacing 0.03em
-swoosh + dot    #E8973A / #F6C15C
-plate           #08243F
+                (inherited — there is no @font-face and no webfont link, so
+                 Devanagari resolves to whatever the machine has; Nirmala UI here)
+अर्थ             weight 800   no letter-spacing    light case #8A5A0A   dark case #F6C15C
+Niti            weight 500   letter-spacing 0.03em             #12233A             #FFF4E0
+swoosh          stroke-width 2 CSS px, round cap               #B86F10             #E8973A
+dot             r 2.2 in a 100x9 viewBox                       #8A5A0A             #F6C15C
+plate           none — see below
 ```
 
-Two notes that are easy to get wrong. The letter-spacing is on the **Latin half
-only** — applying it to the whole name spaces out the Devanagari grapheme
-clusters and pulls the र्थ conjunct apart. And the navy plate is **not
-optional**: `Niti` is a cream `#FFF4E0`, which is invisible on white. The utility
-strip is `#08243F` in *both* themes, which is why one file covers both.
+Three notes that are easy to get wrong.
+
+The letter-spacing is on the **Latin half only** — applying it to the whole name
+spaces out the Devanagari grapheme clusters and pulls the र्थ conjunct apart.
+
+**There is no plate any more, and the reason the old one existed is now the reason
+there are two files.** This section used to say a navy plate was *not optional*,
+because `Niti` was a cream `#FFF4E0` that is invisible on white and the utility
+strip the wordmark lived in was `#08243F` in *both* themes, so one file covered
+both. Every clause of that died on 11 Sept 2026 when the wordmark moved into the
+masthead: it sits on `var(--color-surface)` now, which flips, so the tokens gained
+a **light case** (`#8A5A0A` / `#12233A` / `#B86F10`) that is dark-on-light and
+needs no plate at all — and the two themes stopped sharing one rendering. Hence
+two transparent files. A dark slide *is* the plate for the dark case.
+`brand/arthniti-wordmark-on-navy.png` is the last plated export; it is kept so an
+older deck still resolves, and nothing should use it in a new one.
+
+**Do not scale the wordmark by raising `font-size`.** `.ui-wordmark-swoosh` is
+`height: 0.36rem; width: 100%` — tied to the **root** font size, not to the
+wordmark's own. So enlarging the name widens its box while the swoosh's stays
+5.76px tall, and the `viewBox="0 0 100 9"` under `preserveAspectRatio="none"`
+stretches non-uniformly: the curve flattens and the `r="2.2"` bead becomes an
+ellipse. Leave the CSS geometry at the shipped size and raise the *capture* scale.
 
 **The app loads no webfont.** It relies on Noto Sans being installed, falling
 back to Inter and then the system UI font. So on a laptop without Noto Sans the
@@ -170,7 +194,7 @@ cd frontend && npm run dev          # the lockup and wordmark come from the live
 node tools/assetgen.mjs       # from the repo root
 ```
 
-It produces the seven PNGs from **two different sources on purpose**:
+It produces the eight PNGs from **two different sources on purpose**:
 
 - The **mark** is rasterised from the two standalone SVGs in `brand/`. Going
   through the shipped file rather than through the React component is the point:
@@ -183,17 +207,36 @@ It produces the seven PNGs from **two different sources on purpose**:
   mean guessing at font metrics, and they would drift from the masthead the
   moment a token moved. Capturing the real thing cannot drift.
 
-If you have to redo it without the script: screenshot `.ui-brand` in the masthead
-at a high device-pixel ratio for the lockup, and `.ui-wordmark` — which is the
-masthead's product name as of 11 Sept 2026, having moved there from the utility
-strip — for the wordmark on its own. Two things that went wrong the first time and will again:
+If you have to redo it without the script: with `Emulation.setDefaultBackgroundColorOverride`
+at alpha 0, and every chrome surface (`html`, `body`, `.ui-shell`, `.ui-utilitybar`,
+`.ui-masthead`, `.ui-masthead-inner`, `.ui-brand`, `.ui-tricolour`, `.ui-topbar`,
+`.ui-navbar`, `.ui-breadcrumb`) forced to `background: transparent !important;
+border-color: transparent !important; box-shadow: none !important`, clip
+`Page.captureScreenshot` to **`.ui-brand`'s own box** for the lockup and to
+**`.ui-wordmark`'s own box** for the wordmark, once per theme. Four things that
+went wrong and will again:
 
+- **Clip to the element's own box; never to the container it happens to sit in.**
+  The old wordmark step grew `.ui-utilitybar`'s padding and clamped the clip to
+  that band — which stopped containing `.ui-wordmark` on 11 Sept 2026, and
+  *growing* the band pushed the masthead 68px further down, so the clamp resolved
+  to `bottom < top`: a negative-height clip. It failed silently, and it failed the
+  moment the subject moved rather than when the step was edited.
 - **Capture at a high scale, not by upscaling afterwards.** The lockup is only
-  ~305 CSS px wide in the masthead and the wordmark ~72 at its masthead size (~64
-at the smaller size it used in the strip). A screenshot re-rendered
-  at 6× or 12× is sharp because the mark is vector and the name is live text; the
+  ~305 CSS px wide in the masthead; **the wordmark is 63.9 × 25.2** (measured at
+  1440px, `en`, text size `md` — this line claimed ~72 until it was measured on
+  13 Sept 2026). So 6× for the lockup and **40× for the wordmark**. Both are
+  re-renders at that resolution, not upscales: the mark and the swoosh are vector
+  and the name is live text, so everything is re-rasterised from outlines. The
   same bitmap enlarged in an image editor is mush.
-- **The wordmark's navy plate is only 34px tall and the wordmark is 23px of it.**
-  There is nowhere for padding to go, so a padded clip runs straight past the
-  navy and pulls a slice of the masthead — including part of the lotus — into the
-  bottom of the file. Grow the strip first, then pad.
+- **`vector-effect="non-scaling-stroke"` DOES scale with the device scale factor**,
+  which is worth knowing because it reads like it would not. Measured at 40×, the
+  swoosh is **80 device px** against an 1131px ink height — exactly `2 × 40` — so
+  `--wordmark-swoosh-w: 2` keeps its proportion and the line is not a hairline.
+- **Pad the clip by ~5px, then re-crop off a measured alpha bounding box.** The
+  tricolour band sits ~11px under the brand block, so a generous clip margin pulls
+  a slice of it in — that is what put a grey hairline across the first lockup run.
+  And the element box is not a frame around the *ink*: अर्थ's matra reaches the top
+  of the span while the space under the swoosh is empty, so the raw 40× capture
+  came out 196/61/227/208. The shipped files are the alpha bbox plus a uniform
+  60px, i.e. 2617×1251 with all four corners at `(0,0,0,0)`.
