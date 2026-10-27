@@ -2,7 +2,7 @@
 
 This is the technical schedule for an organisation that runs अर्थNiti for its own clients: an NBFC, an MFI, an SHG federation, a CSC operator or similar. It says what the software collects and sends, what it keeps, where it keeps it and for how long, and what it leaves to the organisation and its host. It is written to sit alongside a contract. It is not the contract and it is not legal advice. Items that need a lawyer are marked **Lawyer**.
 
-It describes the code as measured on 27 Sept 2026 (branch `feature/dpdp-compliance`, notice version `2026-09-27.1`). A statement of the form "the software does X" is backed by the test or live probe named next to it. If the code changes, this file has to change with it.
+It describes the code as measured on 27 Sept 2026 (branch `feature/dpdp-compliance`, notice version `2026-09-27.1`), plus the optional AI helper added on 26 and 27 Oct 2026 for the Meta hackathon (`docs/HACKATHON.md`). **The helper is off by default.** Sections 1 to 9 describe the software with the helper off, and say so where the helper changes a statement. Section 10 describes the helper. A statement of the form "the software does X" is backed by the test or live probe named next to it. If the code changes, this file has to change with it.
 
 Nothing here says that the software, or any deployment of it, complies with the DPDP Act, the DPDP Rules or any other law. That is for the organisation and its lawyer to decide, using the facts below.
 
@@ -17,7 +17,7 @@ Nothing here says that the software, or any deployment of it, complies with the 
   - The Act's operative sections (3–5, 6(1)–(8) and (10), 7–17, 27 except 27(1)(d), 28–34, 36, 37 and 44(2)) and Rules 3, 5–16, 22 and 23 apply eighteen months from publication. That gives 13 May 2027. **Lawyer:** whether the date is 13 or 14 May. The on-screen notice says 13 May 2027 (`privacy.board`), so a different answer means changing that text and the notice version (§5.4).
   - s. 6(9), s. 27(1)(d) and Rule 4 (Consent Managers) apply after one year. Rules 1, 2 and 17–21 applied on publication.
   - Until the Rules apply, IT Act s. 43A and the SPDI Rules 2011 may apply. Their text was not checked for this schedule. **Lawyer:** whether revenue, EMI and household-income figures are "financial information" under the SPDI Rules.
-- **The software uses no AI model.** Every figure and every sentence of advice comes from fixed, hand-written rules in `backend/app/services/`. No request is sent to any model, API or third party.
+- **By default the software uses no AI model.** Every figure and every sentence of advice comes from fixed, hand-written rules in `backend/app/services/`, and with the helper off no request is sent to any model, API or third party. The optional helper (§10), off unless the deployer switches it on, sends what a person says or types on one page to Meta's Model API, so that the form can be filled in for the person to check. It never produces a figure or a sentence of advice.
 
 ---
 
@@ -37,7 +37,7 @@ The journey asks 19 questions over four steps, or 20 when the reader picks "Othe
 
 ### 2.2 What is sent
 
-The answers are sent once, when the reader presses **Check my business** on `/finance` with the consent box ticked. They go as one `POST /api/analysis/run` JSON request to `VITE_API_BASE_URL`. The frontend makes no other network request, and it loads no third-party font, script, stylesheet or CDN asset. Exactly 12 answers are sent:
+The answers are sent once, when the reader presses **Check my business** on `/finance` with the consent box ticked. They go as one `POST /api/analysis/run` JSON request to `VITE_API_BASE_URL`. With the helper off, the frontend makes no other network request. With it on, the `/talk` page also calls the backend's two intake routes (§10), still at `VITE_API_BASE_URL`: the browser contacts no other address. The frontend loads no third-party font, script, stylesheet or CDN asset in either case. Exactly 12 answers are sent:
 
 | Request field | Question | What it changes in the result |
 |---|---|---|
@@ -85,11 +85,13 @@ The backend still accepts eight more fields for other API callers: `employees`, 
 
 | Where | What | How long | Who can reach it |
 |---|---|---|---|
-| Browser `sessionStorage`, key `sih-application` | every answer, the ones never sent included, and the last result, as `{v: 4, data}` | until **Start over** is pressed, or the tab is closed. It survives a page refresh. A browser that restores tabs after a restart may restore it too. | anyone using that tab on that device |
+| Browser `sessionStorage`, key `sih-application` | every answer, the ones never sent included, and the last result, as `{v: 5, data}`. When the helper filled a field, `data` also names that field (`aiFilled`: field names, not words) | until **Start over** is pressed, or the tab is closed. It survives a page refresh. A browser that restores tabs after a restart may restore it too. | anyone using that tab on that device |
 | Browser `localStorage` | `sih-language`, `sih-dialect`, `sih-theme`, `sih-textsize` (and an inert `sih-contrast` left by older builds). Interface preferences only; no answers | no expiry. Start over does not clear them, and the notice says so (`common.startOverText`) | the next person on the same browser profile |
 | `FinancePage` memory | the consent tick, the age tick, the zero-income confirmation | until the reader leaves `/finance`. Never written to storage | that page |
+| `/talk` page memory (helper on) | the consent and age ticks, the recording until it is sent, the transcript, the answers found and which of them are ticked | until the reader leaves `/talk`. Never written to storage. The answers the reader chooses to use go into the `sessionStorage` copy above, as any other answer | that page |
 | In transit | the 12 fields and the consent record | one request | the network path. HTTPS is required (D1) |
-| Server process memory | the request and the computed response | the length of the request. The app writes nothing to disk and has no database. Its only cache holds the bundled scheme and market files | the server process |
+| Server process memory | the request and the computed response | the length of the request. With the helper off, the app writes nothing to disk and has no database. Its only cache holds the bundled scheme and market files | the server process |
+| Spend file (helper on) | one whole number per model call, in millionths of a dollar. No words, no key, no identity (§10.3) | until someone deletes it. The app deletes nothing | whoever can read the server's disk |
 | **Processing log** (stdout) | one JSON line per request (§4). No answer; a code computed from the answers | **the app deletes nothing.** The organisation sets and enforces the retention | whoever can read the server's stdout |
 | uvicorn access log (stdout by default) | per request: the client IP address and port, the method, the path **with its query string**, and the status | as above | as above. Turn it off with `--no-access-log` (§3.3) |
 | stderr | startup notes; response-validation failures (error types and field locations only); uvicorn's traceback for an unhandled error | as above | as above |
@@ -113,10 +115,17 @@ The browser's own form history is a separate store. `autoComplete="off"` is set 
 | `ARTHNITI_TENANT` | a label copied into every log line: `^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$` | `default` |
 | `ARTHNITI_REQUIRE_CONSENT` | exactly `true` or `false`. When true, a request with no consent record gets a 422 | true in production, false in development |
 | `ARTHNITI_LOG_HASH_KEY` | optional; at least 32 characters. When set, the log keys its payload code with HMAC-SHA256 (§4.3). It is a secret: keep it out of the repo and out of any `VITE_*` value | unset (plain SHA-256) |
+| `ARTHNITI_AI_ENABLED` | exactly `true` or `false`. When true, the two `/api/intake` routes are mounted, in production too, and the server refuses to start without `MODEL_API_KEY` (§10) | `false` |
+| `MODEL_API_KEY` | the Meta Model API key: 1 to 512 visible ASCII characters, environment only (the backend reads no file for it). It is a secret: keep it out of the repo and out of any `VITE_*` value. It is dropped at startup while the helper is off | unset |
+| `ARTHNITI_AI_MODEL` | the chat model. A name ending in `-contributor` is refused (§10.3) | `muse-spark-1.3` |
+| `ARTHNITI_AI_ASR_MODEL` | the speech-to-text model. The same refusal | `muse-voice-transcribe-1.0` |
+| `ARTHNITI_AI_HOURLY_LIMIT` | a whole number from 1 to 100000: the model calls the whole process makes in an hour (§10.7) | `100` |
+| `ARTHNITI_AI_SPEND_CAP_USD` | dollars, written like `10` or `2.50`, above 0 and at most 100 (§10.7) | `10` |
+| `ARTHNITI_AI_SPEND_FILE` | the full path of the file that keeps the running total (§10.7). A relative path is refused | `backend/.ai_spend` |
 
-**Production** serves only `GET /health` and `POST /api/analysis/run`. `/docs`, `/redoc` and `/openapi.json` are switched off, and the other six routers are not mounted, so their routes return 404.
+**Production** serves only `GET /health` and `POST /api/analysis/run`. `/docs`, `/redoc` and `/openapi.json` are switched off, and the other six routers are not mounted, so their routes return 404. With `ARTHNITI_AI_ENABLED=true` it also serves `POST /api/intake/transcribe` and `POST /api/intake/extract` (§10).
 
-**Development** serves all 8 routers and the API docs, and logs a startup warning that lists what is open. Development `/docs` loads Swagger UI's JavaScript from a public CDN.
+**Development** serves all 8 routers (9 with the helper on) and the API docs, and logs a startup warning that lists what is open. Development `/docs` loads Swagger UI's JavaScript from a public CDN.
 
 With consent switched off in production, the server logs one INFO line at startup saying so.
 
@@ -132,7 +141,8 @@ With consent switched off in production, the server logs one INFO line at startu
 | `VITE_PRIVACY_CONTACT` | how to reach the organisation about the answers; printed as plain text | the notice says this copy gives no contact |
 | `VITE_GRIEVANCE_URL` | the organisation's complaints page, shown as a link | not shown. An address that is not `https://` counts as unset |
 | `VITE_RECORD_RETENTION_DAYS` | a whole number from 1 to 99999, shown as "kept for N days" | the notice tells the reader to ask the contact, or says the period is not stated |
-| `VITE_REQUIRE_AGE_CHECK` | exactly `true` adds the age box and the age paragraph | no age question |
+| `VITE_REQUIRE_AGE_CHECK` | exactly `true` adds the age box and the age paragraph. On `/talk` it adds its own age box (§10.5) | no age question |
+| `VITE_AI_HELPER` | exactly `true` shows the `/talk` page, its landing button and its profile card. Set it only when the backend runs with `ARTHNITI_AI_ENABLED=true` (§10) | the page does not exist: `/talk` shows the not-found page |
 
 Set `VITE_RECORD_RETENTION_DAYS` only to the period after which the organisation actually deletes the records (§4.5). A figure under 365 conflicts with the one-year minimum in Rule 8(3). **Lawyer.**
 
@@ -140,7 +150,7 @@ Set `VITE_RECORD_RETENTION_DAYS` only to the period after which the organisation
 
 | Flag | Why |
 |---|---|
-| `--no-access-log` | uvicorn's access log goes to stdout by default, between the processing-log lines, and carries the client IP address and the query string. In production the app logs a startup warning while it is on. Leave it on only if the organisation wants that record, and send it elsewhere with `--log-config` |
+| `--no-access-log` | uvicorn's access log goes to stdout by default, between the processing-log lines, and carries the client IP address and the query string. In production the app logs a startup warning while it is on. Leave it on only if the organisation wants that record, and send it elsewhere with `--log-config`. With the helper on, the query string holds `?language=` (the language a person said they would speak) on every call to `/api/intake/transcribe` |
 | `--no-server-header` | uvicorn sends `server: uvicorn` by default. Measured: the flag removes it |
 | `--proxy-headers`, `--forwarded-allow-ips` | only behind a proxy you control. They make uvicorn's own access log record the forwarded client address. The processing log never records an address in any case |
 | `--limit-concurrency` | an upper bound on concurrent requests. The app itself sets no rate or body-size limit (D4) |
@@ -164,6 +174,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log --no
 - [ ] stdout collected, protected and kept for the agreed period, then deleted (§4.5).
 - [ ] S16, the native-speaker review, done for every language that will be offered (§9.1).
 - [ ] The contract (C1) signed, and the breach route (C5) agreed.
+- [ ] The AI helper is off (`ARTHNITI_AI_ENABLED` unset, `VITE_AI_HELPER` unset), or every item in §10.8 is done.
 
 ---
 
@@ -378,7 +389,7 @@ CORS stops other websites from calling the API from a reader's browser. It does 
 | C1 | **Contract** (s. 8(2); Rule 6(1)(f) requires a security term) | this schedule, as the technical annex | **Lawyer** drafts it. **No sale without it.** |
 | C2 | **Notice content** (s. 5, Rule 3; contact under s. 8(9) and Rule 9; grievance under s. 8(10) and Rule 14(3)) | the notice text and the `VITE_*` values (§3.2) | supplies the name, website, contact, complaints page and retention period; publishes a grievance response period of no more than 90 days on its complaints page |
 | C3 | **Legal basis** (consent, or legitimate use under s. 7(a)) | a consent step and a consent record (§5.3) | **Lawyer.** If the basis is not consent, the notice text changes, with a new notice version |
-| C4 | **Naming processors** (s. 11(1)(b)) | the software calls no third party at runtime. The only other parties are the host, the proxy and any CDN the organisation adds | names the processor and every host and service in its rights responses |
+| C4 | **Naming processors** (s. 11(1)(b)) | with the helper off, the software calls no third party at runtime, and the only other parties are the host, the proxy and any CDN the organisation adds. With the helper on, Meta also receives what a person says or types on `/talk` (§10.6) | names the processor and every host and service in its rights responses, and Meta if the helper is on |
 | C5 | **Breach** (s. 8(6); Rule 7) | the software holds no contact detail for anyone. The log's `request_id` and `ts` help date an incident | tells affected people through its own records, and tells the Board within 72 hours. The contract should fix how many hours the processor has to tell the organisation, and what facts it must report |
 | C6 | **What is held, and for how long** (s. 8(7); Rule 8(3)) | §2.4 and §4.5 | sets and enforces the retention; checks RBI and other sector retention rules (not checked here). **Lawyer** |
 | C7 | **Children** (s. 9; Rule 10) | an optional age box, recorded in the log (§5.3) | decides whether minors may use the tool; runs any verification of a parent's consent |
@@ -396,11 +407,11 @@ CORS stops other websites from calling the API from a reader's browser. It does 
 | D1 | **TLS** (Rule 6(1)(a)) | a production build refuses a non-`https://` API address; production CORS accepts `https://` origins only | serves the frontend and the API over HTTPS, and sets HSTS at the proxy. The app sets no HSTS header |
 | D2 | **Origins and hosts** | an exact origin list, credentials off (§6) | checks the `Host` header at the proxy. The app has no TrustedHost check |
 | D3 | **Access logs** (Rule 6(1)(c), (e); Rule 8(3)) | the app's log has no IP address; uvicorn's access log is off with `--no-access-log` | decides whether the proxy keeps IP addresses and for how long, and protects those logs. **Lawyer:** whether an IP address is personal data here, and the retention |
-| D4 | **Abuse limits** | none in the app. The 20-second timeout in the browser protects nothing on the server | sets body-size, rate and concurrency limits at the proxy (and `--limit-concurrency`) |
+| D4 | **Abuse limits** | none on the analysis route. The 20-second timeout in the browser protects nothing on the server. With the helper on, its two routes have an hourly call limit per process and a spend cap (§10.7). Those bound the cost and not the traffic: the routes have no sign-in and no limit per person | sets body-size, rate and concurrency limits at the proxy (and `--limit-concurrency`). With the helper on, limits the intake routes harder, because each call can cost money |
 | D5 | **Hosting location** (s. 16) | no requirement in the code | chooses the region. **Lawyer**, with the sector's rules: whether any country is notified, and whether hosting must be in India |
 | D6 | **Access and backups** (Rule 6(1)(b), (d)) | the only state is the logs | limits who can read the servers and the logs; decides whether logs are backed up, and for how long |
 | D7 | **One instance per organisation, or shared** | `ARTHNITI_TENANT` labels each line; it does not separate storage | runs one instance per organisation (recommended), or separates the logs downstream by `tenant` |
-| D8 | **Hardening** | production mounts 2 routes and no API docs (§3.1) | starts uvicorn with `--no-server-header` and `--no-access-log` |
+| D8 | **Hardening** | production mounts 2 routes and no API docs (§3.1), or 4 routes with the helper on (measured with a stand-in model client: `/health`, `/api/analysis/run` and the two `/api/intake` routes answer, and the other routers and `/docs` return 404) | starts uvicorn with `--no-server-header` and `--no-access-log` |
 | D9 | **The data.gov.in key** | used only by `tools/fetch-market-data.mjs` on the owner's machine. The backend never reads it | never deploys it. It is not needed at runtime |
 | D10 | **The owner's public demo** | demo mode (§5.2); no answer is logged; `/login` asks only for a name | the owner, as Fiduciary, keeps the demo in demo mode and keeps its logs to the minimum |
 
@@ -447,7 +458,8 @@ The fetch runs offline on the owner's machine and never in a deployment. **Lawye
 - who counts as the household for an unmarried adult. The household check follows the RBI Master Direction on microfinance loans (2022), and this definition is our own reading of it;
 - whether age should be enforced rather than recorded (C7);
 - the hosting location (D5);
-- whether the processor has direct duties, or only duties through the contract. s. 8(1) puts responsibility on the Fiduciary, but Rule 6(1) and Rule 8(3) Case 2 reach the processor.
+- whether the processor has direct duties, or only duties through the contract. s. 8(1) puts responsibility on the Fiduciary, but Rule 6(1) and Rule 8(3) Case 2 reach the processor;
+- if the AI helper is switched on (§10): Meta as a further processor of what a person says or types, sent outside India; the term in Meta's free-credit programme that lets Meta use that content to improve its products; and whether the helper needs its own consent text, since the versioned notice does not mention it (§10.5, §10.6).
 
 ### 9.4 Other known limits
 
@@ -458,3 +470,115 @@ The fetch runs offline on the owner's machine and never in a deployment. **Lawye
 - A browser that restores tabs may restore the `sessionStorage` copy after a restart (§2.4).
 - The household income and every other figure are self-reported, and nothing is verified (C9).
 - The runtime check of the error banner does not inspect the POST body. The static test in §2.2 covers what is sent.
+- **The helper's wording is outside the versioned notice, and `/privacy` does not mention the helper** (§10.5).
+- **The helper's two routes have no sign-in, no server-side consent record and no limit per person** (§10.5, §10.7).
+
+---
+
+## 10. The optional AI helper (Meta Model API)
+
+Added on 26 and 27 October 2026 for the Meta Global AI Developer Hackathon (`docs/HACKATHON.md`). **It is off by default, and sections 1 to 9 describe the software with it off.** Everything in this section applies only when both switches in §10.1 are on.
+
+### 10.1 What it is
+
+The `/talk` page lets a person say or type a few sentences about their business instead of answering the form's questions one at a time. It makes two calls, both through this backend:
+
+1. **Speech to words:** `POST /api/intake/transcribe?language=<code>`. The backend sends the recording to Meta's speech model (`muse-voice-transcribe-1.0` by default) and returns the words.
+2. **Words to candidate answers:** `POST /api/intake/extract`. The backend sends the words to Meta's language model (`muse-spark-1.3` by default) and asks for the form answers it can find in them.
+
+The helper computes no figure and writes no advice. The result, the schemes and the advice come from the same fixed rules as when the answers are typed. It does not look for the name or the business name, which stay in the tab (§2.3).
+
+The server keeps an answer from the model only if all of these hold:
+
+- its field is one the helper may fill;
+- its value is the right kind and in range (a kind of work from the fixed list; money a whole number from 0 up to the cap; a household income of 0 is dropped);
+- its quote is really in the person's words;
+- when the quote is only a number, the number equals the value.
+
+Everything else is dropped and counted. The page shows each answer with the person's own words beside it, and only the answers the person ticks go into the form. **A spoken amount that the model converted ("1.5 lakh" to 150000) is checked only by the person reading it.** No code checks the conversion.
+
+There are two switches, and both are off by default:
+
+| Switch | Set in | With it off |
+|---|---|---|
+| `ARTHNITI_AI_ENABLED=true` | the backend environment (§3.1) | the intake routes are not mounted and answer 404. The page shows `talk.errUnavailable` ("The helper is not available right now…") |
+| `VITE_AI_HELPER=true` | the frontend build (§3.2) | `/talk`, its landing button and its profile card do not exist, and `/talk` shows the not-found page |
+
+### 10.2 What is sent to Meta
+
+The browser never contacts Meta. The backend calls `https://api.meta.ai/v1` with the key in an `Authorization` header, so Meta sees the server's address and not the person's.
+
+| Call | What goes to Meta |
+|---|---|
+| Speech | the recording as a WAV (mono, 16-bit, 16 or 24 kHz, at most 3,000,000 bytes; the page stops recording at 60 seconds). The spoken language's name, for example "Hindi", as a hint. 15 fixed words that help it hear numbers and places (`lakh`, `crore`, `EMI`, `rupees`, `Lucknow`, `Varanasi`, `Uttar Pradesh` and the eight kinds of work). The model name |
+| Words | one message of our fixed instructions, which names the spoken language. One message holding the person's words (1 to 2,000 characters). A fixed JSON schema for the reply. The model name, `reasoning_effort` set to `low`, a cap of 4,000 output tokens and a `prompt_cache_key` of `form_answers` |
+
+Nothing else is sent: not the other answers, not the name, not the consent record and not the person's IP address. **The person can say or type anything.** The page asks them not to say a name, phone number or bank details (`talk.sendsText`), and nothing checks that they do not.
+
+### 10.3 What is held
+
+| Where | What | How long |
+|---|---|---|
+| Backend memory | the recording and the words | one request. Neither is written to disk or to a log |
+| Spend file, `ARTHNITI_AI_SPEND_FILE` (default `backend/.ai_spend`, git-ignored) | one line per model call: a whole number of millionths of a dollar, the call's worst-case price. No words, no key, no identity | until someone deletes it. The app deletes nothing |
+| `/talk` page memory | the recording until it is sent, the words (editable), the answers found | until the person leaves the page |
+| Browser `sessionStorage` | the answers the person ticked, as any other answer, and the names of the fields the helper filled (`aiFilled`) | as in §2.4 |
+| Meta | Meta decides | Meta decides |
+
+What Meta's public pages and the account's billing page said when read on 26 October 2026. **The deployer must check it against the terms that apply to the deployer's own account:**
+
+- In Standard mode, content is not used to train models. The helper refuses a model whose name ends in `-contributor`, because those allow training (`backend/app/core/settings.py`).
+- The billing page for the free-credit programme said that content sent while free credits are in use "may be used for product improvement". `talk.sendsText` tells the person this. It no longer applies once the credits are not in use.
+- Meta's pricing and speech pages mention zero data retention. They do not say how to ask for it, and **the app does not ask for it.**
+- Prompt caching is automatic. The app sends a cache key and does not set a retention period. Meta says the actual retention is managed on its side.
+
+### 10.4 What is logged
+
+- **The processing log** (§4) writes its same eight keys for the two routes. `path` is the route template, never the query string. It holds no recording, no words, no answer and no consent record, and the intake routes compute no payload code. `backend/tests/test_intake_log_privacy.py` sends a marker through every route and every error path and fails if the marker reaches the log.
+- **stderr:** one WARNING from the logger `arthniti.errors` for a failed model call, holding the kind of failure and the HTTP status. Meta's error message is not kept.
+- **The uvicorn access log** (§3.3) holds the client IP address and the query string, so it holds `?language=` for every call to `/api/intake/transcribe`. `--no-access-log` turns it off.
+- **Startup:** one INFO line when the helper is on, with the model names, the hourly limit, the cap and the spend-file path. Never the key.
+
+### 10.5 Consent, notice and who may use it
+
+- `/talk` has its own consent box, kept in page memory only, and an age box when `VITE_REQUIRE_AGE_CHECK` is set. Pressing **Record** or **Find my answers** with a box unticked sends nothing, says why and moves focus to the box. The buttons are not disabled, so the reason can be seen.
+- The `/talk` wording (`talk.*` in `resultStrings.js`) is **outside the versioned notice** (`NOTICE_KEYS`). Editing it does not change `NOTICE_VERSION`.
+- **`/privacy` does not mention the helper.** A deployer who switches the helper on has to add that and bump `NOTICE_VERSION` (§5.4).
+- The two routes take and keep **no consent record**, so the server cannot tell whether the box was ticked. They do not see the age box either.
+- The seven non-English `talk.*` sets, including the sentence about Meta, have not been reviewed by a native speaker (§9.1).
+
+**Lawyer:** whether the helper needs consent text of its own, in what words and in which languages.
+
+### 10.6 Meta as a further processor, and the transfer abroad
+
+With the helper on, Meta receives a person's voice and words. For the deployer, Meta is a further processor, and the data leaves India. This schedule does not say whether either is allowed.
+
+**Lawyer:** the contract with Meta; the term in the free-credit programme that lets Meta use that content to improve its products; the transfer outside India.
+
+### 10.7 Cost and abuse controls
+
+The key pays for every call. These controls bound the cost. None of them identifies or limits a person.
+
+| Control | What it does | What it does not do |
+|---|---|---|
+| Spend cap, `ARTHNITI_AI_SPEND_CAP_USD` (default 10, at most 100) | Before each call it adds the call's worst-case price to the spend file, and it refuses the call (503) if the total would pass the cap. A failed call is still charged. A model missing from the price table is priced at the dearest known rate. A spend file that cannot be read stops the start, and one that cannot be read or written later refuses every call | It bounds this app only. It does not read Meta's real bill. Several worker processes can each overshoot by one call. Deleting or editing the file resets the total |
+| Hourly limit, `ARTHNITI_AI_HOURLY_LIMIT` (default 100, 1 to 100,000) | Counts calls over a sliding hour and answers 429 with `Retry-After` beyond it | It lives in process memory, so a restart resets it and each worker has its own. CORS does not expose `Retry-After` to the browser |
+| Size limits | A recording over 3,000,000 bytes gets 413. Words over 2,000 characters get 422 | |
+| Meta's own spend limit | An email alert | It does not block anything |
+
+- There is no sign-in and no limit per person.
+- No `safety_identifier` is sent. Meta recommends one so that it can act against a single end user. Without it, misuse by one visitor can be acted on against the whole key. The app has no per-person identity by design.
+- `python -m app.smoke_meta` makes two language-model calls and one speech call (one second of silence) and records **$0.0451** against the cap. That is a worst-case figure. One language-model call is priced at about 2 to 3 cents against the cap, so the default $10 allows a few hundred.
+
+### 10.8 Before switching it on
+
+- [ ] The lawyer has answered §10.5 and §10.6.
+- [ ] `MODEL_API_KEY` is in the server's environment only: never in a `VITE_*` variable, a file in the repository or a command line. Type it with `read -rs MODEL_API_KEY` and not `export MODEL_API_KEY=…`, so it does not land in the shell history.
+- [ ] `ARTHNITI_AI_SPEND_CAP_USD` is an amount the deployer can afford to lose, and `ARTHNITI_AI_SPEND_FILE` is an absolute path on a disk that survives a restart.
+- [ ] uvicorn runs with `--no-access-log` (§3.3).
+- [ ] `/privacy` mentions the helper and `NOTICE_VERSION` is bumped (§5.4).
+- [ ] Every `talk.*` language that is offered has been reviewed by a native speaker (§9.1).
+- [ ] The proxy limits the two intake routes harder than the rest (D4), because the app has no sign-in.
+- [ ] `python -m app.smoke_meta` has run once with the production key, and the spend file holds the total that was printed.
+- [ ] Meta-side alerts are set, and Meta has been asked whether zero data retention can be switched on for the account.
+- [ ] `VITE_AI_HELPER=true` is set at build time, last.

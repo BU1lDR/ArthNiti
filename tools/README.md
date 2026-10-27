@@ -1,6 +1,7 @@
 # `tools/` — the verification suite
 
-28 zero-dependency `.mjs` files (`ls tools/*.mjs tools/verify/*.mjs | wc -l`).
+31 zero-dependency `.mjs` files (`ls tools/*.mjs tools/verify/*.mjs | wc -l`), and
+one Python helper, `verify/talk_fake_backend.py`.
 The verifiers check things `npm run lint`, `npm run build` and `pytest`
 structurally cannot see: a leaked translation key, a `null%`, a page that
 scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, a logo
@@ -8,11 +9,11 @@ that prints invisible, a transition that silently does nothing, a route that ope
 halfway down the page, a footer column whose heading starts 50px below its
 neighbours'.
 
-Not all 28 are gates. Counted by class:
+Not all 31 are gates. Counted by class:
 
 | Class | Count | Scripts |
 |---|---|---|
-| **Gates**: exit 1 on a finding, 2 when they could not measure | 18 | `parity4`, `keycheck`, `market-lib-test` (via `node --test`), `drive`, `mobile-audit`, `lang-layout`, `field-align`, `print-audit`, `motion-audit`, `scroll-audit`, `text-align`, `hero-art`, `brand-mark`, `manual-audit`, `error-banner`, `market-ui`, `figure-audit`, `load-perf` |
+| **Gates**: exit 1 on a finding, 2 when they could not measure | 21 | `parity4`, `keycheck`, `market-lib-test`, `talk-lib-test` and `app-state-test` (the three via `node --test`), `drive`, `mobile-audit`, `lang-layout`, `field-align`, `print-audit`, `motion-audit`, `scroll-audit`, `text-align`, `hero-art`, `brand-mark`, `manual-audit`, `error-banner`, `market-ui`, `figure-audit`, `load-perf`, `talk-ui` |
 | **Report-only verifiers**: exit 0 whenever they measured and 2 when they could not; a person reads the output | 3 | `glyph-audit` (expect exactly 3 hits), `hero-geom` (measurements, no findings), `hero-vibrance` (a tuning instrument: its verdict column rates candidate filters and is not a finding) |
 | **Helpers**: not gates | 6 | `refresh-cases` (fixture generator), `art-contrast` (retired, exits 2), `assetgen` and `svgcheck` (asset tools), `fetch-market-data` (data fetch), `third-party-notices` (writes `THIRD_PARTY_NOTICES.md`) |
 | **Library**: not run directly | 1 | `market-lib` |
@@ -52,7 +53,8 @@ fall into four groups.
   browser would send from the app's origin; the preview on 4173 for `load-perf`.
   `figure-audit` asks the backend for its four cases, 20 s each;
 - a port already held: 9333 for `mobile-audit`; 5179 or 9373 for `market-ui`, or
-  its own Vite never coming up;
+  its own Vite never coming up; 8012, 5182 to 5184 or 9379 for `talk-ui`, or its
+  own backend or Vite never coming up;
 - a seed version `AppContext.jsx` no longer reads, in the nine gates that seed
   `sessionStorage` (see "Seed versions" below);
 - an input that is not there: a `case_*.json`, `market-lib.mjs` for `market-ui`,
@@ -273,7 +275,7 @@ a wait you can hit:
 | | |
 |---|---|
 | **Node** | 24 or newer. The browser drivers use a **global `WebSocket`**, which is what makes them dependency-free. On Node 22 they fail with `WebSocket is not defined`. |
-| **Edge** | All 19 browser scripts hardcode `C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe` and speak Chrome DevTools Protocol to it. Nothing is installed for you. `drive`, `figure-audit`, `mobile-audit` and `market-ui` also find their own Edge with PowerShell's `Get-CimInstance Win32_Process`. So **the browser scripts run on Windows only**, and none of them is in CI. |
+| **Edge** | All 20 browser scripts hardcode `C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe` and speak Chrome DevTools Protocol to it. Nothing is installed for you. `drive`, `figure-audit`, `mobile-audit`, `market-ui` and `talk-ui` also find their own Edge with PowerShell's `Get-CimInstance Win32_Process`. So **the browser scripts run on Windows only**, and none of them is in CI. |
 | **Working directory** | **Always the repo root.** Every path in every script resolves against `process.cwd()`, not against the script's own location. `cd tools && node verify/drive.mjs` will not work: from anywhere else every browser script but `assetgen` stops at once with exit 2 and says so, touching nothing, and so do `parity4` and `keycheck`. `assetgen` has no such check. Three exceptions resolve their paths from their own location and so run from any directory: `fetch-market-data.mjs`, `verify/glyph-audit.mjs` and `verify/market-lib-test.mjs`. |
 | **Servers** | Most need one up. See the table below — starting the wrong one silently measures the wrong thing. |
 
@@ -450,8 +452,9 @@ read. The build step sets `VITE_API_BASE_URL=https://api.example.invalid`:
 this build is never deployed, so it gets a placeholder that cannot resolve
 (`.invalid` is reserved by RFC 2606). parity4 passes in CI only once
 `tools/notice-version.json` is committed with the hash of the committed notice
-text. **None of the browser scripts is in CI.** **CI has never run, on GitHub or
-on Linux**, because the branch has not been pushed. Two scripts were changed for
+text. **None of the browser scripts is in CI.** **CI was written without being run**,
+on a Windows machine with no Linux and no Python 3.10; the Actions tab has the
+result. Two scripts were changed for
 Linux, by reading the code, not by running it there. `keycheck` turns every `\`
 into `/` on both sides before it compares paths. Before that, its filter that
 skips the four dictionary files matched only Windows paths, so on Linux every key
@@ -578,8 +581,10 @@ still a finding. A `FIT_KEYS` line in `backendText.js` that `drive` cannot read
 also exits 2, naming the file and line; it used to read as `FIT LABEL MISSING` on a
 correct app.
 
-**Seed versions.** `AppContext.jsx` writes version 4 and reads 1, 2, 3 and 4. Any
-other version, or a payload with no `{v, data}` wrapper, is thrown away: the form
+**Seed versions.** `AppContext.jsx` writes version 5 and reads 1 to 5. Version 5 added
+`aiFilled`, the answers the voice-and-text helper filled in; a seed without it reads
+with an empty list. Any other version, or a payload with no `{v, data}` wrapper, is
+thrown away: the form
 comes up blank and a result page shows its empty state, and both measure clean.
 `hydrate()` keeps only the keys `EMPTY` has, fills a missing one from `EMPTY`, and
 passes `result` through unchanged, so an old seed that carries a removed field, or
@@ -814,6 +819,68 @@ killed in a `finally` whichever way the run ends. A silent listener on its own
 DevTools port, 9363, is one of those 2s, reached after 184 s (measured; see "What
 is still slow or unbounded" above).
 
+**The voice-and-text helper (`/talk`)** has two Node test files, one browser gate and
+a fake backend. None of them reaches Meta, reads a key or costs anything:
+
+```bash
+node --test tools/verify/talk-lib-test.mjs    # wav.js and talkAnswers.js: 45 tests, no server
+node --test tools/verify/app-state-test.mjs   # AppContext's applyEdit, applyHelperFill and storage: 22 tests, no server
+node tools/verify/talk-ui.mjs                 # the page in a real Edge: 17 scenarios, 259 checks, about 30 s (--only=S3,S5 runs some)
+```
+
+- `talk-lib-test` also hands a real encoded recording to the backend's own
+  `usable_wav()` through the venv, because "the header looks right" is not "the
+  backend takes it". That one test is skipped, and says so, when the venv is absent.
+- `app-state-test` loads `AppContext.jsx` through Vite's own module loader
+  (`ssrLoadModule`) and renders it once on the server with a stand-in for
+  `sessionStorage`. It brings no dependency of its own. Run from the repo root.
+- `talk-ui` starts its own backend (8012), three Vites (5182 helper on, 5183 helper
+  off, 5184 on with the age box) and its own Edge (9379, with a synthetic microphone),
+  and kills all of them by PID on every exit path. It needs `.venv`, Edge and
+  `frontend/node_modules`, and no `case_*.json`. Its scenarios are S0 to S15 plus S2b.
+  A wait for something the page owes the reader (the consent error) is a finding when
+  it never comes; a wait for something the instrument needs is a fault, exit 2.
+- `verify/talk_fake_backend.py <port>` is the shipped app with the helper switched on
+  and a fake in Meta's place. It must keep the real client's signatures. The first
+  browser run caught a drift the unit tests could not: the route had started passing
+  `keywords` to `transcribe` and the fake did not accept it, so S4 and S6 failed.
+  `backend/tests/test_talk_fake_backend.py` now compares the signatures with
+  `MetaClient` and serves both routes through the fake.
+
+`talk-ui` has no `--broken` flag. Its refuters were run by hand on 27 Oct 2026: change
+one line, run with `--only=`, restore it, compare the bytes. The thirteen are listed in
+the script's header. Each made the scenario fail:
+
+| Change | Scenario | Checks that failed |
+|---|---|---|
+| delete the first `onActiveChange(true)` in `VoiceRecorder.start()` | S5 | 4 |
+| delete `if (!agreed()) return` in `find()` | S2 | 6 |
+| the same line as a bare `agreed()` | S2 | 2 |
+| `mayRecord()` returns `true` | S2 | 2, and exit 2 |
+| `agreed()` ignores the age box | S2b | 2 |
+| delete `release()` in the catch of `startRecording()` | S13 | 1 |
+| delete `handle.cancel()` in the unmounted branch | S14 | 1 |
+| `onActiveChange(false)` put back before `setStarting(true)` in `finish()` (the order before the lock was held to the end) | S15 | 1 |
+| delete `setStarting(true)` in `finish()` | S15 | 1 |
+| delete `onActiveChange(false)` before the `mountedRef` check in `finish()` | S15 | 2 |
+| delete `setStarting(false)` before `onWav(wav)` | S15 | 2 |
+| delete `else onError('talk.errRecording')` | S15 | 1 |
+| call `onWav(wav)` whatever `wav` is | S15 | 1 |
+
+The `mayRecord()` refuter exits 2, not 1: Record then starts and locks the consent box
+that S2 ticks next, so the run ends in a fault after its two findings. The findings
+are in `report.json`; the scenario order was left as it is. The first S2 refuter also
+exited 2, because the gate called a missing consent error a fault in the instrument;
+`settleSnap` made it a finding.
+
+The last S15 refuter survived at first. "Nothing was sent" read the fake backend's call
+log, and the real route turns an unusable WAV away with a 422 before the model client,
+which is where the fake keeps that log. The check now hooks `fetch` in the page
+(`window.__stop.fetchAt`). S15 also waits 1.2 s before it presses Stop: a recording
+stopped at once was reported as unusable in 3 of 40 runs without the wait and in 0 of 40
+with it (40 interleaved pairs; too few for significance). The page's report of such a
+recording is correct, and S15's second part tests it on purpose.
+
 Helpers, the 6 that are not gates:
 
 ```bash
@@ -895,8 +962,8 @@ taskkill //F //T //PID <pid>     # doubled slashes under Git Bash
 ```
 
 **Fifteen browser scripts can leave a headless Edge running.** `drive`,
-`figure-audit`, `mobile-audit` and `market-ui` find their own Edge by its profile
-path and kill it by PID. The other fifteen (`assetgen`, `svgcheck`, `brand-mark`, `error-banner`,
+`figure-audit`, `mobile-audit`, `market-ui` and `talk-ui` find their own Edge by its
+profile path and kill it by PID. The other fifteen (`assetgen`, `svgcheck`, `brand-mark`, `error-banner`,
 `field-align`, `hero-art`, `hero-geom`, `hero-vibrance`, `lang-layout`, `load-perf`,
 `manual-audit`, `motion-audit`, `print-audit`, `scroll-audit`, `text-align`) call only
 `edge.kill()`, which misses the process Edge relaunches itself as. Treat `report.json`
@@ -911,7 +978,7 @@ your own browser and any gate running beside this one. This is not rare: on
 can run at once: `drive` 9222, `mobile-audit` 9333, `hero-art` 9337, `brand-mark`
 9339, `manual-audit` 9341, `lang-layout` 9343, `error-banner` 9347, `field-align`
 9351, `hero-geom` 9355, `print-audit` 9359, `hero-vibrance` 9361, `load-perf` 9363,
-`motion-audit` 9365, `scroll-audit` 9367, `text-align` 9371, `market-ui` 9373, `figure-audit` 9375 — plus `assetgen` 9377
+`motion-audit` 9365, `scroll-audit` 9367, `text-align` 9371, `market-ui` 9373, `figure-audit` 9375, `talk-ui` 9379 — plus `assetgen` 9377
 and `svgcheck` 9378, two helpers outside tools/verify that also drive a browser. 9369 is left free on
 purpose: it was a throwaway probe's port, and the next one-off should reuse it rather
 than take a number a gate might want.

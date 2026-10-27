@@ -5,18 +5,18 @@
 > **Rule:** this file describes the MVP **as it exists in the repository**. When you change the build, change this file in the same commit. Anything not yet built is labelled **PLANNED** — never write a planned thing as though it works.
 > **Engineering detail lives in [CLAUDE.md](CLAUDE.md)** — exact file paths, response keys, thresholds, known traps. This file is the product view; CLAUDE.md is the code view. If they disagree, CLAUDE.md is newer.
 
-**Status as of 26 October 2026.** अर्थNiti is a solo project. Its owner, Aryan Verma, builds it alone and has entered it in the **Meta Global AI Developer Hackathon, Indie Track**. Submissions are due 4 November 2026, 9:00 PM ET, which is 5 November 07:30 IST; [docs/HACKATHON.md](docs/HACKATHON.md) has the dates, the checklist and the demo path. It began as a six-person college team build for the SIH 2026 internal round on 14 September 2026, where it was **not selected**, and the team's earlier work is credited in `README.md` and `DATA_SOURCES.md`. The owner decided its direction on 23 September 2026: it is a portfolio piece, and mainly a product to sell to businesses that serve real users. The project and the scheme data belong to the owner and the code is proprietary (see `LICENSE`). The hyperlocal claim stays, and since 24 September 2026 it is backed by 20 sourced rows for Lucknow and Varanasi from data.gov.in under GODL-India (see `DATA_SOURCES.md`). The DPDP Act is in scope: in a deployment the client organisation is the Data Fiduciary and we are its Data Processor. CLAUDE.md, "Decided by the owner", has the details and the questions still open. **The hackathon's model layer is PLANNED, not built (§15). Today the repo makes zero model calls.** The table below describes the working tree of branch `feature/dpdp-compliance`. That is `fix/standalone-backlog` (an optional household-income question and the RBI 50% household check, a confirmation before Start over, input caps, and CI), which is committed locally, plus the privacy and deployment work in Feature 16 and the verifier work, which are not committed yet. Nothing is pushed (§11). The team-era sections (the SIH round's presentation, its Q&A, its ritual and its status snapshots) were cut or rewritten on 26 October 2026; `docs/ENGINEERING_HISTORY.md` records what went.
+**Status as of 26 October 2026.** अर्थNiti is a solo project. Its owner, Aryan Verma, builds it alone and has entered it in the **Meta Global AI Developer Hackathon, Indie Track**. Submissions are due 4 November 2026, 9:00 PM ET, which is 5 November 07:30 IST; [docs/HACKATHON.md](docs/HACKATHON.md) has the dates, the checklist and the demo path. It began as a six-person college team build for the SIH 2026 internal round on 14 September 2026, where it was **not selected**, and the team's earlier work is credited in `README.md` and `DATA_SOURCES.md`. The owner decided its direction on 23 September 2026: it is a portfolio piece, and mainly a product to sell to businesses that serve real users. The project and the scheme data belong to the owner and the code is proprietary (see `LICENSE`). The hyperlocal claim stays, and since 24 September 2026 it is backed by 20 sourced rows for Lucknow and Varanasi from data.gov.in under GODL-India (see `DATA_SOURCES.md`). The DPDP Act is in scope: in a deployment the client organisation is the Data Fiduciary and we are its Data Processor. CLAUDE.md, "Decided by the owner", has the details and the questions still open. **The hackathon's model layer is built and off by default (§15).** With it off, the repo makes zero model calls. With it on, a model turns speech or typed words into draft form answers that the reader checks, and it never writes a number or a line of advice. The table below describes the tip, branch `feature/voice-assistant`; §11 says how the branches relate. The team-era sections (the SIH round's presentation, its Q&A, its ritual and its status snapshots) were cut or rewritten on 26 October 2026; `docs/ENGINEERING_HISTORY.md` records what went.
 
 | | |
 |---|---|
 | Project name | **अर्थNiti** (frozen) |
 | Phase | Working prototype, solo. Entered in the Meta Global AI Developer Hackathon (Indie Track, due 4 Nov 2026), and meant to continue as a product afterwards |
-| Backend | Runs. 8 routers in development, 2 in production; 867 passing tests |
-| Frontend | Runs. 11 routes plus a catch-all, full journey works end to end |
+| Backend | Runs. 8 routers in development, 2 in production, and the optional intake helper adds a 9th in either; 1,558 passing tests |
+| Frontend | Runs. 11 routes, a 12th (`/talk`) when the helper is on, and a catch-all; the full journey works end to end |
 | Integration | Done — one API call carries the whole journey |
 | Datasets | 30 government schemes across 7 tiers, 20 sourced market rows (Lucknow + Varanasi, data.gov.in, GODL-India) |
 | Languages | 8 UI languages + a dialect phrase layer. **Backend prose is translated too** — see §2.6 |
-| LLM / AI model | **None in the code today. Zero model calls.** A Meta Model API layer for the hackathon is PLANNED — see §15 |
+| LLM / AI model | **None in the advice.** An optional intake helper, off by default, uses Meta's Muse Voice Transcribe and Muse Spark to turn speech or typed words into form answers that the reader checks — see §15 |
 | Database | **None.** Answers are kept in the browser tab (`sessionStorage`), sent once to work out the result, and stored nowhere — see §6 and §8 |
 | Entry | Meta Global AI Developer Hackathon, Indie Track — [docs/HACKATHON.md](docs/HACKATHON.md) |
 
@@ -38,7 +38,7 @@ The SIH 2026 problem statement, quoted as issued, and the brief this project was
 
 **AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs**
 
-Note the wording: the statement says "AI-driven", and the build is not (yet). The advice is hand-written rules; the planned model layer is an intake aid, not an adviser (§15).
+Note the wording: the statement says "AI-driven", and the advice is not. It is hand-written rules. The model layer, built for the hackathon and off by default, is an intake aid, not an adviser (§15).
 
 ## One-Line Pitch
 > अर्थNiti asks a rural micro-entrepreneur eight plain-language questions and returns a structured, explainable business and financing assessment — local market prices, monthly profit, repayment risk, matched government schemes, and a printable action plan.
@@ -87,7 +87,7 @@ Of the ten questions the blueprint set out to answer, here is where the MVP actu
    - **8 languages** — English, Hindi, Tamil, Telugu, Malayalam, Kannada, Marathi, Bengali — each listed in its own script with a sample line, so a reader who cannot read English can find their own language. **Hindi is the default**, not English.
    - **The generated advice and the scheme text change with it.** Every sentence a Python service composes carries a translation code beside it, and the frontend resolves the code to the reader's language. So do not say "the labels are translated" — the *output* is. On stage this is the single strongest moment in the walkthrough, and a **result** page is a better place to show it than a form page.
    - **A dialect phrase layer** on top: 30 varieties listed, of which **9 carry curated phrase overrides** for the highest-visibility strings (the greeting, the call to action, the words for money). Anything not overridden falls through to the language, so every dialect is a fully usable UI. Say **"dialect-aware phrasing"** — not "translated into Bhojpuri".
-   - **What is still English, say this if asked:** an enum value the label maps do not recognise falls back to a title-cased English word; a scheme added to `schemes.json` without codes falls back to its English prose; digits stay Latin and money stays `en-IN`-grouped on purpose, because that is what is printed on Indian currency and on government forms; and **the non-English wording has not been reviewed by a native speaker** (732 keys × 8 languages — parity, placeholders and the figures in each sentence are script-verified, naturalness is not).
+   - **What is still English, say this if asked:** an enum value the label maps do not recognise falls back to a title-cased English word; a scheme added to `schemes.json` without codes falls back to its English prose; digits stay Latin and money stays `en-IN`-grouped on purpose, because that is what is printed on Indian currency and on government forms; and **the non-English wording has not been reviewed by a native speaker** (772 keys × 8 languages — parity, placeholders and the figures in each sentence are script-verified, naturalness is not).
 7. **Responsible — DELIVERED.** A non-positive surplus short-circuits to `high` risk. When the reader gives their household income, all household loan payments are checked against half of it, and a household over that line is told not to take the new loan, or to take a smaller one. The check never says a lender will lend. Nothing in the app recommends borrowing a specific amount. Scheme cards carry a verify-with-the-authority disclaimer, and the market section names each dataset it draws on, prints its GODL-India attribution, and says the publishers do not endorse the app and give no warranty.
 
 ---
@@ -96,7 +96,7 @@ Of the ten questions the blueprint set out to answer, here is where the MVP actu
 
 ## The journey as built
 
-Eleven frontend routes, plus a catch-all for typo'd URLs:
+Eleven frontend routes, a twelfth (`/talk`) when the optional helper is built in, plus a catch-all for typo'd URLs:
 
 ```text
 /               Landing page — hero, what we offer, how it works, and the
@@ -105,6 +105,12 @@ Eleven frontend routes, plus a catch-all for typo'd URLs:
 /login          OPTIONAL — a name, nothing else. Nothing is authenticated
                 and there is no password; it only carries the name into
                 step 1. Do not present it as auth (§4.1)
+    ↓
+/talk           OPTIONAL, only when the helper is on (§15, Feature 17):
+                speak or type a few sentences; each answer found is shown
+                beside the words it came from, filled into the form for the
+                reader to check, and the reader lands on the first step
+                that still needs an answer. Not one of the four steps
     ↓
 /profile        Step 1 of 4 — name, language, dialect
     ↓
@@ -276,7 +282,7 @@ Framing that must stay: अर्थNiti is a **decision-support prototype, not 
 `advisory.recommendations[]` selected by financial status, profit-margin band (10% / 30%), cash reserve, the funding gap and, since 25 September 2026, the household check. A household the new loan takes over half its income is told to take a smaller loan, or none. One whose existing loans are already over half is told not to take a new loan until they are back to half or less. The next step on the result pages splits the same way. `/report` renders up to five as numbered steps and falls back to four sensible defaults if the engine returns none. `/report` prints to PDF with `break-inside: avoid` on every card and a forced-light colour set, so a dark-mode laptop still prints on white.
 
 ## Feature 10 — AI Chat Assistant · **NOT BUILT**
-There is no chat endpoint and no chat UI. `POST /api/chat` does not exist, and the planned model layer (§15) is an intake layer, not a chat. Nobody should demo or promise a conversational assistant; §22 lists it as not planned.
+There is no chat endpoint and no chat UI. `POST /api/chat` does not exist, and the model layer (§15) is an intake layer, not a chat. Nobody should demo or promise a conversational assistant; §22 lists it as not planned.
 
 ## Feature 11 — Multilingual output · **BUILT**
 8 languages, Hindi by default, plus a dialect phrase layer — and the *generated advice and scheme text* change with the language, not only the labels. Full detail and the exact honest caveats are in §2.6. **This is the strongest single moment in the walkthrough**; switch language while standing on a **result** page.
@@ -314,6 +320,14 @@ Added 27 September 2026, for a deployment in which the client organisation is th
 
 Still open: no native speaker has reviewed the non-English notice, and it should not reach real users until someone has (schedule §9.1). Several points need the organisation's lawyer (§9.3). The DPDP Rules apply from May 2027. This gives the organisation the means to meet its own obligations; it does not settle whether a deployment meets them.
 
+## Feature 17 — Speak or type your answers (the Meta intake helper) · **BUILT, NOT YET RUN AGAINST META'S LIVE API**
+Added 26–27 October 2026 for the Meta Global AI Developer Hackathon. **Off by default**: it needs `ARTHNITI_AI_ENABLED=true` and `MODEL_API_KEY` on the backend and `VITE_AI_HELPER=true` in the frontend build. `/talk` takes up to 60 seconds of speech (Hindi, Tamil, Telugu, Kannada, Marathi, Bengali or English) or typed words in any of the 8 languages, finds the form answers in them and shows each one beside the words it came from. The reader then checks them in the ordinary form, where each helper-filled field stays marked until it is edited. §15 has the boundary and [docs/HACKATHON.md](docs/HACKATHON.md) has the account.
+
+- **Its own consent tick** (and an age tick when configured), held in page state only. The box is locked from the moment recording starts until the recording has been sent.
+- **A spend cap.** A ledger counts every call at its worst-case price and refuses a call that would pass the cap, so this app cannot spend past the owner's free credits.
+- **Verified against a fake Meta:** 1,558 backend tests in 48 files, the Node tests for the client-side code (`talk-lib-test` 45, `app-state-test` 22) and `talk-ui`, a browser gate of 17 scenarios and 259 checks. **Not yet run against the live API.**
+- **Not in it:** advice, scheme eligibility, any number the engine uses without the reader seeing it, Malayalam speech (typing works), read-aloud output, and reading out a name or a business name.
+
 ---
 
 # 5. What We Deliberately Did Not Build
@@ -325,7 +339,7 @@ Still-correct exclusions, and they are defensible answers to "why not?":
 - Aadhaar/PAN verification
 - ML models trained on data we do not have
 - A mobile app alongside the web app
-- A large multilingual voice system. (The planned hackathon layer, §15, is narrower: speak or type your answers once, a model fills the existing form fields, and you check them. It gives no advice and speaks nothing back.)
+- A large multilingual voice system. (The hackathon layer, §15, is narrower and is built: speak or type your answers once, a model fills the existing form fields, and you check them. It gives no advice and speaks nothing back.)
 - Web scraping
 - Autonomous financial decisions
 - Production authentication, blockchain, microservices
@@ -352,7 +366,8 @@ React **19.2.8** · Vite **8.2.2** · Tailwind CSS **4.3.3** · react-router-dom
 ```text
 frontend/src/
   App.jsx                 shell (utility bar / masthead / nav / main / footer)
-                          + JourneyBar + LandingPage + NotFoundPage + 11 routes + catch-all
+                          + JourneyBar + LandingPage + NotFoundPage + 11 routes, a 12th
+                          (/talk) when the helper is on, + catch-all
   context/AppContext.jsx  the entire client state, mirrored into sessionStorage
   i18n/                   languages.js (8 languages + 30 dialects), LanguageContext.jsx
                           (the t() / tBackend() provider), backendText.js (resolves the
@@ -362,9 +377,11 @@ frontend/src/
   data/indiaLocations.js  36 states/UTs × 768 districts, for the cascading dropdown
   data/limits.js          the input caps, mirroring backend/app/schemas/limits.py
   data/reviewDates.js     the dates the scheme rules were checked, for the footer
-  pages/                  10 page components
-  components/             Button, BrandMark, BrandWordmark, InstructionManual,
-                          ShortNotice, Charts (BarRow / BarGroup / UnitChart), chartData
+  pages/                  11 page components (TalkPage is the helper's)
+  components/             Button, BrandMark, BrandWordmark, Figure, InstructionManual,
+                          ShortNotice, HelperFilledBanner, Charts (BarRow / BarGroup /
+                          UnitChart), chartData
+  audio/                  record.js (the microphone) and wav.js (the WAV the speech model takes)
   config/                 deployment.js (the VITE_* settings), notice.js (the notice version)
   services/api.js         the only network call in the app
   index.css               design tokens + the .ui-* design system + @media print
@@ -384,16 +401,21 @@ backend/app/
   core/data_loader.py     loads JSON from app/data by absolute path (cwd-independent)
   core/settings.py        the ARTHNITI_* deployment settings, checked at startup
   core/processing_log.py  one JSON log line per request, with no answer in it
+  core/meta_client.py     the only code that talks to Meta (urllib, no SDK); charges the spend cap first
+  core/spend.py           the spend cap and its ledger file
+  services/intake_service.py  the helper's prompts, and which of the model's answers are kept
+  api/routes/intake.py    the helper's two routes, mounted only when the helper is on
+  smoke_meta.py           the owner's capped three-call check against the live API
   data/                   schemes.json (30 schemes, 7 tiers), market_data.json (20 sourced rows) + market_data.provenance.json
   gen_schemes.py          the generator schemes.json is built from — its source, not runtime
-backend/tests/            38 test files + conftest.py, market_fixtures.py, deployment_fixtures.py; 867 tests
+backend/tests/            48 test files + conftest.py, market_fixtures.py, deployment_fixtures.py, privacy_fixtures.py, intake_fixtures.py; 1,558 tests
 backend/requirements.txt  every runtime dependency pinned, transitive ones included
 backend/requirements-dev.txt  the runtime pins plus pytest and httpx2, for the tests
 ```
 
 `requirements.txt` has pinned every package the backend imports, directly or through another package, since 25 September 2026. It had listed only the top-level packages, so two installs a week apart could resolve to different versions. The pins carry no hashes. Every pin allows Python 3.10, which reaches end of life in October 2026; the team runs 3.14.6.
 
-The planned `models/`, `calculations/` and `ai/` directories **do not exist**. Calculations live in `services/`; there are no ORM models because there is no database; there is no `ai/` because there is no model call.
+The planned `models/`, `calculations/` and `ai/` directories **do not exist**. Calculations live in `services/`; there are no ORM models because there is no database; there is no `ai/` because the only model calls go through one file, `core/meta_client.py`, and only when the helper is on.
 
 Style rules, if you are adding code: services are pure functions returning plain dicts, rounded to 2 decimals; services never import FastAPI; routers never do arithmetic.
 
@@ -401,7 +423,7 @@ Style rules, if you are adding code: services are pure functions returning plain
 **None.** No SQLite, no PostgreSQL, no ORM, no migrations. JSON files in `backend/app/data/` are the only data store, read once per process and cached read-only. **Nothing the user enters is stored on any server.** The answers live in the browser tab and are usually gone when it closes (§8). They are sent once, when step 4 is submitted, so the backend can work the result out. The backend keeps none of them, and its log line holds no answer (`docs/PROCESSOR_SCHEDULE.md` §4).
 
 ## AI Layer
-**None today.** A Meta Model API intake layer is PLANNED for the hackathon and does not exist yet (§15). §15 gets a whole section, because what the model does and does not do is the single most likely thing to be misstated.
+**An optional intake helper, off by default.** `ARTHNITI_AI_ENABLED=true` turns it on and needs `MODEL_API_KEY`. It calls Meta's Model API for two things, speech to text and picking form answers out of text, and nothing else (§15). §15 gets a whole section, because what the model does and does not do is the single most likely thing to be misstated.
 
 ## CORS
 In development, any `localhost` or `127.0.0.1` port, so a Vite server that falls back from 5173 to 5174 still works. In production (`ARTHNITI_ENV=production`), only the exact `https://` origins listed in `ARTHNITI_CORS_ORIGINS`. The backend refuses to start without that list, and refuses `*` in it. Neither mode allows credentials.
@@ -421,7 +443,7 @@ npm run build:local  # the same build, against the backend on 127.0.0.1:8000
 npm run lint         # ESLint 10
 
 # Tests — run from ./backend
-../.venv/Scripts/python.exe -m pytest tests -q      # 867 passed in a few seconds
+../.venv/Scripts/python.exe -m pytest tests -q      # 1558 passed in about 13 seconds
 
 # Translation-key parity — from the repo root, no server needed
 node tools/parity4.mjs                        # 4 files × 8 languages, 9 checks
@@ -429,7 +451,7 @@ node tools/parity4.mjs                        # 4 files × 8 languages, 9 checks
 
 A fresh environment installs the test dependencies with `python -m pip install -r backend/requirements-dev.txt`.
 
-**CI exists and has never run.** `.github/workflows/ci.yml` (added 25 September 2026) runs on every push and pull request. The backend job runs pytest on Ubuntu under Python 3.10 and 3.14. The frontend job runs `npm ci`, lint, the build (against a placeholder `https://api.example.invalid`, because a production build needs an https API address), `parity4`, `keycheck` and the market-lib tests, plus `glyph-audit` for information only. The browser gates are not in it. The file is committed on a local branch that has not been pushed (§11), so it has never run on Linux or on GitHub, and a first run may fail for reasons nobody has seen yet.
+**CI exists and was written without being run.** `.github/workflows/ci.yml` (added 25 September 2026) runs on every push and pull request. The backend job runs pytest on Ubuntu under Python 3.10 and 3.14. The frontend job runs `npm ci`, lint, the build (against a placeholder `https://api.example.invalid`, because a production build needs an https API address), `parity4`, `keycheck` and the market-lib tests, plus `glyph-audit` for information only. The browser gates are not in it. It was written on a Windows machine with no Linux and no Python 3.10, so nothing in it had been tried on either before the push of 27 October 2026. The repository's Actions tab shows how it did, and a first run may fail for reasons nobody has seen yet.
 
 In development, API docs are auto-served at `http://127.0.0.1:8000/docs` and `/redoc`. A production backend serves neither.
 
@@ -616,31 +638,27 @@ Until then it was a six-person college team build for the SIH 2026 internal roun
 
 # 11. Git
 
-**Repo:** `https://github.com/BU1lDR/SIH_2026` (private). One person works in it now, but the earlier contributors' clones may still exist.
+**Repo:** `https://github.com/BU1lDR/ArthNiti` (private until the owner makes it public; renamed from `SIH_2026` on 26 Oct 2026). One person works in it now, but the earlier contributors' clones may still exist and still point at the old URL, which GitHub redirects.
 
-**The remote has exactly two branches** (`git ls-remote --heads origin` is the authority, not a list in a document; measured 26 October 2026):
+**The remote has five branches** (`git ls-remote --heads origin` is the authority, not a list in a document; pushed 27 October 2026):
 
 ```text
 main            before-main
+feature/dpdp-compliance   feature/security-hardening   feature/voice-assistant
 ```
 
-**`origin/before-main` is the newest build anyone else can check out, and it is not the newest build.** It carries the government-style chrome, the 8-language layer, the charts, the cascading location data, `sessionStorage` and the accessibility switches. Everything from 23 September 2026 onwards exists only on the owner's laptop (measured 26 October 2026):
+**`feature/voice-assistant` is the newest build and the one this document describes.** The three `feature/*` branches are points on one line of commits, oldest first. `feature/dpdp-compliance` is the September work: the privacy and deployment work of Feature 16, the verifier work and the owner's brand-asset files, all of which sat uncommitted until 27 October. `feature/security-hardening` adds the Meta helper's backend and the spend cap that bounds its cost. `feature/voice-assistant` adds the `/talk` page, its tests and the docs. The commit titled "chore: the project as it stood at the hackathon start" marks 12:00 PM ET on 26 October 2026, and [docs/HACKATHON.md](docs/HACKATHON.md) §2.3 has the `git diff` that shows everything added after it.
 
-- **Six local commits sit on top of `origin/before-main`, none pushed**: the owner's decisions with the licence and provenance files, the funding-gap fix, the scheme-fit fix, a docs correction, the sourced market data, and the standalone backlog. `git rev-list --left-right --count origin/before-main...HEAD` reports `0 / 6`. Local `before-main` holds only the first of the six (`cf1c775`), so it is 1 ahead of its remote.
-- **The sixth of those commits, `4a2307e`, is the standalone backlog**: the household check, the Start-over confirmation, the input caps, the tidier 422, the footer dates, the scheme-text corrections and CI. `feature/dpdp-compliance` and `fix/standalone-backlog` both point at it.
-- **The privacy and deployment work (Feature 16), the verifier exit-code work and the 26 October identity edits are not committed at all.** They sit in the working tree of `feature/dpdp-compliance`.
-- **The other 17 `feature/*` branches hold no work of their own**: 16 sit at `cf1c775` and `feature/real-market-data` at `053a99e`, both already in HEAD's history. Their names (`feature/ai-advisory`, `feature/voice-assistant` and the rest) are planned work that never started.
+**`main`, the GitHub default branch, is still the old scaffold, and `before-main` is a fast-forward of it** (`git rev-list --left-right --count origin/main...origin/before-main` reported `0 / 185` on 26 October 2026). The new line starts on `before-main`, so `main` can reach it by a fast-forward: a pull request from `feature/voice-assistant` into `main`, or changing the default branch. Either is the owner's step. Compare the `origin/` refs and not the local branch names: local `main` carries 6 unpushed scaffolding commits from early backend work, which makes `main...before-main` look like a divergence that exists on one laptop only.
 
-So anyone who clones the repo today gets `before-main` as it was before any of this, and none of the figures in this document from 23 September on.
-
-**On the remote, `before-main` is simply ahead of `main`**: `git rev-list --left-right --count origin/main...origin/before-main` reports `0 / 185` (measured 26 October 2026), so merging is a fast-forward. Compare the `origin/` refs and not the local branch names: local `main` carries 6 unpushed scaffolding commits from early backend work (`git rev-list --left-right --count origin/main...main` reports `0 / 6`), which makes the same command report a divergence that exists on one laptop only.
+**Every commit made on 27 October 2026 is dated that day,** including the ones that hold older work, because the work sat in one working tree and was committed afterwards. Nothing is backdated. Git's dates therefore do not separate old work from new; the hackathon-start commit and [docs/HACKATHON.md](docs/HACKATHON.md) §2 do.
 
 Rules, still in force:
 1. **Never push directly to `main`.**
 2. Small commits with messages that say what changed. No `Co-Authored-By` line and no tool attribution in a commit message or a PR description.
 3. Pull/rebase before a merge.
-4. Keep `.env` and API keys out of Git. `.env.example` is tracked and names every key the build uses: the data.gov.in key for the market fetch, and the Meta Model API key once the model layer exists (§15). Keep it in step if another key is added.
-5. **Any action that changes the GitHub repo needs the owner's explicit confirmation each time**: a push, a PR, a branch or tag, a release, a settings change. Approval for one does not carry to the next. Making the repo public is the biggest of these: it publishes the whole history, including the earlier contributors' commits, and it is not decided (see [docs/HACKATHON.md](docs/HACKATHON.md)).
+4. Keep `.env` and API keys out of Git. `.env.example` is tracked and names every key the build uses: the data.gov.in key for the market fetch, and the Meta Model API key (`MODEL_API_KEY`, §15). Keep it in step if another key is added.
+5. **Any action that changes the GitHub repo needs the owner's explicit confirmation each time**: a push, a PR, a branch or tag, a release, a settings change. Approval for one does not carry to the next. Making the repo public is the biggest of these: it publishes the whole history, including the earlier contributors' commits and their commit emails. The hackathon needs it public, and the owner makes that change, not this build.
 
 Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`, `screenshots`.
 
@@ -650,7 +668,7 @@ Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`
 
 # 12. How the build landed
 
-The SIH build was planned as ten days: scope and contract, forms, a financial engine that works without AI, scheme matching, **AI integration**, hyperlocal data, explainability, testing, polish and rehearsal. Every step landed except the AI step, which never connected. Two defects from the way are worth remembering because they were silent: scheme matching had a category-direction bug that zeroed five of nine categories until 7 September, and `market_context` was computed and then discarded by the UI until 7 September. `docs/ENGINEERING_HISTORY.md` ("Known defects") has the dated record.
+The SIH build was planned as ten days: scope and contract, forms, a financial engine that works without AI, scheme matching, **AI integration**, hyperlocal data, explainability, testing, polish and rehearsal. Every step landed except the AI step, which never connected during the SIH round; the hackathon layer (§15, built 26–27 October 2026) is that step done differently, as an intake helper. Two defects from the way are worth remembering because they were silent: scheme matching had a category-direction bug that zeroed five of nine categories until 7 September, and `market_context` was computed and then discarded by the UI until 7 September. `docs/ENGINEERING_HISTORY.md` ("Known defects") has the dated record.
 
 The honest lesson, and a good answer to "what did you learn?": **the deterministic engine that was supposed to be scaffolding for the AI turned out to be the product.** That is why the hackathon layer (§15) is built around it and not in place of it: a model takes the answers in, and the rules still do all the arithmetic and write all the advice.
 
@@ -675,15 +693,16 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 - [x] At least 2–3 business categories work — 8 do
 - [x] One polished demo persona works (§3)
 - [x] Sources recorded with verification dates
-- [x] 867 backend tests pass; lint and production build are clean; translation-key parity clean across 732 keys × 8 languages
-- [ ] CI passes on GitHub — `.github/workflows/ci.yml` exists (§6) and has never run, because it has not been pushed
+- [x] 1,558 backend tests pass; lint and production build are clean; translation-key parity clean across 772 keys × 8 languages
+- [ ] CI passes on GitHub — `.github/workflows/ci.yml` exists (§6) and was written without being run; read the Actions tab
 - [x] No API keys in the running app. The one key, for the market-data fetch, is read from `.env`, which is gitignored; `.env.example` names it (§11)
 - [x] **State survives a page refresh** — closed 8 Sept via `sessionStorage` (§8)
 - [x] **Output is in the reader's own language**, including the generated advice (§2.6)
 - [x] **Phone widths verified** — all 11 routes measured clean at 360 / 390 / 412 px, plus a 360 px pass in the dark theme at the large text size in Hindi
 - [x] **Print output verified** — the `/report` PDF, from a light laptop and from a dark one
 - [ ] Three demo scenarios — there is one
-- [ ] Meta Model API layer (PLANNED, §15) — nothing of it exists in the repo yet
+- [x] Meta intake helper built (§15), with 1,558 backend tests and a 259-check browser gate for `/talk`, both against a fake Meta
+- [ ] The helper run once against Meta's live API: the owner's `python -m app.smoke_meta`, three calls
 - [ ] Hackathon submission complete — the checklist is in [docs/HACKATHON.md](docs/HACKATHON.md)
 - [ ] Demo recorded or rehearsed at least 3 times, on the machine and browser it will be shown from
 
@@ -718,24 +737,25 @@ The scripts are tracked in `tools/`; `screenshots/` stays gitignored and holds o
 ## Still not verified
 - **Phone landscape orientation, real touch scrolling on physical hardware, and the on-screen keyboard covering a focused input.** Emulation cannot answer these; borrow a phone.
 - **The `api.js` 20-second timeout path** — stop the backend mid-request and confirm the message reads as a sentence.
-- **CI on Linux and on GitHub.** The workflow has never run (§6).
-- **Non-English wording quality.** Parity, placeholders, the figures in each sentence and "no string left identical to English" are all script-verified across 732 keys × 8 languages. **Naturalness is not** — no native speaker has reviewed it, and two real errors have already been found by eye, which is evidence there are more. Say this if asked; do not claim professional translation. The privacy notice is in that set, and its non-English versions should not reach real users until someone has reviewed them (`docs/PROCESSOR_SCHEDULE.md` §9.1).
+- **CI on Linux and on GitHub.** The workflow was written without being run (§6); the Actions tab has the result.
+- **Non-English wording quality.** Parity, placeholders, the figures in each sentence and "no string left identical to English" are all script-verified across 772 keys × 8 languages. **Naturalness is not** — no native speaker has reviewed it, and two real errors have already been found by eye, which is evidence there are more. Say this if asked; do not claim professional translation. The privacy notice is in that set, and its non-English versions should not reach real users until someone has reviewed them (`docs/PROCESSOR_SCHEDULE.md` §9.1).
 
 ---
 
 # 14. Repository Structure (actual)
 
 ```text
-SIH_2026/
+ArthNiti/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py
 │   │   ├── api/routes/       8 routers
 │   │   ├── schemas/          Pydantic models, + limits.py (the input caps)
 │   │   ├── services/         all business logic
-│   │   ├── core/             data_loader.py, settings.py, processing_log.py
+│   │   ├── core/             data_loader.py, settings.py, processing_log.py,
+│   │   │                     meta_client.py, spend.py
 │   │   └── data/             schemes.json (30), market_data.json (20), market_data.provenance.json
-│   ├── tests/                38 files + conftest.py and 2 fixture modules, 867 tests
+│   ├── tests/                48 files + conftest.py and 4 fixture modules, 1,558 tests
 │   ├── gen_schemes.py        the source schemes.json is generated from, not runtime
 │   ├── requirements.txt      every runtime dependency pinned
 │   └── requirements-dev.txt  + pytest and httpx2, for the tests
@@ -744,9 +764,11 @@ SIH_2026/
 │   ├── public/               favicon.svg, hero-backdrop.jpeg
 │   ├── src/
 │   │   ├── App.jsx
-│   │   ├── pages/            10 pages
-│   │   ├── components/       Button, BrandMark, BrandWordmark,
-│   │   │                     InstructionManual, ShortNotice, Charts, chartData
+│   │   ├── pages/            11 pages (TalkPage is the helper's)
+│   │   ├── components/       Button, BrandMark, BrandWordmark, Figure,
+│   │   │                     InstructionManual, ShortNotice, HelperFilledBanner,
+│   │   │                     Charts, chartData
+│   │   ├── audio/            record.js, wav.js
 │   │   ├── config/           deployment.js (the VITE_* settings), notice.js
 │   │   ├── i18n/             8 languages, 4 dictionary files, brand.js
 │   │   ├── data/             indiaLocations.js (36 states × 768 districts),
@@ -762,10 +784,11 @@ SIH_2026/
 │                             PROCESSOR_SCHEDULE.md (for a deploying organisation),
 │                             HACKATHON.md (the Meta hackathon entry), requirements.txt
 ├── presentation/             empty, left over from the team build; nothing reads it
-├── tools/                    tracked — 28 scripts, nearly all verifiers, 21 of them in verify/
+├── tools/                    tracked — 31 scripts, nearly all verifiers, 24 of them in verify/
+│                             (plus talk_fake_backend.py, the fake Meta for the /talk gate)
 ├── screenshots/              gitignored, 8.1 GB — their output only: PNGs, report.json,
 │                             Edge profiles, plus 27 stale PNGs (do not circulate)
-├── .github/workflows/ci.yml  CI — exists, has never run (§6)
+├── .github/workflows/ci.yml  CI — written without being run (§6)
 ├── .venv/                    Python 3.14.6, gitignored
 ├── .env.example              names the one key, for the market fetch; .env is gitignored
 ├── LICENSE                   proprietary
@@ -782,23 +805,25 @@ Differences from the plan worth knowing: no `docs/architecture.md` / `api.md` / 
 
 # 15. The AI Question — read this before you describe the build
 
-**अर्थNiti makes zero model calls in the code today (26 October 2026).** There is no model SDK in `requirements.txt`, no model API key, no environment variable the backend reads for one, no HTTP client used for inference, no `ai/` module. (The one key in `.env.example` is for the offline market-data fetch in `tools/`, not for a model.) Every number and every sentence the user sees is produced by hand-written Python `if`/`else` in `backend/app/services/`.
+**The advice has no model in it.** Every number and every sentence of advice the reader sees is produced by hand-written Python `if`/`else` in `backend/app/services/`, and it is unit-tested. That has not changed.
 
-**A Meta Model API layer is PLANNED for the hackathon and is not built yet.** This section describes the plan and gets rewritten, in the same commit, as soon as code exists. Until then nobody should describe the build as using a model: not in the README, not on a slide, not in a video. A reviewer's follow-up, "which model?", ends the conversation badly if the honest answer is "none yet". If someone asks to "improve the AI", find out first whether they mean wiring up the model layer or improving the rules.
+**The hackathon's Meta Model API layer is built, and it is an intake helper (26–27 October 2026).** It is off unless `ARTHNITI_AI_ENABLED=true` and `MODEL_API_KEY` are set, and with it off the repo makes zero model calls. With it on, the page `/talk` lets the reader speak or type a few sentences in their own language. The backend sends a recording to Muse Voice Transcribe and the text to Muse Spark with a fixed JSON schema, and gets back a draft of the form fields the app already has: business kind, state, district and the amounts the reader mentioned. The page fills those in and marks each one *filled from what you said, please check*. The reader corrects anything, ticks consent and submits, and from there the existing engine does everything, unchanged. [docs/HACKATHON.md](docs/HACKATHON.md) has the account in full, including what existed before the hackathon began and what was added after.
 
-## What to say today
+**Nothing has run against Meta's live API yet.** The helper is tested against a fake. The owner's first `python -m app.smoke_meta` (three calls, at most about $0.045 at list price) is the first real contact, and may show that the token limit or the reasoning effort needs adjusting. Until it has run, do not say the helper "works with Meta"; say it is built to Meta's documented API and tested against a fake.
 
-> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. Where a model earns its place is the front door: a first-time borrower should be able to say what they do in their own language instead of filling in a form, and the model's job ends at a draft that the person checks. The arithmetic stays in code."
+If someone asks to "improve the AI", find out first whether they mean the intake helper or the rules.
 
-This is a strong position, honestly held. Do not weaken it by overclaiming.
+## What to say
 
-**One clarification that keeps being needed:** *"no model"* does not mean *"English only"*. Those were the same limitation until 7 September and are now separate. The multilingual output is built and is deterministic (a translation code per sentence, resolved against dictionaries we wrote), which is precisely *why* it is trustworthy enough to demo. Do not answer "is it multilingual?" with "no, there is no AI".
+> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. The model is at the front door: a first-time borrower can say what they do in their own language instead of filling in a form, and the model's job ends at a draft that the person checks. The arithmetic stays in code."
 
-## PLANNED — the Meta Model API layer
+This is a strong position, honestly held. Do not weaken it by overclaiming. Say "AI-assisted intake". Never say "AI-driven advice" or "AI-generated advice".
 
-**What it is: an intake layer, not an adviser.** The reader speaks, or types, a few sentences about their business in their own language. The backend sends the audio to a speech model and the text to a language model with a fixed JSON schema, and gets back a draft of the form fields that the app already has: business kind, state, district and the amounts the reader mentioned. The page fills those fields in and marks each one *filled from what you said, please check*. The reader corrects anything, ticks consent, and submits. From there the existing deterministic engine does everything, unchanged.
+**One clarification that keeps being needed:** *"no model in the advice"* does not mean *"English only"*. The multilingual output is built and is deterministic (a translation code per sentence, resolved against dictionaries we wrote), which is precisely *why* it is trustworthy enough to demo. Do not answer "is it multilingual?" with "no, there is no AI".
 
-**Why this and not a chatbot:** the people this is for find a four-step form with money fields the hardest part, and speech is the interface they already use. A model is the right tool for turning loose speech into structured fields. It is the wrong tool for working out a repayment, so it never gets to.
+## The Meta Model API layer
+
+**What it is: an intake layer, not an adviser.** The people this is for find a four-step form with money fields the hardest part, and speech is the interface they already use. A model is the right tool for turning loose speech into structured fields. It is the wrong tool for working out a repayment, so it never gets to.
 
 Boundary, non-negotiable:
 
@@ -807,26 +832,27 @@ Boundary, non-negotiable:
 | Turn speech into text | Compute any number the reader sees |
 | Turn a free-text description into draft values for the existing form fields | Decide scheme eligibility |
 | Say it did not understand, so the reader types instead | Invent a scheme, a rule, an amount or a document |
-| (Later, if built) Explain the engine's own result in plain words | Replace a formula, or see the engine's numbers before the reader has confirmed the inputs |
 
-Rules the build has to meet before this section is rewritten as DONE:
+The rules the build had to meet, and where each stands:
 
-- **The app works fully without it.** The layer is off unless it is configured, the engine and every page run with no key, and a model failure of any kind leaves the form as it was, for the reader to type.
-- **The model's output is a draft.** Nothing it returns reaches the engine without the reader seeing it in the form and submitting. Amounts are validated by the same limits as typed ones.
-- **Its own consent.** Sending a recording or a transcript to Meta is a cross-border transfer to a further processor, so it needs its own tick, its own line in the notice and its own entry in `docs/PROCESSOR_SCHEDULE.md`. The existing consent covers only the 12 answers.
-- **Nothing it receives is kept or logged.** No audio and no transcript is stored, and none reaches a log line; `test_log_privacy.py` is extended to prove it.
-- **Keys stay on the server.** The browser never sees the model key, and `settings.py` refuses a bad value at startup.
-- **Said honestly on screen and in the docs:** no sentence anywhere says the advice is AI-generated.
+- **The app works fully without it.** Met. The routes are not mounted when the helper is off, `/talk` is a "page not found" when `VITE_AI_HELPER` is not `true`, and a model failure leaves the form as it was, for the reader to type.
+- **The model's output is a draft.** Met. The backend keeps an answer only if the field is one we asked for, the value is in range and the quoted words appear in what the person said. The page puts every kept answer into the form for the reader to check, under the same limits as typed answers. One weak point stays: a spoken amount is converted to digits by the model ("two lakh" to 200000) and no code checks the conversion, so the review screen is the control.
+- **Its own consent.** Partly met. `/talk` has its own consent tick (and an age tick when configured), its own sentence saying the recording goes to Meta, and its own entry in `docs/PROCESSOR_SCHEDULE.md` §10. That sentence is not part of the versioned notice, and `/privacy` does not mention the helper yet.
+- **Nothing it receives is kept or logged by this app.** Met, by tests (`test_log_privacy.py`, `test_intake_log_privacy.py`). The spend ledger holds the cost of each call and no content. What Meta keeps is Meta's: the page tells the person that content sent on free credits may be used to improve Meta's products.
+- **Keys stay on the server.** Met. The key is read from the environment only, the backend reads no `.env` file, and `settings.py` refuses a bad value at startup.
+- **Said honestly on screen and in the docs.** No sentence anywhere says the advice is AI-generated.
 
-Facts about the Meta Model API that are **unconfirmed until tested with a real key**: the endpoint and model names (`muse-spark` for text, `muse-voice-transcribe-1.0` for speech), the structured-output format, and the limits (32 MB and 10 minutes of audio). Speech is documented for Hindi, Tamil, Telugu, Kannada, Marathi, Bengali and English and **not for Malayalam**, so the voice option is hidden for Malayalam and the text option stays.
+**The spend cap.** The owner will not pay for any of it. Every call is counted in a ledger before it is sent, at its worst-case price, and refused once the total would pass the cap (default $10, at most $100). The ledger cannot see the account, so the owner also sets Meta's email spend limit and checks the balance. [docs/HACKATHON.md](docs/HACKATHON.md) §5 has the details.
 
-Second, only if the first works end to end and time remains: a plain-words "why is it this way?" for the result, written by the model from the engine's structured output, with a check that every number in its answer appears in the engine's own result and an answer that fails the check is dropped.
+**Facts from Meta's public docs, not yet confirmed with a live call:** the endpoints and model names (`muse-spark-1.3` for text, `muse-voice-transcribe-1.0` for speech), the structured-output format, and the limits (a mono WAV at 16 or 24 kHz, up to 10 minutes; the page stops at 60 seconds). Speech is documented for 25 languages, including Hindi, Tamil, Telugu, Kannada, Marathi, Bengali and English, and **not for Malayalam**, so the voice option is hidden for Malayalam and the text option stays. Meta has no text-to-speech.
+
+**Not built:** a plain-words "why is it this way?" for the result, written by a model from the engine's output. It would put a model's wording next to the advice, which is only acceptable with a check that every number in its answer appears in the engine's own result.
 
 ---
 
 # 16. Demo Sequence
 
-> **Rewritten 26 October 2026.** This section was the slide list and demo script for the SIH 2026 internal round. The slide list is gone. The demo sequence below is the same walk through the real routes, and it is the base for the hackathon demo; [docs/HACKATHON.md](docs/HACKATHON.md) has the hackathon's own plan. When the Meta intake layer exists (§15) it becomes the first step here.
+> **Rewritten 26 October 2026.** This section was the slide list and demo script for the SIH 2026 internal round. The slide list is gone. The demo sequence below is the same walk through the real routes, and it is the base for the hackathon demo; [docs/HACKATHON.md](docs/HACKATHON.md) has the hackathon's own plan. The Meta intake layer (§15) now exists, so in the hackathon video it comes first, shown as the new work, and the rest of this walk is shown as the engine it feeds (earlier work, said so on screen).
 
 ## Key message
 Do not spend the demo explaining technology. Spend it on **problem → insight → solution → demo → impact.**
@@ -837,7 +863,7 @@ Do not spend the demo explaining technology. Spend it on **problem → insight �
 1.  Frame the rural entrepreneur's problem
 2.  /           — open the instruction manual for 15 seconds. "This is how a
                   first-time user learns the journey" — then close it
-3.  /profile    — name, language, dialect, literacy level
+3.  /profile    — name, language, dialect
 4.  /business   — Tailoring, investment ₹1,00,000, sales ₹30,000, operating expenses ₹18,000
 5.  /location   — Uttar Pradesh → Lucknow (cascading, so an impossible pair cannot
                   be entered), a village name, weekly market, "local families"
@@ -868,21 +894,21 @@ Have a fallback: a saved PDF of `/report` and a current set of screenshots, in c
 
 # 17. Questions a Reviewer Will Ask
 
-> **Updated 26 October 2026 for the hackathon.** The questions are the ones the SIH round prepared for, still the right ones. Answers that depend on the Meta model layer say PLANNED, and are rewritten when it is built.
+> **Updated 27 October 2026 for the hackathon.** The questions are the ones the SIH round prepared for, still the right ones. The Meta model layer is built, so answers that depend on it say what it does and that it has not yet run against the live API.
 
 ## "Why AI? Where is the AI?"
-Answer honestly, and lead with the design decision — see §15. **Today no model is running, and nobody should claim one is.** The plan, PLANNED and not built: the model does the intake, turning a spoken or typed description into the form fields the reader then checks, and the rules still do all the arithmetic and write all the advice. **And do not let this question also answer "is it multilingual?"** — the eight-language output is built and is deliberately *not* model-generated.
+Answer honestly, and lead with the design decision — see §15. **The advice has no model in it, and nobody should claim it does.** The model does the intake: it turns a spoken or typed description into the form fields the reader then checks, and the rules still do all the arithmetic and write all the advice. The helper is off by default, and until the owner's first live run it has been tested against a fake Meta only. **And do not let this question also answer "is it multilingual?"** — the eight-language output is built and is deliberately *not* model-generated.
 
 ## "Did you build this during the hackathon?"
-No, and say so before anyone asks. The first commit is dated 30 August 2026. The rules engine, the scheme and market data, the eight-language interface, the privacy work and the browser checks all existed before 26 October 2026, first as a six-person college team build and, since 26 October, as one person's project. What was built during the event is the model layer (§15, PLANNED) and the work around it. [docs/HACKATHON.md](docs/HACKATHON.md) keeps the dated list, and the event's own rules decide whether earlier work is allowed.
+No, and say so before anyone asks. The first commit is dated 30 August 2026. The rules engine, the scheme and market data, the eight-language interface, the privacy work and the browser checks all existed before 26 October 2026, first as a six-person college team build and, since 26 October, as one person's project. What was built during the event is the model layer (§15) and the work around it. The backend intake code (the Meta client, the prompts and the two routes) was written on the morning of 26 October, before the 12:00 PM ET start, and counts as earlier work; the spend cap, the whole `/talk` page with its state, speech and tests, and the browser gate for it came after. [docs/HACKATHON.md](docs/HACKATHON.md) keeps the dated list, and the event's own rules decide whether earlier work is allowed.
 
 ## "Is it actually in Hindi, or just the buttons?"
 **All of it** — the labels, the generated advice, the risk explanation and the scheme text, in 8 languages, with Hindi as the default rather than English. Show it rather than saying it: switch language while standing on `/analysis`. The mechanism is a translation code emitted beside every sentence the engine composes, resolved against dictionaries we wrote — so it cannot drift the way a paraphrasing model would.
 
-Then volunteer the limits, because they are the credible part: 30 dialects are listed and **9 carry curated phrase overrides**, which is dialect-aware phrasing rather than dialect translation; digits and money stay in Latin script on purpose, matching Indian currency and government forms; and **no native speaker has reviewed the wording** — parity, placeholders and the figures in each sentence are script-verified across 732 keys, naturalness is not.
+Then volunteer the limits, because they are the credible part: 30 dialects are listed and **9 carry curated phrase overrides**, which is dialect-aware phrasing rather than dialect translation; digits and money stay in Latin script on purpose, matching Indian currency and government forms; and **no native speaker has reviewed the wording** — parity, placeholders and the figures in each sentence are script-verified across 772 keys, naturalness is not.
 
 ## "How do you prevent hallucinations?"
-There is nothing to hallucinate in the advice. Every number comes from a unit-tested formula; every scheme fact comes from a structured dataset transcribed from an official source with a verification date. The source is kept on record internally; the app deliberately does not link out to government portals (the links were removed on 10 September 2026). The planned model layer (§15) only drafts form fields from what the reader said: it is never asked for a number, a scheme or an eligibility rule, its draft is shown to the reader to check before anything is computed, and its values pass the same limits as typed ones.
+There is nothing to hallucinate in the advice. Every number comes from a unit-tested formula; every scheme fact comes from a structured dataset transcribed from an official source with a verification date. The source is kept on record internally; the app deliberately does not link out to government portals (the links were removed on 10 September 2026). The model layer (§15) only drafts form fields from what the reader said: it is never asked for a number, a scheme or an eligibility rule, its draft is shown to the reader to check before anything is computed, and its values pass the same limits as typed ones.
 
 ## "How is this different from ChatGPT?"
 ChatGPT does not know how many tailoring businesses are registered in Lucknow or what its mandis have been paying for wheat, cannot tell you whether *your* EMI fits *your* surplus, and will not tell you when it has no data for your district. अर्थNiti combines structured entrepreneur input, a district-level dataset, deterministic financial calculation, rule-based scheme matching with visible reasons, and a printable next-step plan — and it says out loud when a number is a state-level fallback rather than local.
@@ -920,7 +946,7 @@ Answer it straight: no chat, no EMI scenarios or break-even units, no suggested 
 
 # 18. Product Success Metrics
 
-For the prototype: time to generate an advisory plan (currently one request, sub-second) · journey completion · correctness of financial calculations (867 tests) · correctness of scheme matching (8 of the 9 category buttons match, 11–16 schemes each; only a typed-in *Other* is correctly empty) · translation coverage (732 keys × 8 languages at full parity, script-verified) · explanation quality · number of actionable recommendations · demo reliability.
+For the prototype: time to generate an advisory plan (currently one request, sub-second) · journey completion · correctness of financial calculations (1,558 tests) · correctness of scheme matching (8 of the 9 category buttons match, 11–16 schemes each; only a typed-in *Other* is correctly empty) · translation coverage (772 keys × 8 languages at full parity, script-verified) · explanation quality · number of actionable recommendations · demo reliability.
 
 For future production: entrepreneurs assisted · plans generated · financial-literacy improvement · successful formal-finance connections · business survival and growth · **reduction in inappropriate borrowing** — the metric that matters most and the reason the risk indicator exists.
 
@@ -1014,7 +1040,7 @@ In rough order of value per unit of effort:
 1. ~~**Persistence**~~ — **DONE** for the demo (`sessionStorage`). A real database is still future work, and only worth it once a user should be remembered across days or devices
 2. ~~**Regional-language output**~~ — **DONE**, 8 languages including the generated prose. What remains: a native-speaker review, more dialect phrase coverage (9 of 30 today), and more languages
 3. **Read-aloud output** (`speechSynthesis`) — high impact for low-literacy users, small implementation, and it composes with the translation layer already in place. **Strongest remaining item for this audience**
-4. **The model layer under the §15 boundary** — the speech-and-text intake for the hackathon is the first part and is PLANNED; a "why?" explainer is optional after it; a conversational assistant is not planned
+4. **The model layer under the §15 boundary** — the speech-and-text intake for the hackathon is the first part, built and not yet run against the live API; a "why?" explainer is optional after it and not built; a conversational assistant is not planned
 5. **Loan and EMI structuring** — suggested financing range, EMI scenarios, cash-flow coverage
 6. **Break-even and runway** — needs selling price and variable cost per unit added to the business form
 7. **More data** — more districts and states in the market dataset (it is two districts today), more schemes per tier, real authentication behind `/login`
@@ -1026,14 +1052,14 @@ In rough order of value per unit of effort:
 
 # 23. Product Vision — and what is live today
 
-`[LIVE]` runs in the repository today. `[PLANNED]` does not.
+`[LIVE]` runs in the repository today. `[BUILT]` runs in the repository but has not yet met its real service. `[PLANNED]` does not exist.
 
 ```text
                  RURAL ENTREPRENEUR
                          ↓
         Text input, 8-language UI         [LIVE — Hindi by default]
         Dialect-aware phrasing            [LIVE — 9 of 30 varieties]
-        Voice in (speech to form fields)  [PLANNED — the hackathon layer, §15]
+        Voice in (speech to form fields)  [BUILT — off by default, against a fake Meta; §15]
         Read-aloud out                    [PLANNED]
                          ↓
                  Entrepreneur Profile     [LIVE]
@@ -1104,7 +1130,7 @@ Not planned for the hackathon: a database · real authentication · read-aloud o
 Any AI assistant reading this file should:
 
 - Treat **[CLAUDE.md](CLAUDE.md)** as the authoritative engineering context and this file as the product context. CLAUDE.md is more likely to be current on code detail.
-- **Never describe अर्थNiti as using a model unless the model layer actually exists in the code (§15).** When it does, describe only what it does (it drafts form fields from speech and text), and never call the advice AI-generated. If asked to "improve the AI", ask whether that means building or extending the model layer or improving the rules.
+- **Describe the model layer as what it is (§15):** an optional intake helper, off by default, that drafts form fields from speech and text for the reader to check, and that has so far run against a fake Meta only. Never call the advice AI-generated. If asked to "improve the AI", ask whether that means building or extending the model layer or improving the rules.
 - **Equally: never describe the output as English only.** It is translated into 8 languages, including every sentence the engine composes (§2.6). "No model" and "English only" were the same limitation until 7 September 2026 and are now separate facts.
 - Remember there is **no database and no server-side persistence**. The journey lives in the browser tab (`sessionStorage`). Do not suggest a migration, an ORM model, or a query — and do not move financial answers into `localStorage`, which would leave them on a shared laptop after the user walks away.
 - **Any user-visible sentence needs a translation key, and a sentence must never be assembled from parts in JSX.** Concatenating a translated label with a value and a Latin full stop puts English word order into a Devanagari sentence. Give the whole phrase its own key with a placeholder.

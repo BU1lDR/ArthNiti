@@ -1,6 +1,6 @@
 # API contract: `POST /api/analysis/run`
 
-This is the one endpoint the अर्थNiti frontend calls. This page covers what it takes, what it returns, and how it fails. Everything here was measured against the running backend on 27 Sept 2026.
+This is the one endpoint the अर्थNiti frontend calls. This page covers what it takes, what it returns, and how it fails. Everything here was measured against the running backend on 27 Sept 2026. With the optional AI helper switched on, the frontend also calls two intake routes; they are covered in their own section near the end, measured on 27 Oct 2026.
 
 `docs/PROCESSOR_SCHEDULE.md` covers what the deployment sends, logs and keeps, and how to configure it. This page does not repeat that.
 
@@ -8,8 +8,8 @@ This is the one endpoint the अर्थNiti frontend calls. This page covers w
 
 | Mode | Set by | Base URL | What is mounted |
 |---|---|---|---|
-| development | `ARTHNITI_ENV` unset or `development` | `http://127.0.0.1:8000` | all 8 routers; Swagger at `/docs`, plus `/redoc` and `/openapi.json` |
-| production | `ARTHNITI_ENV=production` | the deployer's own https origin | `GET /health` and `POST /api/analysis/run` only. Everything else, the docs included, is a 404 |
+| development | `ARTHNITI_ENV` unset or `development` | `http://127.0.0.1:8000` | all 8 routers (9 with the AI helper on); Swagger at `/docs`, plus `/redoc` and `/openapi.json` |
+| production | `ARTHNITI_ENV=production` | the deployer's own https origin | `GET /health` and `POST /api/analysis/run` only, plus the two intake routes when the AI helper is on. Everything else, the docs included, is a 404 |
 
 The frontend takes the base URL from `VITE_API_BASE_URL`. `npm run build` refuses to build unless that URL starts with `https://`. `npm run build:local` builds against `http://127.0.0.1:8000`.
 
@@ -157,6 +157,37 @@ A 422 lists every failing field. The rejected value is never echoed: `input` and
 ]}
 ```
 
+## The optional AI helper: `/api/intake/*`
+
+Two more routes exist only when the backend runs with `ARTHNITI_AI_ENABLED=true` and `MODEL_API_KEY` set. They are mounted in production too. The frontend calls them from `/talk`, which exists only in a build made with `VITE_AI_HELPER=true`. They are not part of the contract above. They fill in the form, they compute nothing, and `POST /api/analysis/run` behaves the same with or without them. What they send to Meta, what they log and what to do before switching them on is `docs/PROCESSOR_SCHEDULE.md` §10.
+
+| Route | Takes | Returns |
+|---|---|---|
+| `POST /api/intake/transcribe?language=<code>` | The raw bytes of a WAV as the body: mono, 16-bit, 16 or 24 kHz, at most 3,000,000 bytes. The frontend sends `Content-Type: audio/wav`; the server does not check it. `language` is required and is one of `en`, `hi`, `ta`, `te`, `kn`, `mr`, `bn`. There is no `ml`, because the speech model has no Malayalam | `{"transcript": "…"}` |
+| `POST /api/intake/extract` | `{"text": "…", "language": "<code>"}`. `text` is 1 to 2,000 characters. `language` is one of the eight interface codes, `ml` included | `{"answers": [{"field", "value", "evidence"}, …], "ignored": <int>}` |
+
+`answers` holds only what passed the server's checks (`docs/PROCESSOR_SCHEDULE.md` §10.1); `ignored` counts the rest. `field` is a form field: `business_category`, `state`, `district` or `location_type` (each with a string `value`), or one of the money fields (`value` is a whole number of rupees). `evidence` is the stretch of the person's own words the answer rests on. One measured example, with a stand-in model that returned four answers, two of which quoted words the person never said:
+
+```json
+{"answers": [
+  {"field": "business_category", "value": "tailoring", "evidence": "I make clothes"},
+  {"field": "initial_investment", "value": 50000, "evidence": "50 thousand"}
+], "ignored": 2}
+```
+
+**A spoken amount ("50 thousand", "1.5 lakh") is converted by the model, and no code checks the conversion.** The frontend shows `evidence` beside the amount so the person can.
+
+| Status | When | Body |
+|---|---|---|
+| 422 | `language` missing or not one of the codes; `text` empty or over 2,000 characters; the recording is not a mono 16-bit WAV at 16 or 24 kHz | `{"detail": [{"type", "loc", "msg"}, …]}`, as above |
+| 413 | the recording is over 3,000,000 bytes | `{"detail": "The recording is too large."}` |
+| 429 | the hourly limit is used up, or Meta says it is busy | `{"detail": "The helper is busy. Try again later."}` and a `Retry-After` header in seconds (30 when Meta gave no wait). CORS does not expose it to browser code |
+| 502 | Meta rejected the request, or its reply was not the shape asked for | `{"detail": "The helper could not make sense of that."}` |
+| 503 | the key is wrong or missing, there is no balance, Meta is down, or the spend cap is reached | `{"detail": "The helper is not available right now."}` |
+| 404 | the helper is off | `{"detail": "Not Found"}` |
+
+The body does not say which of the 503 causes it was. The stderr line names the kind (`docs/PROCESSOR_SCHEDULE.md` §10.4). `frontend/src/services/api.js` turns 404 and 503 into `talk.errUnavailable`, 429 into `talk.errBusy`, 502 into `talk.errUnclear`, 413 and 422 on the recording into `talk.errRecording`, and anything else into `talk.errGeneric`.
+
 ## Headers and CORS
 
 - Every response carries `X-Request-ID`, the same id as the request's processing log line. CORS does not expose it, so browser code on another origin cannot read it. A server-side caller can.
@@ -166,7 +197,7 @@ A 422 lists every failing field. The rejected value is never echoed: `input` and
   - both allow methods `GET, POST`, the header `Content-Type`, no credentials, and a preflight cache of 600 s.
 
   The schedule, §6, has the details.
-- The frontend gives up after 20 seconds.
+- The frontend gives up after 20 seconds (60 seconds for the two intake routes).
 
 ## Running the backend
 

@@ -1513,6 +1513,51 @@ How long a clean run takes, in seconds: lang-layout 280, field-align 121, error-
 - The table above is what I re-ran on 26 Oct. For the other fixes I read the fix agents' records from 1 Oct, their own plants, kept in the scratch tree and not in the repo. For changes that are pure logic I also ran the changed slice of the script against synthetic input: drive's list of key prefixes (47 derived, 33 hand-kept), motion-audit's wait for the stylesheet (nine cases), scroll-audit's verdict, request wrapper and per-hop refuter check, error-banner's field-list check (a banner naming one field passed the old comma rule in 7 of 8 languages), load-perf's wait for Edge and market-ui's verdict. I did not repeat the page plants for those.
 - error-banner prints a 503 response's string `detail` raw.
 
+### The Meta hackathon intake helper, 26–27 Oct 2026 (branches `feature/security-hardening` and `feature/voice-assistant`)
+
+Built for the Meta Global AI Developer Hackathon (Indie track, solo; it started Mon 26 Oct 2026, 12:00 PM ET). `docs/HACKATHON.md` is the call-out of what existed at the start and what was added after, and shows how to diff against it. This section keeps the evidence behind that file's claims and the defects found on the way, which would swamp it.
+
+**Counts, measured 27 Oct 2026.** Backend `pytest`: 867 passed in 38 files at 8:03 AM ET on 26 Oct, 1,411 in 45 files at the start, 1,558 in 48 files at the tip (12.5 s). Node: `market-lib-test` 185, `talk-lib-test` 45, `app-state-test` 22. `talk-ui`: 17 scenarios, 259 checks, 0 failed. Dictionaries: 772 keys, 6,176 strings, `parity4` 9 of 9, `keycheck` 0 leaked. ESLint clean. `build:local` with the helper on and off, and the https build, all exit 0.
+
+**Mutation testing, by hand.** For each new module: change a comparison or delete a check, run the module's tests, expect a failure. A survivor got a new test, or was explained as equivalent (the mutant behaves the same). The mutation scripts were scratch files and are not in the repo.
+
+| Module | Result |
+|---|---|
+| `intake_service.py` | 27 killed after 3 test fixes; the speech keywords 10 of 10 |
+| `meta_client.py` | 115 of 115 after 3 fixes; the efficiency parameters 24 of 24; pricing and charge-before-send 27, plus 1 equivalent |
+| `routes/intake.py` | 47 of 49; the 2 survivors change wording only |
+| contract tests, string limits | 21 of 21, 2 of 2 |
+| `smoke_meta.py` | 34 mutants, 32 killed at first and the 2 survivors fixed with tests; efficiency 13 of 13; the spend lines 9 killed, 1 equivalent |
+| `usable_wav` | 13 of 13 |
+| `main.py` wiring | 20 mutants: 18 killed, 1 fixed, 1 equivalent; the spend wiring 7 of 7 |
+| `core/spend.py` | 22 of 22, after 4 survivors were fixed |
+| `settings.py`, spend settings | 17 of 17, after 1 survivor was fixed |
+| `conftest.py` network guard | 12 of 12, after 1 survivor was fixed |
+| `test_talk_fake_backend.py` | 8 of 8 |
+| `wav.js` | 13 of 13 |
+| `talkAnswers.js` | 31 of 31; `planFill` and `LABEL_KEY_BY_PATH` 14 of 14; `NO_SPEECH_LANGUAGES` 3 of 3 |
+| `AppContext.jsx`, state version 5 | 28 of 28, after 1 test was strengthened |
+
+**The `talk-ui` refuters.** Thirteen one-line breakages of the page are listed in the header of `tools/verify/talk-ui.mjs`, each with the number of checks it made fail: seven before S15 and six for it. Each makes the gate exit 1 (one also ends in a fault, exit 2, after its findings; `tools/README.md` says why). Each run restored the page, and its sha256 was compared before and after the last one.
+
+**The consent lock (S15).** Reading `finish()` in `VoiceRecorder` late on 27 Oct showed that the consent box was unlocked when Stop was pressed, not when the recording had been sent: while the recording was turned into a file and sent, the person could untick the box with their voice already on its way. No test had caught it. S15 was written first and failed on 2 of its 12 checks, the ones that look for the lock between Stop and the file; `finish()` then held the lock until `onWav` ran and released it on every other path (an unmounted page, a recording that cannot be finished: that is reported as `talk.errRecording`, sends nothing and unlocks). S15 passes with 13 checks after one strengthening, and the six breakages of `finish()` fail it (1, 1, 2, 2, 1 and 1 checks).
+
+**A refuter survived.** The sixth (`onWav(wav)` called whatever the result) was not caught at first. The check "no request was sent" read the fake backend's call log, and the real route turns an unusable WAV away with a 422 before the model client, so the fake never logs it. The check now hooks `fetch` in the page. The rule that came out of it is in CLAUDE.md: a "nothing was sent" check watches the page's own requests.
+
+**A flaky wait, measured.** S15 once reported a fault when Stop was pressed at once: the page showed `talk.errRecording`, which is the right report for a recording that cannot be decoded, but S15's first part was not testing that. The first measurement was 12 runs, 0 faults, which showed nothing. The second was 40 interleaved pairs, one run without a pause before Stop and one with a 1.2 s pause: 3 faults without it (runs 8, 10 and 40), none with it, no run failing a check. A one-sided Fisher test gives p ≈ 0.12, so this is not significant, and the cause (an empty or very short recording that cannot be decoded) is read from `record.js`, not observed. The pause stays as a precaution, and S15's second part tests the failed-recording path on purpose.
+
+**Defects found and fixed.**
+
+- A recorder that failed to start left the microphone on (`record.js`). Found by reading; S13 covers it.
+- `aiFilled` took an array as a path, because an array coerces to a string key. It now requires `typeof path === 'string'`.
+- The fake backend drifted from the real client's signature: the route had started passing `keywords` to `transcribe` and the fake did not accept it, so S4 and S6 failed. `test_talk_fake_backend.py` now compares the signatures.
+- A re-check of consent inside the transcribe call was proposed and rejected: it reads a stale closure.
+- Statements that were wrong when re-read against the code, all corrected: "the spend file holds one number" (it holds one line per call), "Record and Find stay disabled until the box is ticked" (they stay enabled, and say why), "about 60 seconds" for 3,000,000 bytes of audio (about 94 s; the page stops at 60 s), "$0.04" for the smoke run (measured $0.0451), "writes nothing to disk" in `docs/PROCESSOR_SCHEDULE.md` (the spend file), and a sentence in the README that the helper "does no arithmetic" (the model converts spoken amounts; the review screen is the control).
+
+**Departures from test-first.** The first `smoke_meta.py` (written before the start) and the version-5 state code were written before their tests; mutation testing was the compensation. The `api.js` helper calls, `record.js`, `TalkPage.jsx` and `HelperFilledBanner.jsx` have no Node unit tests, only the browser gate.
+
+**Not verified.** Nothing has run against Meta's live API. `MAX_COMPLETION_TOKENS`, `reasoning_effort`, `prompt_cache_key`, the speech `keywords` and the `usage` field names are as the public docs describe them. The owner's first `python -m app.smoke_meta` is the check. The seven non-English `talk.*` sets are machine-written and unreviewed.
+
 ### The scheme expansion, 7 Sept 2026
 
 On the brief "add more schemes — Block/Taluka/Circle, Village/Urban Local Body, Regional, District, Sub-District, State/UT, Central". What landed:

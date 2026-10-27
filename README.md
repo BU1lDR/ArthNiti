@@ -9,15 +9,15 @@ Someone running a small business in a village — a tailor, a weaver, a woman ke
 - which government schemes cover their kind of work where they live, from Central ministries down to the Gram Panchayat counter (it checks the kind of work and the place, not full eligibility)
 - a one-page sheet to print and carry to a bank
 
-Eight Indian languages, with dialect-aware phrasing layered on top. Thirty real schemes across all seven administrative tiers.
+Eight Indian languages, with dialect-aware phrasing layered on top. Thirty real schemes across all seven administrative tiers. Where the deployer switches it on, a person can also say or type their answers instead of filling in the form (see [the voice and text helper](#the-voice-and-text-helper-optional)).
 
 **Where it stands.** One person, Aryan Verma, builds and owns this. It began in September 2026 as a six-person college team project for the Smart India Hackathon (SIH) 2026 internal round, held on 14 September, where the team wasn't selected. Since 26 October 2026 it is an individual project, entered in the Meta Global AI Developer Hackathon, Indie Track (26 October to 4 November 2026; submissions are due 4 November, 9:00 PM ET, which is 5 November, 07:30 IST). Beyond the hackathon it stays a portfolio piece and, mainly, a product for businesses that work with real users. It is proprietary; see [LICENSE](LICENSE). This is not open source, even though the repo may be shared. It is still a prototype, not production software, and the rest of this file tries not to pretend otherwise. [docs/HACKATHON.md](docs/HACKATHON.md) says what existed before the hackathon and what was added during it. Anything below about "the demo" or "the round" dates from the team build and is not a current goal.
 
 ## Two things to know before you read the code
 
-**No model writes a number or a line of advice.** Every figure and every sentence the user sees comes out of hand-written Python in `backend/app/services/` — plain `if`/`else`, nothing more. As of 26 October 2026 there is no SDK, API key or inference call anywhere in the repo. That's a deliberate choice, and `OUR_MVP.md` §15 makes the argument for it. For the Meta hackathon a voice and text intake layer on the Meta Model API is being added (planned, not built yet: this paragraph and [docs/HACKATHON.md](docs/HACKATHON.md) change when it exists). The rule holds whatever gets added: a model may help someone fill in the form, and they check what it filled in, but it never computes a figure, a risk band or a scheme match, and it never writes the advice. Please don't describe the app as giving AI-generated advice. If someone asks you to "improve the AI", find out first whether they mean the intake or the rules.
+**No model writes a number or a line of advice.** Every figure and every sentence the user sees comes out of hand-written Python in `backend/app/services/` — plain `if`/`else`, nothing more. `OUR_MVP.md` §15 makes the argument for that choice. The one place a model is used is the optional voice and text helper at `/talk`, added for the Meta hackathon: Meta's Model API turns a recording into words (Muse Voice Transcribe) and picks form answers out of the words (Muse Spark), and the answers land in the ordinary form for the person to check. It is off unless the deployer switches it on twice, once on the server and once in the frontend build. With both off there is no model call anywhere. The rule holds whatever gets added: a model may help someone fill in the form, and they check what it filled in, but it never computes a figure, a risk band or a scheme match, and it never writes the advice. Please don't describe the app as giving AI-generated advice. If someone asks you to "improve the AI", find out first whether they mean the intake or the rules.
 
-There's no database either. All client state lives in the browser's `sessionStorage`. The answers leave the browser once, when step 4 is submitted, so the backend can work the result out. The backend stores none of them. It writes one log line per request, which holds no answer but does hold a code computed from them ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §4).
+There's no database either. All client state lives in the browser's `sessionStorage`. The answers leave the browser once, when step 4 is submitted, so the backend can work the result out. The backend stores none of them. It writes one log line per request, which holds no answer but does hold a code computed from them ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §4). With the helper on, a person's recording or words also go to Meta through the backend each time they use `/talk`, and the backend keeps one more file: a running total of what those calls cost, one whole number per call, with no words, no key and no identity in it (§10).
 
 ## Getting it running
 
@@ -73,7 +73,8 @@ taskkill //F //T //PID <pid>          # yes, doubled slashes, that's Git Bash
 ### The other commands
 
 ```bash
-cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 867 tests, a few seconds
+cd backend && ../.venv/Scripts/python.exe -m pytest tests -q   # 1558 tests in 48 files, about 13 seconds
+node --test tools/verify/talk-lib-test.mjs tools/verify/app-state-test.mjs tools/verify/market-lib-test.mjs   # no server, no key
 cd frontend && npm run build                                   # → frontend/dist; needs an https VITE_API_BASE_URL
 cd frontend && npm run build:local                             # the same, against the backend on 127.0.0.1:8000
 cd frontend && npm run lint                                    # ESLint 10
@@ -87,7 +88,7 @@ The `cd backend` in front of pytest matters. Run it from the repo root and you g
 Two switches turn the demo into something a real person can use.
 
 - **Backend: `ARTHNITI_ENV=production`.** Production changes four things:
-  - it mounts only `GET /health` and `POST /api/analysis/run`;
+  - it mounts only `GET /health` and `POST /api/analysis/run` (and the two `/api/intake/*` routes, if the helper is switched on);
   - it serves no API docs;
   - it refuses a request that carries no consent record;
   - it won't start without `ARTHNITI_CORS_ORIGINS`, a comma-separated list of exact `https://` origins.
@@ -105,27 +106,56 @@ Two switches turn the demo into something a real person can use.
 
 [docs/frontend_integration.md](docs/frontend_integration.md) is the API contract.
 
+### The voice and text helper (optional)
+
+Off by default. It lets a person say or type their answers at `/talk`; Meta's Model API turns speech into words and picks form answers out of the words, and the person checks them in the ordinary form. The helper computes nothing. [docs/HACKATHON.md](docs/HACKATHON.md) says what it is for and how it was built, and [docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §10 says what it sends, keeps and logs, which a deployer needs before switching it on.
+
+It needs both switches, and the server one needs a key:
+
+| Where | Setting | |
+|---|---|---|
+| backend | `ARTHNITI_AI_ENABLED=true` and `MODEL_API_KEY` | environment only. The backend reads no `.env` file, and it refuses to start with the helper on and no key |
+| backend | `ARTHNITI_AI_MODEL`, `ARTHNITI_AI_ASR_MODEL` | `muse-spark-1.3` and `muse-voice-transcribe-1.0` unless set. A `-contributor` model is refused, because those may be trained on |
+| backend | `ARTHNITI_AI_HOURLY_LIMIT` | calls an hour in all, counted by this process. Default 100 |
+| backend | `ARTHNITI_AI_SPEND_CAP_USD`, `ARTHNITI_AI_SPEND_FILE` | the most the app will let itself bill in all (default 10, at most 100), and the file that keeps the running total (default `backend/.ai_spend`, gitignored) |
+| frontend build | `VITE_AI_HELPER=true` | shows the `/talk` page and its two entry points. Any other value leaves `/talk` a 404 |
+
+Every call is priced at its worst case against the cap *before* it is sent, and a call that would pass the cap is refused. That keeps this app's own bill inside a number you chose. It is not Meta's limit and it is not a guarantee: deleting the file resets the total, and each server process counts its own hourly limit. Check the balance on Meta's billing page as well.
+
+To try it with a real key, type the key so it is not echoed or kept in the shell history, run the smoke script first, then start the backend:
+
+```bash
+cd backend
+read -rs MODEL_API_KEY; export MODEL_API_KEY       # paste the key, press Enter. Nothing shows
+export ARTHNITI_AI_ENABLED=true
+../.venv/Scripts/python.exe -m app.smoke_meta      # 3 real calls (2 text, 1 of silence): up to about $0.045 against the cap
+../.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+and in another terminal `cd frontend && VITE_AI_HELPER=true npm run dev`. The smoke script needs only the key and sets the helper switch itself. The test suite clears `MODEL_API_KEY`, and a guard in `tests/conftest.py` fails any test that connects to anything but this machine (it covers blocking sockets, not asyncio on Windows).
+
 ### CI
 
 `.github/workflows/ci.yml` runs on every push and pull request, on `ubuntu-latest`, as two jobs:
 
 - **backend**: installs `requirements-dev.txt` and runs pytest from `backend/`, on Python 3.10 and 3.14.
-- **frontend**: on Node 24, `npm ci`, lint, build (with a placeholder `https://api.example.invalid` as `VITE_API_BASE_URL`, which a production build requires), `parity4.mjs`, `keycheck.mjs` and `market-lib-test.mjs`, plus `glyph-audit.mjs`, which only reports and exits 0 whenever it runs.
+- **frontend**: on Node 24, `npm ci`, lint, build (with a placeholder `https://api.example.invalid` as `VITE_API_BASE_URL`, which a production build requires), `parity4.mjs`, `keycheck.mjs`, `market-lib-test.mjs`, `talk-lib-test.mjs` and `app-state-test.mjs`, plus `glyph-audit.mjs`, which only reports and exits 0 whenever it runs. One test in `talk-lib-test.mjs` runs only where the Windows `.venv` exists, so CI skips it.
 
-**It has not run yet.** The branch that adds it has not been pushed, so it has never run on GitHub or on Linux, and Python 3.10 has not been tried at all. The browser gates in `tools/verify/` are not in it: they drive a local Edge at a hardcoded Windows path, so they only run on a Windows machine with Edge installed. There's still no Makefile and no Dockerfile.
+**It was written without being run.** The machine it was written on has no Linux and no Python 3.10, so nothing in it was tried on either. Whether it passes is shown by the repository's Actions tab, not by this file. The browser gates in `tools/verify/` are not in it: they drive a local Edge at a hardcoded Windows path, so they only run on a Windows machine with Edge installed. There's still no Makefile and no Dockerfile.
 
 ## The demo path
 
-Landing, then an optional login, then four question pages, then four result pages, plus the privacy notice.
+Landing, then an optional login, then four question pages, then four result pages, plus the privacy notice. With the helper switched on there is one more page, `/talk`, as a way in.
 
 | | Route | What happens |
 |---|---|---|
 | | `/` | landing page, with the instruction manual and the dialect picker |
 | | `/login` | a name, nothing else. Not authentication — there's no password. It just carries the name into step 1 |
+| | `/talk` | only when the helper is on. Say or type the answers instead of filling in the form. Nothing is sent until the box on the page is ticked. The answers land in the ordinary form, marked as filled in by the helper, and the reader is taken to the first question still unanswered |
 | 1 | `/profile` | name, language, dialect |
 | 2 | `/business` | business name, kind of work, investment, expected revenue, running costs, existing debt |
 | 3 | `/location` | state → district (cascading), village, rural/semi-urban/urban, market type, customers |
-| 4 | `/finance` | capital in hand, household + business costs, the household's monthly loan repayments, optionally the household's monthly income, and an unticked box agreeing to the privacy notice. Submitting here fires the only API call in the app |
+| 4 | `/finance` | capital in hand, household + business costs, the household's monthly loan repayments, optionally the household's monthly income, and an unticked box agreeing to the privacy notice. Submitting here sends the answers to `POST /api/analysis/run`, which is the only call that produces a result |
 | | `/analysis` | profit, margin, risk, feasibility, the household loan check, local market rows, charts |
 | | `/schemes` | schemes listed for your work and state, grouped by administrative tier |
 | | `/advisory` | recommendations, a next step, and the household loan check |
@@ -149,40 +179,46 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 
 | Path | |
 |---|---|
-| `backend/app/main.py` | the FastAPI app, CORS, and the routers: all 8 in development, 2 in production |
-| `backend/app/api/routes/` | 8 routers, one file per domain |
+| `backend/app/main.py` | the FastAPI app, CORS, and the routers: all 8 in development, 2 in production. The helper adds a 9th, the two `/api/intake/*` routes, in either mode |
+| `backend/app/api/routes/` | 9 routers, one file per domain (`intake.py` is the helper's) |
 | `backend/app/schemas/` | Pydantic request and response models |
-| `backend/app/services/` | all the business logic. Pure functions, no classes, no I/O |
+| `backend/app/services/` | all the business logic. Pure functions, no classes, no I/O. `intake_service.py` builds the helper's prompts and decides which of the model's answers to keep |
 | `backend/app/core/settings.py` | the `ARTHNITI_*` deployment settings, checked at startup |
 | `backend/app/core/processing_log.py` | one JSON log line per request, with no answer in it |
 | `backend/app/core/data_loader.py` | cached JSON loading. What it hands back is shared, so treat it as read-only |
+| `backend/app/core/meta_client.py` | the only code that talks to Meta (standard-library `urllib`, no SDK). Charges the spend cap before every call |
+| `backend/app/core/spend.py` | the spend cap and its ledger file |
+| `backend/app/smoke_meta.py` | `python -m app.smoke_meta`: three real calls to check the integration against the live service |
 | `backend/app/data/` | `schemes.json` (30 schemes), `market_data.json` (20 rows from data.gov.in, Lucknow and Varanasi), `market_data.provenance.json` (how the last fetch ran) |
-| `backend/tests/` | 38 test files, 867 tests |
-| `frontend/src/App.jsx` | the shell, all the chrome, 11 routes and a catch-all |
-| `frontend/src/pages/` | 10 page components |
-| `frontend/src/components/` | `Button`, `BrandMark`, `BrandWordmark`, `Figure`, `InstructionManual`, `ShortNotice`, `Charts`, `chartData` |
+| `backend/tests/` | 48 test files, 1558 tests |
+| `frontend/src/App.jsx` | the shell, all the chrome, 11 routes, a 12th (`/talk`) when the helper is on, and a catch-all |
+| `frontend/src/pages/` | 11 page components (`TalkPage` is the helper's) |
+| `frontend/src/components/` | `Button`, `BrandMark`, `BrandWordmark`, `Figure`, `HelperFilledBanner`, `InstructionManual`, `ShortNotice`, `Charts`, `chartData` |
+| `frontend/src/audio/` | `record.js` (the microphone, released on stop, on error and on leaving the page) and `wav.js` (turns what it recorded into the WAV the speech model takes) |
 | `frontend/src/config/` | `deployment.js` (the `VITE_*` settings) and `notice.js` (the notice version and the keys it covers) |
 | `frontend/src/context/AppContext.jsx` | the entire client state, mirrored into `sessionStorage` |
 | `frontend/src/i18n/` | 8 languages, 4 dictionary files, the `t()` and `tBackend()` provider |
 | `frontend/src/data/indiaLocations.js` | 36 states and UTs, 768 districts |
 | `frontend/src/data/limits.js` | the input caps, mirroring `backend/app/schemas/limits.py`. A test fails if the two disagree |
 | `frontend/src/data/reviewDates.js` | the dates the footer prints for when the scheme rules were checked. A test fails if they drift from `schemes.json` |
-| `frontend/src/services/api.js` | the only network call in the app |
+| `frontend/src/services/api.js` | the only file that makes network calls: the analysis, and the helper's two when it is on |
 | `frontend/.env.example` | the `VITE_*` build settings, documented |
 | `frontend/src/index.css` | design tokens, the `.ui-*` system, and the print stylesheet |
-| `tools/` | 28 `.mjs` files, nearly all of them verifiers, plus the market data fetch and its maps — [tools/README.md](tools/README.md) explains them |
-| `.github/workflows/ci.yml` | the CI workflow, which has not run yet (see [CI](#ci)) |
+| `tools/` | 31 `.mjs` files, nearly all of them verifiers, plus the market data fetch and its maps, and one Python stand-in for the backend (`verify/talk_fake_backend.py`) — [tools/README.md](tools/README.md) explains them |
+| `.github/workflows/ci.yml` | the CI workflow, written without being run (see [CI](#ci)) |
 | `presentation/` | empty, and git does not keep empty folders. Left over from the team build; nothing reads it |
 
 ## How it fits together
 
-The backend is FastAPI with 8 routers, and the frontend calls exactly one of them. A production backend mounts only that one and `/health`. Everything goes through `POST /api/analysis/run`, which answers with 7 top-level sections: `financial_analysis`, `risk_analysis`, `business_analysis`, `market_context`, `scheme_matches`, `advisory` and `mvp_summary`.
+The backend is FastAPI with 8 routers, and the frontend calls exactly one of them. A production backend mounts only that one and `/health` (plus the helper's routes, below, when they are on). Every result goes through `POST /api/analysis/run`, which answers with 7 top-level sections: `financial_analysis`, `risk_analysis`, `business_analysis`, `market_context`, `scheme_matches`, `advisory` and `mvp_summary`.
 
 The other seven (`/health`, `/api/entrepreneur/profile`, `/api/business/analyze`, `/api/financial/analyze`, `/api/schemes/match`, `/api/advisory/recommend`, `/api/market/context`) are thin wrappers over the same services, and they're covered by tests. All but `/health` exist in development only. Don't delete them, but don't assume a change in one shows up in the UI either.
 
+A ninth router, `/api/intake/*`, exists only with the helper switched on, in production as well as development. The frontend calls its two routes from `/talk` and nowhere else: `transcribe` takes a recording and returns the words, and `extract` takes words and returns the form answers it found in them, each with the stretch of the person's own words that it rests on. An answer is kept only if that quoted stretch is really in what the person said. `POST /api/analysis/run` behaves the same with or without the helper, and nothing the helper returns reaches it except as values the person has been shown in the form. [docs/frontend_integration.md](docs/frontend_integration.md) has the measured contract.
+
 CORS in development allows any `localhost` or `127.0.0.1` port. In production it allows only the exact `https://` origins in `ARTHNITI_CORS_ORIGINS`, and the backend won't start without them. Neither mode allows credentials.
 
-The frontend is React 19, Vite 8, Tailwind 4 and react-router 7. No TypeScript, no charting library, no i18n library, no state library, no frontend test framework. Those were choices for a fast prototype build and not all of them have been revisited since. Treat the missing frontend tests as open, not decided: apart from lint, the build and the dictionary scripts, the frontend is checked only by the Windows-only browser scripts in `tools/verify/`. The charts are hand-rolled on CSS in `components/Charts.jsx` so they survive dark mode and `window.print()`, and every one of them prints its number as text next to the bar.
+The frontend is React 19, Vite 8, Tailwind 4 and react-router 7. No TypeScript, no charting library, no i18n library, no state library, no frontend test framework. Those were choices for a fast prototype build and not all of them have been revisited since. Treat the missing frontend tests as open, not decided: apart from lint, the build, the dictionary scripts and two `node --test` files (`talk-lib-test.mjs` for the helper's recording and answer logic, `app-state-test.mjs` for the stored state, both loading the real source through Vite), the frontend is checked only by the Windows-only browser scripts in `tools/verify/`. The charts are hand-rolled on CSS in `components/Charts.jsx` so they survive dark mode and `window.print()`, and every one of them prints its number as text next to the bar.
 
 Client state sits in `AppContext` and is mirrored into `sessionStorage` rather than `localStorage`. That's on purpose: someone's revenue, debt and EMI shouldn't still be sitting on a shared phone or a CSC computer after they walk away, and a closed tab should be a clean slate between two visitors. Within a single tab it survives a refresh, which is what we actually needed. `sessionStorage` only decides where the answers sit in the browser: submitting step 4 still sends them to the backend. Language, dialect, theme and text size *do* use `localStorage`, because a UI preference isn't financial data.
 
@@ -214,7 +250,7 @@ Both datasets are used under the Government Open Data Licence – India. Below t
 
 Eight: `en`, `hi`, `ta`, `te`, `ml`, `kn`, `mr`, `bn`. The default is **Hindi**, not English, because that's who this is for. English is the fallback.
 
-732 distinct keys across 4 dictionary files, 5,856 strings in all, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
+772 distinct keys across 4 dictionary files, 6,176 strings in all, and all 8 languages are at full parity. That's checked by a script rather than by anyone's word. The backend prose is translated too — every sentence a Python service composes carries a translation code that the frontend resolves through `tBackend()`.
 
 The dialect layer is a curated set of phrases, not a translation. Nine of the thirty listed varieties override a handful of the most visible strings. In the demo, say "dialect-aware phrasing" — not "translated into Bhojpuri".
 
@@ -273,15 +309,13 @@ ls tools/*.mjs tools/verify/*.mjs | wc -l       # the script count
 
 ## Who built it, and how git is used
 
-Aryan Verma builds and owns this alone from 26 October 2026. The September 2026 SIH build was a team effort: Netra and Anmol on the frontend, Aryan and Manjeet on the backend, Saad and Tripti on presentation, product story and research. Their earlier work is in the git history, and the written permission to reuse it is still outstanding ([DATA_SOURCES.md](DATA_SOURCES.md), "People").
+Aryan Verma builds and owns this alone from 26 October 2026. The September 2026 SIH build was a team effort: Netra and Anmol on the frontend, Aryan and Manjeet on the backend, Saad and Tripti on presentation, product story and research. Their earlier work is in the git history. Whether reusing it needs their written permission is an open legal question, and the owner's position is that it does not ([DATA_SOURCES.md](DATA_SOURCES.md), "People").
 
-The remote has two branches, `before-main` and `main`, and **`before-main`** is the one to check out. It does not yet hold everything this file describes. `LICENSE`, `DATA_SOURCES.md` and `THIRD_PARTY_NOTICES.md`, the sourced market data, the funding-gap and scheme-fit fixes, the household check, CI and input caps, and the privacy and deployment work above were all made locally and haven't been pushed. As measured on 27 September 2026, `fix/standalone-backlog` is 6 commits ahead of `origin/before-main` (`git rev-list --left-right --count origin/before-main...fix/standalone-backlog` gives `0 / 6`). The working branch, `feature/dpdp-compliance`, sits on the same commit (`4a2307e`), and its privacy and deployment changes are not yet committed.
+**Which branch to read.** `feature/voice-assistant` is the tip and the one this file describes. The other two pushed branches are earlier points on the same line of commits: `feature/dpdp-compliance` is the September work (the privacy and deployment work, the verifier work and the owner's brand-asset files), and `feature/security-hardening` adds the helper's backend, its spend cap and the network guard. [docs/HACKATHON.md](docs/HACKATHON.md) §2 names the commit that is the hackathon start and gives the `git diff` that shows exactly what was added after it. `main` on GitHub is the old scaffold from the team build, and `before-main` is a fast-forward of it. Neither holds anything this file describes until someone merges `feature/voice-assistant` into `main` or makes it the default branch.
 
-On the remote, `before-main` is simply ahead of `main`: `git rev-list --left-right --count origin/main...origin/before-main` gives `0 / 185`. There's nothing on `main` that `before-main` doesn't have, so merging is a fast-forward.
+Compare the `origin/` refs, not your local branch names. A local `main` left over from early backend work can be sitting several commits ahead of `origin/main` and never have been pushed, and then `main...before-main` looks like a genuine divergence. It isn't. Those commits exist on one laptop.
 
-Compare the `origin/` refs, though, not your local branch names. A local `main` left over from early backend work can be sitting several commits ahead of `origin/main` and never have been pushed. One here is, by six, and then `main...before-main` reports `1 / 181` and looks like a genuine divergence. It isn't. Those commits exist on one laptop. This README said `1 / 166` and called it a real merge for exactly that reason.
-
-Never commit to `main`. The repo is private, and the earlier team members may still have clones, so say so before you push, rename or delete a branch.
+Never commit to `main`. The commits made on 27 October 2026 are all dated that day, including the ones that hold older work (September, and the morning of 26 October before the hackathon started), so git's dates alone don't separate old work from new. [docs/HACKATHON.md](docs/HACKATHON.md) §2 does.
 
 Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`, `screenshots/`. That last one is where the verifiers dump their PNGs and reports, and it's ignored because it reaches several gigabytes of browser profile data. The scripts themselves are in `tools/` and are tracked.
 
@@ -289,11 +323,13 @@ Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`
 
 These are the current limits, written down so nobody overclaims:
 
-- No database and no authentication, both deliberate for the prototype. Whether they stay that way depends on what the project gets used for next. No model produces any figure or advice, and until the Meta intake layer is built there is no model in the repo at all.
-- The non-English wording hasn't been checked by a native speaker, and that now covers 732 keys, the household-check wording and the privacy notice included. The non-English notice shouldn't be shown to real users until someone has reviewed it ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §9.1). Parity, placeholders, identical-to-English and the figures are all script-verified; *naturalness* isn't. We've already caught two real mistakes by eye, which suggests there are more.
+- No database and no authentication, both deliberate for the prototype. Whether they stay that way depends on what the project gets used for next. No model produces any figure or advice. The only model in the repo is the optional intake helper.
+- **The helper has been run only against stand-ins.** The tests, the 259 browser checks of `/talk` and the cost measurement all use a fake model and a fake key, because the owner's free credit is the only money in play. Whether Meta's live service behaves as its documentation says (the reply size limit, the reasoning setting, the prompt-cache key, the speech keywords) is not known until `python -m app.smoke_meta` has been run with a real key. Treat the helper as unverified against the live service until then.
+- The helper's limits. Malayalam has no speech recognition in Meta's model, so it can only be typed. A spoken amount ("50 thousand", "1.5 lakh") is converted to rupees by the model and no code checks it, so the page shows the person the words it came from. The two routes have no sign-in and no per-person limit; the spend cap and the hourly limit bound the cost, and nothing bounds who calls them. The app sends no `safety_identifier` to Meta, because it has no per-person identity by design, and it does not ask Meta for zero data retention. The consent tick on `/talk` is page state only: the server keeps no record of it, and `/privacy` does not mention the helper yet ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §10.5). The tick is checked when Record or Find my answers is pressed, and from Record until the recording has been sent it cannot be unticked.
+- The non-English wording hasn't been checked by a native speaker, and that now covers 772 keys, the household-check wording, the privacy notice and the 40 `talk.*` keys of the helper included. The non-English notice shouldn't be shown to real users until someone has reviewed it ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §9.1). Parity, placeholders, identical-to-English and the figures are all script-verified; *naturalness* isn't. We've already caught two real mistakes by eye, which suggests there are more.
 - The household income is whatever the reader types, and nothing checks it. Who counts as the household for an unmarried adult (their parents and their parents' unmarried children, themselves included) is our reading of RBI's definition, and nobody has verified it. A reader who types 0 instead of leaving the field blank has to confirm it with a tick, and is then treated as having no income.
 - Nothing here settles whether a deployment meets the DPDP Act. The deploying organisation is the Data Fiduciary and we are its processor. The build gives it a notice, a consent record, a processing log with no answer in it, and production defaults. The organisation still has its own obligations (schedule §7 and §8), and some points need its lawyer (§9.3). The DPDP Rules apply from May 2027.
-- CI is unproven. It has never run on GitHub or on Linux, and the browser gates are not in it, because they only run on Windows with Edge installed.
+- CI was written without being run, on a machine with no Linux and no Python 3.10. The Actions tab is the evidence, this file is not. The browser gates are not in it, because they only run on Windows with Edge installed.
 - Dialect coverage is 9 of 30 varieties, each a handful of phrases.
 - The market data covers two districts, Lucknow and Varanasi. Everywhere else gets an empty market section. The business counts can't be fetched again as they were, because the Udyam list is live. And a price is marked stale when the data is fetched, not when the page loads, so the file needs refreshing at least weekly.
 - Nothing enforces the order of the journey, and the result pages can't be deep-linked from a cold tab.
