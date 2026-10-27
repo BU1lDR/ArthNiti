@@ -1,7 +1,8 @@
-"""Checks Meta's model API with a real key: `python -m app.smoke_meta [--wav FILE]`.
+"""Checks Meta's model API with a real key: `python -m app.smoke_meta [--wav FILE | --plan]`.
 
-core/meta_client.py follows Meta's documentation and has not been checked against
-the live service. This sends two short sample sentences to the chat model, runs
+core/meta_client.py was written from Meta's documentation and has been run against
+the live service by the owner (27 Oct 2026; docs/HACKATHON.md section 4 has what
+it showed). This sends two short sample sentences to the chat model, runs
 each answer through the same checks the helper's route does, and sends a
 recording to the speech model (yours, or one second of silence). It prints what
 came back and, for a failed call, Meta's own error message, which the app never
@@ -9,6 +10,14 @@ logs: the only text sent here is the samples below. It never prints the key.
 Each chat line ends with the token counts Meta reports for that call (in, how
 many of those were cached, out, how many of those were reasoning), which is how
 to see whether MAX_COMPLETION_TOKENS is sized right and the prompt cache works.
+
+With --plan it checks the AI plan instead (services/plan_service.py): it asks
+for a plan for a made-up tailor, in English and in Hindi, with the call the
+plan route makes, and runs each reply through the same checks. A plan the
+checks accept is printed with the rules' own figures in it. One they refuse is
+printed as the model wrote it, with the reasons, so that the prompt can be
+tuned from it. Each line also says how many seconds the call took. A plan is
+the longest call the app makes, so this is the one to look at before the demo.
 
 Every call is charged to the spend cap (core/spend.py) before it is sent, the
 same cap the app uses (ARTHNITI_AI_SPEND_CAP_USD, ARTHNITI_AI_SPEND_FILE), and
@@ -22,9 +31,12 @@ when every call worked, 1 when one did not, 2 when it could not start.
 
 import argparse
 import io
+import json
 import os
 import pathlib
 import sys
+import textwrap
+import time
 import wave
 
 from app.api.routes.intake import MAX_COMPLETION_TOKENS
@@ -32,6 +44,8 @@ from app.core.meta_client import MetaClient, MetaError
 from app.core.settings import SettingsError, load_settings
 from app.core.spend import SpendCap
 from app.services import intake_service as intake
+from app.services import plan_service as plan
+from app.services.analysis_service import run_unified_analysis
 
 
 SAMPLES = (
@@ -45,6 +59,25 @@ SAMPLES = (
 
 # The language the speech model is told to expect.
 SPOKEN = "Hindi"
+
+# A tailor in rural Lucknow who needs ₹90,000 and has ₹20,000: the rules find a
+# profit of ₹15,000 a month, a gap of ₹70,000 and a 24-month loan (the same
+# answers as tests/plan_fixtures.py, which test_smoke_meta.py checks against the route).
+PLAN_SAMPLE = {
+    "business_category": "tailoring",
+    "state": "Uttar Pradesh",
+    "district": "Lucknow",
+    "location_type": "rural",
+    "available_capital": 20000,
+    "monthly_expenses": 15000,
+    "expected_monthly_revenue": 30000,
+    "monthly_emi": 0,
+    "initial_investment": 90000,
+    "monthly_operating_expenses": 12000,
+    "existing_debt": 0,
+    "household_monthly_income": 25000,
+}
+PLAN_LANGUAGES = ("en", "hi")
 
 
 def _silence():
@@ -94,6 +127,62 @@ def _hear(client, model, wav):
     return True, f"transcript: {transcript!r}"
 
 
+def _took(client, started):
+    """How long the call took and what Meta says it used."""
+
+    return f"{time.monotonic() - started:.1f} s, {_tokens(client.last_usage)}"
+
+
+def _plan_text(rendered):
+    """A rendered plan as plain lines: the model's words with the rules' figures put in."""
+
+    def line(parts):
+        return "".join(part["v"] for part in parts)
+
+    return "\n".join(
+        [
+            line(rendered["summary"]),
+            *(f"{number}. {line(step)}" for number, step in enumerate(rendered["steps"], 1)),
+            *(f"Caution: {line(caution)}" for caution in rendered["cautions"]),
+        ]
+    )
+
+
+def _write_plan(client, model, language):
+    # The call and the checks the plan route makes, once: the route's second try is
+    # the same call told why the first was refused, which only matters once a first
+    # try has failed, and this shows that first try.
+    context = plan.build_context(PLAN_SAMPLE, run_unified_analysis(**PLAN_SAMPLE))
+    started = time.monotonic()
+
+    try:
+        reply = client.complete_json(
+            model,
+            plan.plan_messages(context, language),
+            plan.SCHEMA_NAME,
+            plan.plan_schema(),
+            plan.MAX_COMPLETION_TOKENS,
+        )
+    except MetaError as error:
+        # Meta's own refusals are reported by _attempt; a reply that was not JSON of
+        # the shape asked for is the model's miss, and the route tries again on it.
+        if error.kind != "bad_output":
+            raise
+
+        return False, f"the reply was not JSON of the shape asked for  [{_took(client, started)}]"
+
+    took = _took(client, started)
+
+    try:
+        checked = plan.verify_plan(reply, context, language)
+    except plan.BadPlan as error:
+        written = json.dumps(reply, ensure_ascii=False, indent=2)
+
+        return False, f"refused by the checks: {', '.join(error.reasons)}  [{took}]\n" + textwrap.indent(written, "      ")
+
+    return True, f"accepted  [{took}]\n" + textwrap.indent(_plan_text(plan.render_plan(checked, context)), "      ")
+
+
 def _attempt(name, call):
     try:
         ok, note = call()
@@ -125,11 +214,29 @@ def run(client, chat_model, asr_model, wav):
     return [_attempt(name, call) for name, call in checks]
 
 
+def run_plan(client, chat_model):
+    """[(name, passed, note)] for a plan in each language."""
+
+    return [
+        _attempt(
+            f"plan, {intake.LANGUAGES[language]}",
+            lambda language=language: _write_plan(client, chat_model, language),
+        )
+        for language in PLAN_LANGUAGES
+    ]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Check Meta's model API with the key in MODEL_API_KEY.")
-    parser.add_argument(
+    what = parser.add_mutually_exclusive_group()
+    what.add_argument(
         "--wav",
         help=f"a mono 16-bit WAV at 16 or 24 kHz, said in {SPOKEN}; default: one second of silence",
+    )
+    what.add_argument(
+        "--plan",
+        action="store_true",
+        help="check the AI plan instead of the intake helper: a plan for a sample business, in English and in Hindi",
     )
     args = parser.parse_args(argv)
 
@@ -169,13 +276,18 @@ def main(argv=None):
         print(f"Cannot start: {error}", file=sys.stderr)
         return 2
 
-    client = MetaClient(settings.model_api_key, spend=spend, timeout=60, keep_detail=True)
+    # A plan is allowed as long here as the route allows it.
+    wait = plan.CALL_TIMEOUT_SECONDS if args.plan else 60
+    client = MetaClient(settings.model_api_key, spend=spend, timeout=wait, keep_detail=True)
     before = spend.spent_usd()
 
-    print(f"Meta Model API: chat {settings.ai_model}, speech {settings.asr_model}")
+    print(f"Meta Model API: chat {settings.ai_model}" + ("" if args.plan else f", speech {settings.asr_model}"))
     print(f"Spend cap ${settings.ai_spend_cap_usd:.2f}; ${before:.4f} already recorded in {settings.ai_spend_file}")
 
-    results = run(client, settings.ai_model, settings.asr_model, wav)
+    if args.plan:
+        results = run_plan(client, settings.ai_model)
+    else:
+        results = run(client, settings.ai_model, settings.asr_model, wav)
 
     for name, passed, note in results:
         print(f"{'PASS' if passed else 'FAIL'}  {name}: {note}")

@@ -7,6 +7,7 @@ printed nowhere.
 """
 
 import io
+import re
 import wave
 
 import pytest
@@ -17,7 +18,9 @@ from app.core.meta_client import MetaError
 from app.core.settings import load_settings
 from app.core.spend import SpendCap
 from app.main import create_app
+from app.services import plan_service as plan
 from intake_fixtures import AI_ON, KEY, FakeModel, wav_bytes
+from plan_fixtures import TYPICAL, good_plan
 
 
 # Both samples hold the words the fake model quotes.
@@ -371,3 +374,146 @@ def test_a_production_setting_left_in_the_shell_does_not_stop_it(model, capsys, 
     code, _, _ = run(capsys)
 
     assert code == 0
+
+
+# ---------------------------------------------------------------- --plan
+
+
+@pytest.fixture
+def planning(model):
+    # The next two chat replies are the plans for the sample: English, then Hindi.
+    model.replies = [good_plan("en"), good_plan("hi")]
+    return model
+
+
+def test_the_plan_check_asks_for_a_plan_in_each_language_and_shows_the_one_it_accepts(planning, capsys):
+    code, out, err = run(capsys, "--plan")
+
+    assert code == 0
+    assert out.count("PASS") == 2 and "FAIL" not in out
+    assert "plan, English: accepted" in out and "plan, Hindi: accepted" in out
+    # The figures the rules worked out are in what is shown, put there by the code,
+    # in the summary, in the steps and in the caution the model wrote.
+    assert "₹70,000" in out and "₹15,000" in out
+    assert "1. Think about a loan of ₹70,000 over 24 months, with a monthly repayment of ₹3,295." in out
+    assert "Caution: These figures are estimates" in out
+    # Only the plan was asked for: no extraction and no recording.
+    assert [call[0] for call in planning.calls] == ["complete_json"] * 2
+    assert "Recorded by this run: $0.0200" in out
+    assert err == ""
+
+
+def test_the_plan_call_is_the_one_the_route_makes(planning, capsys):
+    # A check that asked Meta something the route never asks would pass while the route failed.
+    run(capsys, "--plan")
+    route = FakeModel()
+    route.replies = [good_plan("en"), good_plan("hi")]
+    client = TestClient(create_app(load_settings(AI_ON), model_client=route))
+    for language in ("en", "hi"):
+        client.post("/api/advisor/plan", json={"answers": TYPICAL, "language": language, "send_to_meta": True})
+
+    assert planning.calls == route.calls
+    assert len(route.calls) == 2
+
+
+def test_the_plan_check_names_the_model_it_calls(planning, capsys, monkeypatch):
+    monkeypatch.setenv("ARTHNITI_AI_MODEL", "muse-spark-9")
+
+    _, out, _ = run(capsys, "--plan")
+
+    assert "Meta Model API: chat muse-spark-9\n" in out
+    assert [call[1] for call in planning.calls] == ["muse-spark-9"] * 2
+
+
+def test_each_plan_line_shows_what_the_call_took(planning, capsys):
+    planning.last_usage = FULL
+
+    _, out, _ = run(capsys, "--plan")
+
+    assert out.count("tokens: 412 in (256 cached), 95 out (31 reasoning)") == 2
+    assert len(re.findall(r"\d+\.\d s,", out)) == 2
+
+
+def test_a_plan_the_checks_refuse_fails_and_shows_why_and_what_the_model_wrote(planning, capsys):
+    spoiled = good_plan("en")
+    spoiled["summary"] = "You will have 5000 rupees and {{zebra}}."
+    planning.replies = [spoiled, good_plan("hi")]
+
+    code, out, _ = run(capsys, "--plan")
+
+    assert code == 1
+    assert out.count("PASS") == 1 and out.count("FAIL") == 1
+    assert "FAIL  plan, English: refused by the checks: " in out
+    for reason in ("digit", "number_word:rupees", "placeholder:zebra"):
+        assert reason in out
+    # What the model wrote, so that the prompt can be tuned from it.
+    assert "You will have 5000 rupees and {{zebra}}." in out
+
+
+def test_a_reply_that_is_not_a_plan_fails_and_says_what_it_cost(planning, capsys):
+    planning.replies = [MetaError("bad_output"), good_plan("hi")]
+    planning.last_usage = FULL
+
+    code, out, _ = run(capsys, "--plan")
+
+    assert code == 1
+    assert re.search(
+        r"FAIL  plan, English: the reply was not JSON of the shape asked for  "
+        r"\[\d+\.\d s, tokens: 412 in \(256 cached\), 95 out \(31 reasoning\)\]",
+        out,
+    )
+    assert "PASS  plan, Hindi: accepted" in out
+
+
+def test_a_failed_plan_call_prints_what_meta_said(planning, capsys):
+    planning.replies = []
+    planning.failure = MetaError("bad_request", 400, param="max_completion_tokens", detail="too large")
+
+    code, out, err = run(capsys, "--plan")
+
+    assert code == 1
+    assert out.count("FAIL") == 2
+    assert "bad_request (HTTP 400). param=max_completion_tokens message=too large" in out
+    assert KEY not in out + err
+
+
+def test_the_plan_check_stops_at_the_spend_cap(planning, capsys, monkeypatch):
+    monkeypatch.setenv("ARTHNITI_AI_SPEND_CAP_USD", "0.5")
+    planning.cost = 0.3
+
+    code, out, _ = run(capsys, "--plan")
+
+    assert code == 1
+    assert out.count("PASS") == 1 and out.count("FAIL") == 1
+    assert "spend_cap" in out
+    assert len(planning.calls) == 1
+    assert planning.ledger.read_text().split() == ["300000"]
+
+
+def test_the_key_is_never_printed_in_plan_mode(planning, capsys):
+    _, out, err = run(capsys, "--plan")
+
+    assert KEY not in out + err
+
+
+def test_plan_mode_does_not_take_a_recording(model, capsys, tmp_path):
+    recording = tmp_path / "said.wav"
+    recording.write_bytes(wav_bytes(frames=800, fill=b"\x01"))
+
+    with pytest.raises(SystemExit) as stopped:
+        smoke_meta.main(["--plan", "--wav", str(recording)])
+
+    assert stopped.value.code == 2
+    # Refused for being asked for together, not for being unknown.
+    assert "not allowed with" in capsys.readouterr().err
+    assert model.calls == []
+
+
+def test_the_plan_check_waits_as_long_as_the_route_does(planning, capsys):
+    # A plan takes longer than the extraction: with the default wait, a plan the app
+    # would have shown could fail here as "unavailable".
+    run(capsys, "--plan")
+
+    ((_, kwargs),) = planning.built
+    assert kwargs["timeout"] == plan.CALL_TIMEOUT_SECONDS
+    assert kwargs["keep_detail"] is True
