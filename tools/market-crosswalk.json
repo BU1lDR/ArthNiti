@@ -1,6 +1,17 @@
-{ "version": 1,
+{ "version": 2,
   "aliases": { "district": {"faizabad":"Ayodhya","allahabad":"Prayagraj","kheri":"Lakhimpur Kheri"}, "state": {"keralam":"Kerala"} },
   "entries": [
     {"state":"Uttar Pradesh","district":"Lucknow","lgd_state":9,"lgd_district":162,"udyam_district":"LUCKNOW","agmarknet_state":"Uttar Pradesh","agmarknet_district":["Lucknow"],"origin":"manual"},
-    {"state":"Uttar Pradesh","district":"Varanasi","lgd_state":9,"lgd_district":187,"udyam_district":"VARANASI","agmarknet_state":"Uttar Pradesh","agmarknet_district":["Varanasi"],"origin":"manual"}
+    {"state":"Uttar Pradesh","district":"Varanasi","lgd_state":9,"lgd_district":187,"udyam_district":"VARANASI","agmarknet_state":"Uttar Pradesh","agmarknet_district":["Varanasi"],"origin":"manual"},
+    {"state":"Tamil Nadu","district":"Coimbatore","lgd_state":33,"lgd_district":569,"udyam_district":"COIMBATORE","agmarknet_state":"Tamil Nadu","agmarknet_district":["Coimbatore"],"origin":"auto"},
+    {"state":"Telangana","district":"Warangal","lgd_state":36,"lgd_district":522,"udyam_district":"Warangal","agmarknet_state":"Telangana","agmarknet_district":["Warangal"],"origin":"auto"},
+    {"state":"Andhra Pradesh","district":"Guntur","lgd_state":28,"lgd_district":506,"udyam_district":"GUNTUR","agmarknet_state":"Andhra Pradesh","agmarknet_district":["Guntur"],"origin":"auto"},
+    {"state":"Kerala","district":"Ernakulam","lgd_state":32,"lgd_district":555,"udyam_district":"ERNAKULAM","agmarknet_state":"Keralam","agmarknet_district":["Ernakulam"],"origin":"auto"},
+    {"state":"Karnataka","district":"Mysuru","lgd_state":29,"lgd_district":545,"udyam_district":"MYSURU","agmarknet_state":"Karnataka","agmarknet_district":["Mysuru"],"origin":"auto"},
+    {"state":"Maharashtra","district":"Pune","lgd_state":27,"lgd_district":490,"udyam_district":"PUNE","agmarknet_state":"Maharashtra","agmarknet_district":["Pune"],"origin":"auto"},
+    {"state":"West Bengal","district":"Nadia","lgd_state":19,"lgd_district":320,"udyam_district":"NADIA","agmarknet_state":"West Bengal","agmarknet_district":["Nadia"],"origin":"auto"},
+    {"state":"Rajasthan","district":"Jaipur","lgd_state":8,"lgd_district":102,"udyam_district":"JAIPUR","agmarknet_state":"Rajasthan","agmarknet_district":["Jaipur"],"origin":"auto"},
+    {"state":"Madhya Pradesh","district":"Indore","lgd_state":23,"lgd_district":410,"udyam_district":"INDORE","agmarknet_state":"Madhya Pradesh","agmarknet_district":["Indore"],"origin":"auto"},
+    {"state":"Bihar","district":"Gaya","lgd_state":10,"lgd_district":196,"udyam_district":"GAYA","agmarknet_state":"Bihar","agmarknet_district":["Gaya"],"origin":"auto"},
+    {"state":"Punjab","district":"Ludhiana","lgd_state":3,"lgd_district":36,"udyam_district":"LUDHIANA","agmarknet_state":"Punjab","agmarknet_district":["Ludhiana"],"origin":"auto"}
   ] }

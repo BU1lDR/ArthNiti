@@ -1,45 +1,171 @@
 {
-  "fetched_at": "2026-09-24T16:59:11+05:30",
+  "fetched_at": "2026-10-27T18:16:29+05:30",
   "script_sha256": "52634a9123c0fb15cccac45f96fd196557bf3da582cb21051787f01bc226c5b5",
-  "crosswalk_version": 1,
+  "crosswalk_version": 2,
   "nic_map_version": 1,
   "commodities_version": 1,
   "window_days": 60,
   "districts_attempted": [
     {
-      "state": "Uttar Pradesh",
-      "district": "Lucknow"
+      "state": "Tamil Nadu",
+      "district": "Coimbatore"
     },
     {
-      "state": "Uttar Pradesh",
-      "district": "Varanasi"
+      "state": "Telangana",
+      "district": "Warangal"
+    },
+    {
+      "state": "Andhra Pradesh",
+      "district": "Guntur"
+    },
+    {
+      "state": "Kerala",
+      "district": "Ernakulam"
+    },
+    {
+      "state": "Karnataka",
+      "district": "Mysuru"
+    },
+    {
+      "state": "Maharashtra",
+      "district": "Pune"
+    },
+    {
+      "state": "West Bengal",
+      "district": "Nadia"
+    },
+    {
+      "state": "Rajasthan",
+      "district": "Jaipur"
+    },
+    {
+      "state": "Madhya Pradesh",
+      "district": "Indore"
+    },
+    {
+      "state": "Bihar",
+      "district": "Gaya"
+    },
+    {
+      "state": "Punjab",
+      "district": "Ludhiana"
     }
   ],
   "districts_succeeded": [
     {
-      "state": "Uttar Pradesh",
-      "district": "Lucknow",
+      "state": "Tamil Nadu",
+      "district": "Coimbatore",
       "source": "agmarknet"
     },
     {
-      "state": "Uttar Pradesh",
-      "district": "Lucknow",
+      "state": "Tamil Nadu",
+      "district": "Coimbatore",
       "source": "udyam"
     },
     {
-      "state": "Uttar Pradesh",
-      "district": "Varanasi",
+      "state": "Telangana",
+      "district": "Warangal",
       "source": "agmarknet"
     },
     {
-      "state": "Uttar Pradesh",
-      "district": "Varanasi",
+      "state": "Telangana",
+      "district": "Warangal",
+      "source": "udyam"
+    },
+    {
+      "state": "Andhra Pradesh",
+      "district": "Guntur",
+      "source": "agmarknet"
+    },
+    {
+      "state": "Andhra Pradesh",
+      "district": "Guntur",
+      "source": "udyam"
+    },
+    {
+      "state": "Kerala",
+      "district": "Ernakulam",
+      "source": "agmarknet"
+    },
+    {
+      "state": "Kerala",
+      "district": "Ernakulam",
+      "source": "udyam"
+    },
+    {
+      "state": "Karnataka",
+      "district": "Mysuru",
+      "source": "agmarknet"
+    },
+    {
+      "state": "Karnataka",
+      "district": "Mysuru",
+      "source": "udyam"
+    },
+    {
+      "state": "Maharashtra",
+      "district": "Pune",
+      "source": "agmarknet"
+    },
+    {
+      "state": "Maharashtra",
+      "district": "Pune",
+      "source": "udyam"
+    },
+    {
+      "state": "West Bengal",
+      "district": "Nadia",
+      "source": "agmarknet"
+    },
+    {
+      "state": "West Bengal",
+      "district": "Nadia",
+      "source": "udyam"
+    },
+    {
+      "state": "Rajasthan",
+      "district": "Jaipur",
+      "source": "agmarknet"
+    },
+    {
+      "state": "Rajasthan",
+      "district": "Jaipur",
+      "source": "udyam"
+    },
+    {
+      "state": "Madhya Pradesh",
+      "district": "Indore",
+      "source": "agmarknet"
+    },
+    {
+      "state": "Madhya Pradesh",
+      "district": "Indore",
+      "source": "udyam"
+    },
+    {
+      "state": "Bihar",
+      "district": "Gaya",
+      "source": "agmarknet"
+    },
+    {
+      "state": "Bihar",
+      "district": "Gaya",
+      "source": "udyam"
+    },
+    {
+      "state": "Punjab",
+      "district": "Ludhiana",
+      "source": "agmarknet"
+    },
+    {
+      "state": "Punjab",
+      "district": "Ludhiana",
       "source": "udyam"
     }
   ],
   "districts_failed": [],
   "rows_by_metric": {
-    "wholesale_price_per_kg": 6,
-    "registered_units": 14
+    "wholesale_price_per_kg": 34,
+    "registered_units": 91
   }
 }

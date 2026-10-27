@@ -1266,7 +1266,12 @@ describe('crosswalk', () => {
     { State: 'Kerala', District: 'Ernakulam' },
     { State: 'Keralam', District: 'Ernakulam' },
   ]
-  const out = lib.proposeCrosswalk({ states, aggregateRows, todayPairs, crosswalk: CROSSWALK })
+  // A district already in the file is left alone, and the shipped file grows: version 2
+  // added Ernakulam, which these cases need to find ambiguous. So they propose against
+  // the file as it was when they were written, Lucknow and Varanasi.
+  const seed = { ...CROSSWALK, entries: CROSSWALK.entries.filter((e) => ['Lucknow', 'Varanasi'].includes(e.district)) }
+  assert.equal(seed.entries.length, 2, 'the shipped crosswalk lost Lucknow or Varanasi')
+  const out = lib.proposeCrosswalk({ states, aggregateRows, todayPairs, crosswalk: seed })
   const proposal = (state, district) => out.proposals.find((p) => p.state === state && p.district === district)
 
   test('an alias matches on either side, and a district already in the file is left alone', () => {
