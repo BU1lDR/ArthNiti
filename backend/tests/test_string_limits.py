@@ -8,13 +8,17 @@ fails on any string anywhere in a request body, nested or not, without a
 maxLength.
 """
 
+from typing import Literal
+
 import pytest
 from fastapi import FastAPI
 from pydantic import BaseModel
 
 from app.core.settings import load_settings
 from app.main import create_app
+from app.schemas.limits import MAX_TALK_TEXT
 from deployment_fixtures import PRODUCTION, VALID_BODIES, client_for, request_strings
+from intake_fixtures import AI_ON
 
 
 # Development with consent required, so the analysis body is
@@ -36,17 +40,21 @@ PATTERNED = {
 
 
 def _without_max_length(schema):
+    # A string that is one of a list (a Literal) is as long as its longest
+    # member and needs no limit.
     return sorted(
         f"{method.upper()} {path} {field}"
         for method, path, field, string in request_strings(schema)
-        if "maxLength" not in string
+        if "maxLength" not in string and "enum" not in string
     )
 
 
 SETTINGS_TO_CHECK = {
     "development": {},
     "development, consent required": CONSENTED_DEV,
+    "development, helper on": AI_ON,
     "production": PRODUCTION,
+    "production, helper on": {**PRODUCTION, **AI_ON},
 }
 
 
@@ -72,9 +80,19 @@ def test_the_walker_is_not_vacuous():
     assert found[("/api/analysis/run", "preferred_dialect")] == 40
 
 
+def test_the_walker_reaches_the_helpers_text_when_it_is_on():
+    found = {
+        (path, field): string["maxLength"]
+        for _, path, field, string in request_strings(create_app(load_settings(AI_ON)).openapi())
+        if "maxLength" in string
+    }
+
+    assert found[("/api/intake/extract", "text")] == MAX_TALK_TEXT
+
+
 def test_the_walker_reports_a_string_without_max_length():
     # The refuter: a route whose body has a bare str, one nested in a list and
-    # one behind Optional must be reported, all three.
+    # one behind Optional must be reported, all three. A Literal is not.
     class Inner(BaseModel):
         note: str
 
@@ -82,6 +100,7 @@ def test_the_walker_reports_a_string_without_max_length():
         name: str
         maybe: str | None = None
         inners: list[Inner] = []
+        kind: Literal["a", "b"] = "a"
 
     loose = FastAPI()
 

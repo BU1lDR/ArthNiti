@@ -17,3 +17,10 @@ export const MAX_EMPLOYEES = 10_000
 // The longest business category the backend accepts. The fixed choices are far
 // shorter; this caps the typed "Other" category, which is sent as the category.
 export const MAX_CATEGORY_LENGTH = 100
+
+// The voice-and-text helper on /talk. The text box stops typing at the first;
+// the recorder stops before a recording grows past the second (a minute at 16 kHz,
+// mono, 16-bit is 1.92 MB), which is the most the backend takes.
+export const MAX_TALK_TEXT = 2000
+
+export const MAX_AUDIO_BYTES = 3_000_000

@@ -23,6 +23,13 @@ for name in (
     "ARTHNITI_TENANT",
     "ARTHNITI_REQUIRE_CONSENT",
     "ARTHNITI_LOG_HASH_KEY",
+    # The voice-and-text helper. A shell that has a key exported for the smoke
+    # script must not switch it on for every test that imports app.main.
+    "ARTHNITI_AI_ENABLED",
+    "MODEL_API_KEY",
+    "ARTHNITI_AI_MODEL",
+    "ARTHNITI_AI_ASR_MODEL",
+    "ARTHNITI_AI_HOURLY_LIMIT",
 ):
     os.environ.pop(name, None)
 

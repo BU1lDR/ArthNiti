@@ -13,7 +13,9 @@ from app.api.routes import schemes
 from app.api.routes import analysis
 from app.api.routes import business
 from app.api.routes import financial
+from app.api.routes import intake
 from app.api.routes import market
+from app.core.meta_client import MetaClient
 from app.core.processing_log import configure_logging, processing_log_middleware
 from app.core.settings import load_settings
 
@@ -62,7 +64,7 @@ async def response_validation_error(request: Request, exc: ResponseValidationErr
     return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
 
-def _mounted_routers(settings):
+def _mounted_routers(settings, model_client):
     analysis_router = analysis.build_router(
         require_consent=settings.require_consent,
         log_hash_key=settings.log_hash_key,
@@ -72,18 +74,27 @@ def _mounted_routers(settings):
     # else. The other six routers are thin wrappers over the same services,
     # kept for development and their tests.
     if settings.production:
-        return [health.router, analysis_router]
+        routers = [health.router, analysis_router]
+    else:
+        routers = [
+            health.router,
+            entrepreneur.router,
+            advisory.router,
+            schemes.router,
+            analysis_router,
+            business.router,
+            financial.router,
+            market.router,
+        ]
 
-    return [
-        health.router,
-        entrepreneur.router,
-        advisory.router,
-        schemes.router,
-        analysis_router,
-        business.router,
-        financial.router,
-        market.router,
-    ]
+    # The voice-and-text helper is off unless ARTHNITI_AI_ENABLED is true, in
+    # production too. Nothing is sent to Meta, and no route exists to send it.
+    if settings.ai_enabled:
+        routers.append(
+            intake.build_router(model_client, settings.ai_model, settings.asr_model, settings.ai_hourly_limit)
+        )
+
+    return routers
 
 
 def _known_paths(app, routers):
@@ -153,15 +164,39 @@ def _log_startup(settings, routers):
             "as null."
         )
 
+    if settings.ai_enabled:
+        STARTUP_LOGGER.info(
+            "ARTHNITI_AI_ENABLED is true: POST /api/intake/transcribe and "
+            "/api/intake/extract send what a person says or types to Meta's "
+            "model API (%s for text, %s for speech), at most %d calls an hour "
+            "in all. docs/PROCESSOR_SCHEDULE.md lists what that adds for the "
+            "deployer.",
+            settings.ai_model,
+            settings.asr_model,
+            settings.ai_hourly_limit,
+        )
 
-def create_app(settings=None):
+
+def create_app(settings=None, model_client=None):
     """Build the API for one deployment's settings (core/settings.py).
 
     With no settings, they are read from the environment. Development serves
     every router and the docs; production serves only POST /api/analysis/run
-    and GET /health, with no /docs, /redoc or /openapi.json.
+    and GET /health, with no /docs, /redoc or /openapi.json. With
+    ARTHNITI_AI_ENABLED true, either also serves the two /api/intake routes.
+
+    `model_client` stands in for the Meta client in tests: an object with the
+    two methods of core/meta_client.MetaClient. It is refused when the helper is
+    off, because an app that quietly ignored it would pass a test of the wrong
+    thing.
     """
     settings = load_settings() if settings is None else settings
+
+    if model_client is not None and not settings.ai_enabled:
+        raise ValueError("A model client was given, but ARTHNITI_AI_ENABLED is not true.")
+
+    if settings.ai_enabled and model_client is None:
+        model_client = MetaClient(settings.model_api_key)
 
     configure_logging()
 
@@ -182,7 +217,7 @@ def create_app(settings=None):
     )
     app.state.settings = settings
 
-    routers = _mounted_routers(settings)
+    routers = _mounted_routers(settings, model_client)
 
     for router in routers:
         app.include_router(router)

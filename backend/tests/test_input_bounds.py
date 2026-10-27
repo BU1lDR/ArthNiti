@@ -20,7 +20,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.schemas.limits import MAX_CATEGORY_LENGTH, MAX_EMPLOYEES, MAX_RUPEES
+from app.schemas.limits import MAX_AUDIO_BYTES, MAX_CATEGORY_LENGTH, MAX_EMPLOYEES, MAX_RUPEES, MAX_TALK_TEXT
 
 
 client = TestClient(app)
@@ -371,3 +371,10 @@ def test_the_frontend_limits_match_the_backend():
     assert _frontend_constant(source, "MAX_EMPLOYEES") == MAX_EMPLOYEES
     # The business-category box on /business caps what is typed at this.
     assert _frontend_constant(source, "MAX_CATEGORY_LENGTH") == MAX_CATEGORY_LENGTH
+
+    # The voice-and-text helper (/talk): the text box stops typing at the first,
+    # and the recorder stops recording before a WAV reaches the second.
+    assert MAX_TALK_TEXT == 2000
+    assert MAX_AUDIO_BYTES == 3_000_000
+    assert _frontend_constant(source, "MAX_TALK_TEXT") == MAX_TALK_TEXT
+    assert _frontend_constant(source, "MAX_AUDIO_BYTES") == MAX_AUDIO_BYTES

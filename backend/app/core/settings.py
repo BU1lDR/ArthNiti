@@ -21,6 +21,24 @@ instead of starting in a state nobody chose. Nothing here reads a .env file.
                             code for the answers with HMAC-SHA256 instead of
                             plain SHA-256 (see core/processing_log.py).
 
+The voice-and-text helper (api/routes/intake.py) sends what a person says or
+types to Meta's model API. It is off unless switched on:
+
+  ARTHNITI_AI_ENABLED       "true" or "false" (default "false"). "true" mounts
+                            the /api/intake routes, in production too, and
+                            refuses to start without MODEL_API_KEY.
+  MODEL_API_KEY             The Meta Model API key. Environment only: nothing
+                            here reads a file. Dropped while the helper is off.
+  ARTHNITI_AI_MODEL         The chat model (default "muse-spark-1.3").
+  ARTHNITI_AI_ASR_MODEL     The speech-to-text model (default
+                            "muse-voice-transcribe-1.0").
+  ARTHNITI_AI_HOURLY_LIMIT  Model calls the whole process makes per hour
+                            (default 100), to bound what a public copy can spend.
+
+A model whose name ends in "-contributor" is refused. On Meta's pricing page
+those let Meta train on the prompts and responses, and this app's prompts hold
+a person's finances.
+
 "*" is refused as an origin in both modes: with it, any website a person
 visits could send answers to this API from their browser.
 """
@@ -65,6 +83,17 @@ _TENANT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$")
 # Shorter than this and the key adds little over plain SHA-256.
 MIN_LOG_HASH_KEY_LENGTH = 32
 
+DEFAULT_AI_MODEL = "muse-spark-1.3"
+DEFAULT_ASR_MODEL = "muse-voice-transcribe-1.0"
+DEFAULT_HOURLY_LIMIT = 100
+MAX_HOURLY_LIMIT = 100_000
+
+# Visible ASCII only: the key goes into an Authorization header, and a space,
+# a line break or a non-ASCII character would corrupt or split the header.
+_API_KEY = re.compile(r"^[\x21-\x7e]{1,512}$")
+
+_MODEL_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+
 
 class SettingsError(ValueError):
     pass
@@ -82,6 +111,13 @@ class Settings(BaseModel):
     require_consent: bool
     # repr=False, so printing the settings never prints the key.
     log_hash_key: str | None = Field(default=None, repr=False)
+    ai_enabled: bool = False
+    # repr=False and exclude=True: neither printing nor dumping the settings
+    # (the usual ways a settings object ends up in a log) shows the key.
+    model_api_key: str | None = Field(default=None, repr=False, exclude=True)
+    ai_model: str = DEFAULT_AI_MODEL
+    asr_model: str = DEFAULT_ASR_MODEL
+    ai_hourly_limit: int = DEFAULT_HOURLY_LIMIT
 
     @property
     def production(self):
@@ -191,11 +227,80 @@ def _log_hash_key(environ):
     return key
 
 
+def _ai_enabled(environ):
+    raw = _value(environ, "ARTHNITI_AI_ENABLED")
+
+    if not raw:
+        return False
+    if raw not in ("true", "false"):
+        raise SettingsError(
+            f"ARTHNITI_AI_ENABLED must be exactly 'true' or 'false', not {raw!r}."
+        )
+
+    return raw == "true"
+
+
+def _model_api_key(environ, enabled):
+    # A key left in the environment while the helper is off is not kept.
+    if not enabled:
+        return None
+
+    key = _value(environ, "MODEL_API_KEY")
+
+    if not key:
+        raise SettingsError(
+            "MODEL_API_KEY is required when ARTHNITI_AI_ENABLED is true: the "
+            "Meta Model API key, set in the environment. This server reads no "
+            ".env file."
+        )
+    if not _API_KEY.match(key):
+        # The message never includes the key itself.
+        raise SettingsError(
+            "MODEL_API_KEY must be 1 to 512 visible ASCII characters, with no "
+            "space, tab or line break in it."
+        )
+
+    return key
+
+
+def _model(environ, name, default):
+    model = _value(environ, name) or default
+
+    # Before the shape check, so "…-Contributor" gets the reason that matters.
+    if model.lower().endswith("-contributor"):
+        raise SettingsError(
+            f"{name} may not be a contributor model ({model!r}): on Meta's "
+            "pricing page those let Meta train on the prompts and responses."
+        )
+    if not _MODEL_NAME.match(model):
+        raise SettingsError(
+            f"{name} must be a model name such as {default!r}: lowercase "
+            f"letters, digits, '.', '_' or '-', at most 64 characters, not {model!r}."
+        )
+
+    return model
+
+
+def _hourly_limit(environ):
+    raw = _value(environ, "ARTHNITI_AI_HOURLY_LIMIT")
+
+    if not raw:
+        return DEFAULT_HOURLY_LIMIT
+    if not re.fullmatch(r"[0-9]+", raw) or not 1 <= int(raw) <= MAX_HOURLY_LIMIT:
+        raise SettingsError(
+            f"ARTHNITI_AI_HOURLY_LIMIT must be a whole number from 1 to "
+            f"{MAX_HOURLY_LIMIT}, not {raw!r}."
+        )
+
+    return int(raw)
+
+
 def load_settings(environ=None):
     environ = os.environ if environ is None else environ
 
     env = _env(environ)
     cors_origins, cors_origin_regex = _origins(environ, env)
+    ai_enabled = _ai_enabled(environ)
 
     return Settings(
         env=env,
@@ -204,4 +309,9 @@ def load_settings(environ=None):
         tenant=_tenant(environ),
         require_consent=_require_consent(environ, env),
         log_hash_key=_log_hash_key(environ),
+        ai_enabled=ai_enabled,
+        model_api_key=_model_api_key(environ, ai_enabled),
+        ai_model=_model(environ, "ARTHNITI_AI_MODEL", DEFAULT_AI_MODEL),
+        asr_model=_model(environ, "ARTHNITI_AI_ASR_MODEL", DEFAULT_ASR_MODEL),
+        ai_hourly_limit=_hourly_limit(environ),
     )

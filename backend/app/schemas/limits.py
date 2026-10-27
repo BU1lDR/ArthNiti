@@ -17,9 +17,9 @@ frontend can send (see each constant) and then given generous room for other
 callers' spellings. tests/test_string_limits.py reads the OpenAPI schema and
 fails if any string in any request body has no maxLength.
 
-frontend/src/data/limits.js exports MAX_RUPEES, MAX_EMPLOYEES and
-MAX_CATEGORY_LENGTH for the frontend. tests/test_input_bounds.py fails if the
-two files disagree.
+frontend/src/data/limits.js exports MAX_RUPEES, MAX_EMPLOYEES,
+MAX_CATEGORY_LENGTH, MAX_TALK_TEXT and MAX_AUDIO_BYTES for the frontend.
+tests/test_input_bounds.py fails if the two files disagree.
 """
 
 MAX_RUPEES = 1_000_000_000
@@ -58,3 +58,13 @@ MAX_ENUM_LENGTH = 20
 MAX_NOTICE_VERSION_LENGTH = 40
 MAX_LANGUAGE_CODE_LENGTH = 8
 MAX_TIMESTAMP_LENGTH = 40
+
+# The voice-and-text helper (api/routes/intake.py). What a person types or says
+# about their business: a minute of speech is about 150 words, well under this.
+# Mirrored in limits.js, where the text box stops typing at it.
+MAX_TALK_TEXT = 2000
+
+# A recording as a WAV file. The page records at most 60 seconds at 16 kHz, mono,
+# 16-bit, which is 1.92 MB; this leaves room for 24 kHz (62 seconds). Meta's own
+# limit is 32 MB, so this is the tighter one. Mirrored in limits.js.
+MAX_AUDIO_BYTES = 3_000_000

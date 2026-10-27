@@ -3,8 +3,10 @@
 Every text field is sent a marker that begins S3NT and every rupee field the
 figure 987654.32, and then every place the server could write is searched for
 them: the processing log, the app's other loggers, every logger at DEBUG
-(caplog), and stdout and stderr. The 32 to 64 character hex runs (request ids
-and payload codes) are removed first, because a digest can contain any digits.
+(caplog), and stdout and stderr (tests/privacy_fixtures.py). The 32 to 64
+character hex runs (request ids and payload codes) are removed first, because a
+digest can contain any digits. The voice-and-text helper's routes are
+tests/test_intake_log_privacy.py.
 
 The same markers are sent to the analysis in a request that is refused (a 422)
 and in one whose response fails its model (a 500), since an error path is
@@ -13,7 +15,6 @@ where a value is most likely to be printed.
 
 import json
 import logging
-import re
 from typing import get_args
 
 import pytest
@@ -31,18 +32,11 @@ from deployment_fixtures import (
     request_strings,
 )
 from market_fixtures import synthetic_market  # noqa: F401
+from privacy_fixtures import FIGURE, HEADCOUNT, assert_clean, sinks  # noqa: F401
 
 
 DEV = client_for(DEVELOPMENT)
 PROD = client_for(PRODUCTION)
-
-MARKER = "s3nt"
-FIGURE = 987654.32
-HEADCOUNT = 9871
-# The figure as Python, JSON or an Indian or Western grouping would write it.
-FIGURE_TEXTS = ("987654", "9,87,654", "987,654", str(HEADCOUNT))
-
-HEX_RUN = re.compile(r"[0-9a-f]{32,64}")
 
 MVP_SUMMARY_KEYS = {
     "status",
@@ -105,39 +99,6 @@ def _marked_route_body(path):
     return body
 
 
-@pytest.fixture
-def sinks(capture_log, caplog, capsys):
-    """Everything written anywhere, as one text, once the requests are sent."""
-    caplog.set_level(logging.DEBUG)
-    for name in ("arthniti", "arthniti.processing", "arthniti.startup", "arthniti.errors"):
-        caplog.set_level(logging.DEBUG, logger=name)
-
-    processing = capture_log("arthniti.processing")
-    server = capture_log("arthniti")
-    capsys.readouterr()
-
-    def read():
-        captured = capsys.readouterr()
-        texts = [
-            *(record.getMessage() for record in processing),
-            *(record.getMessage() for record in server),
-            caplog.text,
-            captured.out,
-            captured.err,
-        ]
-        return [json.loads(record.getMessage()) for record in processing], "\n".join(texts)
-
-    return read
-
-
-def _assert_clean(text):
-    scrubbed = HEX_RUN.sub("", text).lower()
-
-    assert MARKER not in scrubbed
-    for figure in FIGURE_TEXTS:
-        assert figure not in scrubbed
-
-
 def test_the_marked_body_marks_every_field():
     # Not vacuous: every string field carries a marker and every number the
     # figure, and the body is valid.
@@ -153,11 +114,25 @@ def test_the_marked_body_marks_every_field():
 
 
 def test_the_check_would_see_a_marker_or_the_figure():
-    # The refuter for _assert_clean itself.
+    # The refuter for assert_clean itself.
     for leaked in ("S3NT-village", "x s3nt-state", "987654.32", "9,87,654.32", "9871"):
         with pytest.raises(AssertionError):
-            _assert_clean(leaked)
-    _assert_clean("request fd7a96b6f701b8bb4a361b06ef3c0a42436402bb6cee44b8034b53f2b1fce6d4")
+            assert_clean(leaked)
+    assert_clean("request fd7a96b6f701b8bb4a361b06ef3c0a42436402bb6cee44b8034b53f2b1fce6d4")
+
+
+def test_the_search_sees_a_traceback_any_library_logged(sinks):
+    # A record logged with its exception carries the exception's message in a
+    # traceback, which is where a value is most likely to turn up.
+    try:
+        raise RuntimeError("S3NT-in-an-exception")
+    except RuntimeError:
+        logging.getLogger("some.library").exception("it failed")
+
+    _, text = sinks()
+
+    with pytest.raises(AssertionError):
+        assert_clean(text)
 
 
 @pytest.mark.parametrize(
@@ -172,7 +147,7 @@ def test_no_answer_reaches_any_log_on_a_valid_request(sinks, client, consent):
     assert response.status_code == 200
 
     lines, text = sinks()
-    _assert_clean(text)
+    assert_clean(text)
 
     (line,) = lines
     assert line["consent"] == consent
@@ -196,7 +171,7 @@ def test_no_answer_reaches_any_log_on_a_refused_request(sinks, client, bad):
     assert response.status_code == 422
 
     lines, text = sinks()
-    _assert_clean(text)
+    assert_clean(text)
 
     (line,) = lines
     assert line["consent"] is None
@@ -224,7 +199,7 @@ def test_no_answer_reaches_any_log_from_the_other_dev_routes(sinks, path, synthe
     assert response.status_code in (200, 404)
 
     _, text = sinks()
-    _assert_clean(text)
+    assert_clean(text)
 
 
 def test_every_dev_route_with_a_text_field_is_covered():
@@ -251,7 +226,7 @@ def test_a_response_validation_error_logs_no_values(sinks, monkeypatch):
     assert response.json() == {"detail": "Internal Server Error"}
 
     lines, text = sinks()
-    _assert_clean(text)
+    assert_clean(text)
 
     # The error is still reported, by field name.
     assert "response failed its model on /api/market/context" in text
@@ -275,7 +250,7 @@ def test_a_unified_response_validation_error_logs_no_values(sinks, monkeypatch, 
     assert response.json() == {"detail": "Internal Server Error"}
 
     lines, text = sinks()
-    _assert_clean(text)
+    assert_clean(text)
     assert "response failed its model on /api/analysis/run" in text
     (line,) = lines
     assert line["status"] == 500
