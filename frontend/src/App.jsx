@@ -5,6 +5,7 @@ import BrandMark from './components/BrandMark'
 import BrandWordmark from './components/BrandWordmark'
 import Button from './components/Button'
 import InstructionManual from './components/InstructionManual'
+import { DEPLOYMENT } from './config/deployment'
 import { isStarted, useApp } from './context/AppContext'
 import { SCHEMES_CHECKED_FROM, SCHEMES_CHECKED_TO, formatReviewDate } from './data/reviewDates'
 import LoginPage from './pages/LoginPage'
@@ -17,6 +18,7 @@ import SchemesPage from './pages/SchemesPage'
 import AdvisoryPage from './pages/AdvisoryPage'
 import ReportPage from './pages/ReportPage'
 import PrivacyPage from './pages/PrivacyPage'
+import TalkPage from './pages/TalkPage'
 import { APP_NAME } from './i18n/brand'
 import { useI18n } from './i18n/LanguageContext'
 import { LANGUAGES } from './i18n/languages'
@@ -414,7 +416,7 @@ function AppShell({ children }) {
 // to fall back to the product name, which reads as though the page itself were
 // called अर्थNiti and tells a lost reader nothing about where they landed; any
 // path not named here is the catch-all, whose crumb is its own title.
-const CRUMB_FALLBACK = { '/login': 'common.login', '/privacy': 'common.privacy' }
+const CRUMB_FALLBACK = { '/login': 'common.login', '/privacy': 'common.privacy', '/talk': 'talk.title' }
 
 function Breadcrumb({ pathname }) {
   const { t } = useI18n()
@@ -595,10 +597,15 @@ function LandingPage() {
           </h1>
           <p className="ui-page-subtitle mt-6 max-w-2xl text-lg sm:text-xl">{t('landing.subtitle')}</p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Button to="/profile" size="lg" className="w-full sm:w-auto">
               <span aria-hidden="true">🚀</span> {t('landing.cta')}
             </Button>
+            {DEPLOYMENT.aiHelper && (
+              <Button to="/talk" variant="secondary" size="lg" className="w-full sm:w-auto">
+                <span aria-hidden="true">🎤</span> {t('talk.title')}
+              </Button>
+            )}
             <a
               href="#how-it-works"
               className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 font-bold text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)]"
@@ -724,6 +731,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        {DEPLOYMENT.aiHelper && <Route path="/talk" element={<TalkPage />} />}
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/business" element={<BusinessPage />} />
         <Route path="/location" element={<LocationPage />} />

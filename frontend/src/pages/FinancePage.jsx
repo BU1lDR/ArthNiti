@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
+import HelperFilledBanner from '../components/HelperFilledBanner'
 import { BarGroup } from '../components/Charts'
 import ShortNotice from '../components/ShortNotice'
 import { DEPLOYMENT } from '../config/deployment'
@@ -339,6 +340,8 @@ function FinancePage() {
         <h1 className="ui-page-title">{t('finance.title')}</h1>
         <p className="ui-page-subtitle">{t('finance.subtitle')}</p>
       </div>
+
+      <HelperFilledBanner section="finance" />
 
       <form onSubmit={handleContinue} className="space-y-6">
         <div className="ui-formsection">

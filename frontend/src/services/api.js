@@ -220,3 +220,92 @@ function readError(data) {
     'The analysis service could not process your request. Please try again.',
   )
 }
+
+// The voice-and-text helper on /talk: two calls, and the app works without them.
+// The backend's status code is the contract and its sentence is not, so every
+// failure is thrown with a talk.err* code and the page shows that sentence in the
+// reader's language. What the backend wrote is never printed.
+const HELPER_TIMEOUT_MS = 60000
+
+const HELPER_ERROR_CODES = {
+  unavailable: 'talk.errUnavailable',
+  busy: 'talk.errBusy',
+  unclear: 'talk.errUnclear',
+  recording: 'talk.errRecording',
+  generic: 'talk.errGeneric',
+}
+
+// Status -> code, for both calls. 404 is a deployment with the helper switched off.
+const HELPER_STATUS_CODES = {
+  404: HELPER_ERROR_CODES.unavailable,
+  429: HELPER_ERROR_CODES.busy,
+  502: HELPER_ERROR_CODES.unclear,
+  503: HELPER_ERROR_CODES.unavailable,
+}
+
+// `statusCodes` adds what a status means for this call alone: 413 and 422 mean a
+// bad recording to the first call and nothing the reader can fix to the second.
+// Cancelling and timing out are told apart the way runAnalysis does, by which
+// signal fired.
+async function callHelper(path, init, signal, statusCodes = {}) {
+  if (signal && signal.aborted) throw abortedError(signal.reason)
+
+  const timeout = AbortSignal.timeout(HELPER_TIMEOUT_MS)
+  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
+
+  let response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { ...init, signal: combined })
+  } catch (error) {
+    if (signal && signal.aborted) throw abortedError(error)
+    // Not running and too slow read the same to the reader: try later, or type.
+    throw analysisError(HELPER_ERROR_CODES.unavailable, 'The helper is not available right now.', null, error)
+  }
+
+  if (!response.ok) {
+    const code =
+      statusCodes[response.status] ?? HELPER_STATUS_CODES[response.status] ?? HELPER_ERROR_CODES.generic
+    throw analysisError(code, `The helper answered with status ${response.status}.`)
+  }
+
+  try {
+    return await response.json()
+  } catch (error) {
+    if (signal && signal.aborted) throw abortedError(error)
+    const code = timeout.aborted ? HELPER_ERROR_CODES.unavailable : HELPER_ERROR_CODES.generic
+    throw analysisError(code, 'The helper sent back something that could not be read.', null, error)
+  }
+}
+
+function unusableAnswer() {
+  return analysisError(HELPER_ERROR_CODES.generic, 'The helper sent back something that could not be used.')
+}
+
+// `wav` is the Blob from audio/record.js: mono, 16-bit, 16 kHz. Resolves to the
+// words heard, which is an empty string for a recording of silence.
+export async function transcribeRecording(wav, languageCode, { signal } = {}) {
+  const data = await callHelper(
+    `/api/intake/transcribe?language=${encodeURIComponent(languageCode)}`,
+    { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: wav },
+    signal,
+    { 413: HELPER_ERROR_CODES.recording, 422: HELPER_ERROR_CODES.recording },
+  )
+  if (typeof (data && data.transcript) !== 'string') throw unusableAnswer()
+  return data.transcript
+}
+
+// Resolves to { answers, ignored }. The answers are checked a second time by
+// matchAnswers() before anything reaches the form.
+export async function extractAnswers(text, languageCode, { signal } = {}) {
+  const data = await callHelper(
+    '/api/intake/extract',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, language: languageCode }),
+    },
+    signal,
+  )
+  if (!data || !Array.isArray(data.answers)) throw unusableAnswer()
+  return { answers: data.answers, ignored: Number.isInteger(data.ignored) ? data.ignored : 0 }
+}

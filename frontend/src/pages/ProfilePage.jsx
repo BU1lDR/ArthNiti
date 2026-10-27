@@ -2,6 +2,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
 import ShortNotice from '../components/ShortNotice'
+import { DEPLOYMENT } from '../config/deployment'
 import { useI18n } from '../i18n/LanguageContext'
 import { LANGUAGES } from '../i18n/languages'
 
@@ -60,6 +61,15 @@ function ProfilePage() {
       </div>
 
       <ShortNotice className="mb-6" />
+
+      {DEPLOYMENT.aiHelper && (
+        <div className="ui-card-soft mb-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-semibold">{t('talk.entryText')}</p>
+          <Button to="/talk" variant="secondary" className="w-full sm:w-auto sm:shrink-0">
+            <span aria-hidden="true">🎤</span> {t('talk.title')}
+          </Button>
+        </div>
+      )}
 
       <form onSubmit={handleContinue} className="space-y-6">
         <div className="ui-formsection">

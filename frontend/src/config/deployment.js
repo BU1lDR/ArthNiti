@@ -52,6 +52,10 @@ export const DEPLOYMENT = Object.freeze({
   retentionDays: days(env.VITE_RECORD_RETENTION_DAYS),
   // Only the exact string 'true' turns the age question on.
   requireAgeCheck: text(env.VITE_REQUIRE_AGE_CHECK) === 'true',
+  // Only the exact string 'true' offers the voice-and-text helper (/talk). The
+  // backend has to be started with ARTHNITI_AI_ENABLED=true too: this decides
+  // only whether the pages show the way in. Off, no page mentions it.
+  aiHelper: text(env.VITE_AI_HELPER) === 'true',
 })
 
 export const DEMO_MODE = DEPLOYMENT.fiduciaryName === ''

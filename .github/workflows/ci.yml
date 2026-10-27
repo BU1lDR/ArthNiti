@@ -93,6 +93,15 @@ jobs:
       - name: market fetch maths and guards (no network)
         run: node --test tools/verify/market-lib-test.mjs
 
+      # The two below need no server and no key. One test in talk-lib-test
+      # hands a recording to the backend through the Windows virtual
+      # environment, so it is skipped here and runs on the owner's machine.
+      - name: /talk recording and answer logic
+        run: node --test tools/verify/talk-lib-test.mjs
+
+      - name: stored application state
+        run: node --test tools/verify/app-state-test.mjs
+
       # Informational: glyph-audit prints its hits and exits 0 whenever it
       # ran, so only a crash (exit 2) fails this step. It finds frontend/src
       # from its own location (fileURLToPath), so it runs from the repo root

@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { districtsForState } from '../data/indiaLocations'
 import { MAX_RUPEES } from '../data/limits'
+import { LABEL_KEY_BY_PATH, planFill } from '../data/talkAnswers'
 
 const AppContext = createContext(null)
 
@@ -12,14 +13,14 @@ const STORAGE_KEY = 'sih-application'
 //
 // 2 added `resultCleared`. 3 added `finance.householdIncome`. 4 removed
 // `profile.literacyLevel` and `business.employees`: no page asked for the first,
-// and nothing used the second, yet both were sent with every check. None of the
-// bumps moved or renamed anything, so versions 1 to 3 are still read: hydrate()
-// fills a missing field in from EMPTY (the flag as false, the income as '') and
-// drops a field EMPTY no longer has. A later bump that renames or moves a field
-// must drop the older versions from this set rather than let hydrate()
-// half-restore them.
-const STORAGE_VERSION = 4
-const READABLE_VERSIONS = new Set([1, 2, 3, 4])
+// and nothing used the second, yet both were sent with every check. 5 added
+// `aiFilled`. None of the bumps moved or renamed anything, so every version is
+// still read: hydrate() fills a missing field in from EMPTY (the flag as false,
+// the income as '', the list as empty) and drops a field EMPTY no longer has. A
+// later bump that renames or moves a field must drop the older versions from
+// this set rather than let hydrate() half-restore them.
+const STORAGE_VERSION = 5
+const READABLE_VERSIONS = new Set([1, 2, 3, 4, 5])
 
 const EMPTY = {
   // State and district belong to the location step, which is the single place
@@ -68,6 +69,13 @@ const EMPTY = {
   // again, instead of looking as though nothing was ever checked. False again
   // once a new result arrives, and after starting over.
   resultCleared: false,
+
+  // The answers the helper (/talk) wrote into the form that the reader has not
+  // changed since, as "section.field" paths. A page lists them so they get
+  // checked, and a path leaves the list the moment the reader edits that answer
+  // (applyEdit() below). Never sent anywhere, and not part of isStarted(): it only
+  // ever names answers that already differ from the defaults.
+  aiFilled: [],
 }
 
 // Has the reader entered anything worth clearing?
@@ -166,6 +174,12 @@ function hydrate(data) {
     // Only a real `true` counts, and never beside a result: the flag says a
     // result was thrown away, which cannot be so while one is present.
     resultCleared: data.resultCleared === true && !data.result,
+    // Only paths of answers the helper can fill: anything else in a stored list
+    // would reach the banner as a question with no name. A one-item array would
+    // pass hasOwn as its own text, so the type is checked first.
+    aiFilled: Array.isArray(data.aiFilled)
+      ? data.aiFilled.filter((path) => typeof path === 'string' && Object.hasOwn(LABEL_KEY_BY_PATH, path))
+      : [],
   }
 }
 
@@ -192,6 +206,48 @@ function readStored() {
   }
 }
 
+// The answers after `data` is written into `section`. Every change to an answer
+// goes through here, so the two rules below hold for all of them.
+export function applyEdit(current, section, data) {
+  // Nothing actually moved. Returning the same object skips the re-render
+  // and the sessionStorage write, and — the reason this check is here rather
+  // than being an optimisation — it stops an idempotent call from discarding
+  // a result that is still perfectly valid.
+  const changedKeys = Object.keys(data).filter((key) => current[section][key] !== data[key])
+  if (changedKeys.length === 0) return current
+
+  const clears = changesResult(section, changedKeys)
+  const edited = new Set(changedKeys.map((key) => `${section}.${key}`))
+
+  return {
+    ...current,
+    [section]: {
+      ...current[section],
+      ...data,
+    },
+    result: clears ? null : current.result,
+    // Set only when this change is the one that threw a result away. Once
+    // set it stays set through later edits, which have no result left to
+    // clear, until a new result arrives or the reader starts over.
+    resultCleared: clears && current.result ? true : current.resultCleared,
+    // An answer the reader has changed is theirs now, not the helper's.
+    aiFilled: current.aiFilled.filter((path) => !edited.has(path)),
+  }
+}
+
+// The answers after the helper's patches (patchesFor, in data/talkAnswers.js)
+// are written, with each answer it put there added to aiFilled. Pure, so /talk
+// can ask where the reader goes next before it commits anything.
+export function applyHelperFill(current, patches) {
+  const { changed, filled } = planFill(current, patches)
+  if (Object.keys(changed).length === 0) return current
+
+  let next = current
+  for (const [section, data] of Object.entries(changed)) next = applyEdit(next, section, data)
+  // applyEdit took every path it changed off the list, so none is listed twice.
+  return { ...next, aiFilled: [...next.aiFilled, ...filled] }
+}
+
 export function AppProvider({ children }) {
   const [applicationData, setApplicationData] = useState(readStored)
 
@@ -208,29 +264,11 @@ export function AppProvider({ children }) {
   }, [applicationData])
 
   const updateSection = (section, data) => {
-    setApplicationData((current) => {
-      // Nothing actually moved. Returning the same object skips the re-render
-      // and the sessionStorage write, and — the reason this check is here rather
-      // than being an optimisation — it stops an idempotent call from discarding
-      // a result that is still perfectly valid.
-      const changedKeys = Object.keys(data).filter((key) => current[section][key] !== data[key])
-      if (changedKeys.length === 0) return current
+    setApplicationData((current) => applyEdit(current, section, data))
+  }
 
-      const clears = changesResult(section, changedKeys)
-
-      return {
-        ...current,
-        [section]: {
-          ...current[section],
-          ...data,
-        },
-        result: clears ? null : current.result,
-        // Set only when this change is the one that threw a result away. Once
-        // set it stays set through later edits, which have no result left to
-        // clear, until a new result arrives or the reader starts over.
-        resultCleared: clears && current.result ? true : current.resultCleared,
-      }
-    })
+  const fillFromHelper = (patches) => {
+    setApplicationData((current) => applyHelperFill(current, patches))
   }
 
   const setResult = (result) => {
@@ -258,6 +296,7 @@ export function AppProvider({ children }) {
         applicationData,
         resultCleared: applicationData.resultCleared === true,
         updateSection,
+        fillFromHelper,
         setResult,
         resetApplication,
       }}

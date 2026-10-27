@@ -1,6 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
+import HelperFilledBanner from '../components/HelperFilledBanner'
 import { STATES, districtsForState } from '../data/indiaLocations'
 import { useI18n } from '../i18n/LanguageContext'
 
@@ -118,6 +119,8 @@ function LocationPage() {
         <h1 className="ui-page-title">{t('location.title')}</h1>
         <p className="ui-page-subtitle">{t('location.subtitle')}</p>
       </div>
+
+      <HelperFilledBanner section="location" />
 
       <form onSubmit={handleContinue} className="space-y-6">
         <div className="ui-formsection">

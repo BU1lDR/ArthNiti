@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
+import HelperFilledBanner from '../components/HelperFilledBanner'
 import { useI18n } from '../i18n/LanguageContext'
 import { MAX_CATEGORY_LENGTH, MAX_RUPEES } from '../data/limits'
 
@@ -93,6 +94,8 @@ function BusinessPage() {
         <h1 className="ui-page-title">{t('business.title')}</h1>
         <p className="ui-page-subtitle">{t('business.subtitle')}</p>
       </div>
+
+      <HelperFilledBanner section="business" />
 
       <form onSubmit={handleContinue} className="space-y-6">
         <div className="ui-formsection">
