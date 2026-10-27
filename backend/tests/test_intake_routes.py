@@ -24,6 +24,7 @@ from app.core.settings import load_settings
 from app.main import create_app
 from app.schemas.limits import MAX_AUDIO_BYTES, MAX_TALK_TEXT
 from app.services import intake_service as intake
+from app.services import plan_service as plan
 from deployment_fixtures import PRODUCTION
 from intake_fixtures import AI_ON, KEY, FakeModel, wav_bytes
 
@@ -129,10 +130,11 @@ PRODUCTION_WITH_THE_HELPER = {
     ("get", "/health"),
     ("post", "/api/intake/transcribe"),
     ("post", "/api/intake/extract"),
+    ("post", "/api/advisor/plan"),
 }
 
 
-def test_production_documents_the_two_intake_routes_besides_its_usual_two_when_the_helper_is_on(model):
+def test_production_documents_the_two_intake_routes_and_the_plan_route_besides_its_usual_two_when_the_helper_is_on(model):
     schema = create_app(load_settings({**PRODUCTION, **AI_ON}), model_client=model).openapi()
 
     assert {(method, path) for path, operations in schema["paths"].items() for method in operations} == PRODUCTION_WITH_THE_HELPER
@@ -258,7 +260,9 @@ def test_with_the_helper_on_and_no_client_given_one_is_built_from_the_key_and_th
 
     ((arguments, keywords),) = made
     assert arguments == (KEY,)
-    assert list(keywords) == ["spend"]
+    assert list(keywords) == ["spend", "timeout"]
+    # A plan is a long reply (reasoning tokens included), so the one client waits longer than its default.
+    assert keywords["timeout"] == plan.CALL_TIMEOUT_SECONDS
 
     # The cap it holds is the one in the settings, kept in the file in the settings.
     keywords["spend"].charge(0.4)

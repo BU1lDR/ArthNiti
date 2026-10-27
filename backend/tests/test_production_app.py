@@ -47,6 +47,7 @@ def test_production_serves_analysis_and_health():
     assert set(analysis.json()) == {
         "financial_analysis",
         "risk_analysis",
+        "financing_options",
         "business_analysis",
         "market_context",
         "scheme_matches",

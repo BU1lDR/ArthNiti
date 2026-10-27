@@ -187,3 +187,21 @@ def test_no_surplus_still_reports_the_loan_terms():
     assert result["reason_code"] == "rsn.noSurplus"
     assert result["estimated_new_emi"] == 2224
     assert result["total_monthly_emi"] == 4224
+
+
+def test_the_loan_for_the_gap_can_be_priced_at_other_terms():
+    # ₹1 lakh over 12 months at 24% a year is ₹9,456 on any bank's calculator.
+    # The terms are the caller's to set; leaving them out keeps the 12% over 60
+    # months the page states (the tests above).
+    result = calculate_repayment_pressure(
+        monthly_surplus=40000,
+        monthly_emi=0,
+        funding_gap=100000,
+        annual_interest_percent=24,
+        tenure_months=12,
+    )
+
+    assert result["estimated_new_emi"] == 9456
+    assert result["assumed_interest_rate_percent"] == 24
+    assert result["assumed_tenure_months"] == 12
+    assert result["pressure_ratio_percent"] == 23.64

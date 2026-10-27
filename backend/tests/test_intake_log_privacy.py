@@ -15,16 +15,11 @@ with no consent record and no payload code: the helper keeps nothing of the body
 """
 
 import pytest
-from fastapi.testclient import TestClient
 
 from app.api.routes import intake as intake_route
-from app.core.meta_client import MetaError
-from app.core.settings import load_settings
-from app.main import create_app
 from app.schemas.limits import MAX_AUDIO_BYTES
-from deployment_fixtures import PRODUCTION
-from intake_fixtures import AI_ON, KEY, FakeModel, wav_bytes
-from privacy_fixtures import assert_clean, sinks  # noqa: F401
+from intake_fixtures import KEY, FakeModel, wav_bytes
+from privacy_fixtures import FAILURES, LINE_KEYS, assert_clean, assert_lines, helper, sinks  # noqa: F401
 
 
 SAID = "S3NT-talk. I have 987654 rupees, 9,87,654 in the shop, 987,654 owed and 9871 hens."
@@ -39,21 +34,8 @@ ECHOING = {
     "money_answers": [{"field": "available_capital", "rupees": 987654, "evidence": "987654 rupees"}],
 }
 
-LINE_KEYS = {"event", "request_id", "ts", "tenant", "method", "path", "status", "duration_ms"}
-
 EXTRACT = "/api/intake/extract"
 TRANSCRIBE = "/api/intake/transcribe"
-
-# Every field of an error that a client might copy into a message, carrying the
-# marker, the figure or the key.
-FAILURES = [
-    (MetaError("auth", 401, code="invalid_api_key", param="Authorization", detail=f"S3NT 987654 {KEY}"), 503),
-    (MetaError("billing", 402, code="S3NT-code", detail="S3NT-billing"), 503),
-    (MetaError("unavailable", detail="S3NT-down"), 503),
-    (MetaError("rate_limited", 429, detail="S3NT-slow", retry_after=5), 429),
-    (MetaError("bad_request", 400, param="S3NT-param", detail="S3NT-bad"), 502),
-    (MetaError("bad_output", detail="S3NT-output"), 502),
-]
 
 
 def extract(client, text=SAID, language="en"):
@@ -75,23 +57,6 @@ SENDS = {EXTRACT: extract, TRANSCRIBE: transcribe}
 @pytest.fixture(params=sorted(SENDS))
 def route(request):
     return request.param, SENDS[request.param]
-
-
-@pytest.fixture(params=[{}, PRODUCTION], ids=["dev", "prod"])
-def helper(request):
-    """Builds a client for the helper. Call it inside the test, after `sinks`, so the logs are watched from startup."""
-
-    def make(model, **more):
-        return TestClient(create_app(load_settings({**request.param, **AI_ON, **more}), model_client=model))
-
-    return make
-
-
-def assert_lines(lines, *expected):
-    assert [(line["path"], line["status"]) for line in lines] == list(expected)
-    for line in lines:
-        assert set(line) == LINE_KEYS
-        assert line["method"] == "POST"
 
 
 # ---------------------------------------------------------------- a request that is answered

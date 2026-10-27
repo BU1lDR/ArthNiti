@@ -277,7 +277,8 @@ function FinancePage() {
         return
       }
 
-      setResult(result)
+      // Kept with the result: the plan on /advisory is written for these answers.
+      setResult(result, payload)
 
       if (mountedRef.current && pathRef.current === sentFrom) navigate('/analysis')
     } catch (err) {

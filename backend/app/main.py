@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.routes import health
 from app.api.routes import entrepreneur
+from app.api.routes import advisor
 from app.api.routes import advisory
 from app.api.routes import schemes
 from app.api.routes import analysis
@@ -19,6 +20,7 @@ from app.core.meta_client import MetaClient
 from app.core.processing_log import configure_logging, processing_log_middleware
 from app.core.settings import load_settings
 from app.core.spend import SpendCap
+from app.services import plan_service
 
 
 STARTUP_LOGGER = logging.getLogger("arthniti.startup")
@@ -88,12 +90,14 @@ def _mounted_routers(settings, model_client):
             market.router,
         ]
 
-    # The voice-and-text helper is off unless ARTHNITI_AI_ENABLED is true, in
-    # production too. Nothing is sent to Meta, and no route exists to send it.
+    # The voice-and-text helper and the plan writer are off unless
+    # ARTHNITI_AI_ENABLED is true, in production too. Nothing is sent to Meta,
+    # and no route exists to send it.
     if settings.ai_enabled:
-        routers.append(
-            intake.build_router(model_client, settings.ai_model, settings.asr_model, settings.ai_hourly_limit)
-        )
+        # One count for every route that calls the model.
+        take = intake.hourly_limiter(settings.ai_hourly_limit)
+        routers.append(intake.build_router(model_client, settings.ai_model, settings.asr_model, take))
+        routers.append(advisor.build_router(model_client, settings.ai_model, take))
 
     return routers
 
@@ -169,7 +173,9 @@ def _log_startup(settings, routers):
         STARTUP_LOGGER.info(
             "ARTHNITI_AI_ENABLED is true: POST /api/intake/transcribe and "
             "/api/intake/extract send what a person says or types to Meta's "
-            "model API (%s for text, %s for speech), at most %d calls an hour "
+            "model API (%s for text, %s for speech), and POST /api/advisor/plan "
+            "sends it a short description of a business, with no figure, name "
+            "or place in it, to have a plan worded; at most %d calls an hour "
             "in all, and at most $%.2f of billing in all (the total is kept in "
             "%s). docs/PROCESSOR_SCHEDULE.md lists what that adds for the "
             "deployer.",
@@ -187,7 +193,8 @@ def create_app(settings=None, model_client=None):
     With no settings, they are read from the environment. Development serves
     every router and the docs; production serves only POST /api/analysis/run
     and GET /health, with no /docs, /redoc or /openapi.json. With
-    ARTHNITI_AI_ENABLED true, either also serves the two /api/intake routes.
+    ARTHNITI_AI_ENABLED true, either also serves the two /api/intake routes and
+    POST /api/advisor/plan.
 
     `model_client` stands in for the Meta client in tests: an object with the
     two methods of core/meta_client.MetaClient. It is refused when the helper is
@@ -202,7 +209,7 @@ def create_app(settings=None, model_client=None):
     if settings.ai_enabled and model_client is None:
         # A ledger that cannot be used stops the start here and not the first call.
         spend = SpendCap(settings.ai_spend_file, settings.ai_spend_cap_usd)
-        model_client = MetaClient(settings.model_api_key, spend=spend)
+        model_client = MetaClient(settings.model_api_key, spend=spend, timeout=plan_service.CALL_TIMEOUT_SECONDS)
 
     configure_logging()
 

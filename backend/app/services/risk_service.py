@@ -170,7 +170,14 @@ def calculate_repayment_pressure(
     monthly_emi: float,
     funding_gap: float = 0,
     household_monthly_income: float | None = None,
+    annual_interest_percent: float = ASSUMED_ANNUAL_INTEREST_PERCENT,
+    tenure_months: int = ASSUMED_TENURE_MONTHS,
 ):
+    # `funding_gap` is the principal of the loan priced here. The terms default
+    # to the assumption the pages state; options_service passes others to price
+    # the same loan over a shorter or longer time, and through this function so
+    # that its bands and household check cannot differ from the analysis's.
+    #
     # A funding gap is money the plan needs and the entrepreneur does not have.
     # It used to be computed and then ignored here, so someone with no capital
     # against a ₹5 lakh plan and no current loan read as "low" risk and was told
@@ -190,15 +197,17 @@ def calculate_repayment_pressure(
     # `existing_debt` is deliberately not added. It is the outstanding amount of
     # a business loan whose monthly repayment is already inside the EMI entered,
     # so counting the debt as well would count the same loan twice.
-    estimated_new_emi = estimate_monthly_repayment(funding_gap)
+    estimated_new_emi = estimate_monthly_repayment(
+        funding_gap, annual_interest_percent, tenure_months
+    )
     total_monthly_emi = round(monthly_emi + estimated_new_emi, 2)
 
     terms = {
         "monthly_emi": monthly_emi,
         "estimated_new_emi": estimated_new_emi,
         "total_monthly_emi": total_monthly_emi,
-        "assumed_interest_rate_percent": ASSUMED_ANNUAL_INTEREST_PERCENT,
-        "assumed_tenure_months": ASSUMED_TENURE_MONTHS,
+        "assumed_interest_rate_percent": annual_interest_percent,
+        "assumed_tenure_months": tenure_months,
     }
 
     # The household check does not depend on the business surplus, so it is

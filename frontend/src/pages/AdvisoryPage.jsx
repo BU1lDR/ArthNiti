@@ -1,9 +1,13 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Button from '../components/Button'
+import { DEPLOYMENT } from '../config/deployment'
 import { firstUnansweredStep, isStarted, useApp } from '../context/AppContext'
 import { BarRow, UnitChart } from '../components/Charts'
+import { LANGUAGES } from '../i18n/languages'
 import { useI18n } from '../i18n/LanguageContext'
 import { useBackendText } from '../i18n/backendText'
+import { isAbortError, requestPlan } from '../services/api'
 
 function AdvisoryPage() {
   const { applicationData, resultCleared } = useApp()
@@ -163,6 +167,12 @@ function AdvisoryPage() {
             </div>
           </section>
 
+          <FinancingOptions section={result.financing_options} t={t} />
+
+          {/* Only on a build with the helper on, and only for a result whose answers
+              were kept: the plan is written for those answers. */}
+          {DEPLOYMENT.aiHelper && applicationData.request && <PlanWriter />}
+
           <details className="ui-disclosure mt-6">
             <summary>{t('ad.details')}</summary>
             <div className="ui-disclosure-body space-y-5">
@@ -264,13 +274,13 @@ function AdvisoryCard({ icon, title, value, description, chart }) {
   )
 }
 
-function ActionItem({ number, text }) {
+function ActionItem({ number, text, children }) {
   return (
     <div className="flex min-w-0 items-start gap-4 rounded-xl border border-[var(--color-border)] p-4">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-soft)] font-extrabold text-[var(--color-primary-strong)]">
         {number}
       </div>
-      <p className="min-w-0 flex-1 break-words pt-1 leading-7 text-[var(--color-text)]">{typeof text === 'string' ? text : JSON.stringify(text)}</p>
+      <p className="min-w-0 flex-1 break-words pt-1 leading-7 text-[var(--color-text)]">{children ?? (typeof text === 'string' ? text : JSON.stringify(text))}</p>
     </div>
   )
 }
@@ -281,6 +291,300 @@ function DetailBlock({ title, children }) {
       <h3 className="font-bold text-[var(--color-text)]">{title}</h3>
       <div className="mt-2">{children}</div>
     </div>
+  )
+}
+
+// How much of the money still needed could be borrowed, and over how long. Every
+// figure comes from `financing_options`, which the backend prices with the same
+// function as the loan pressure on this page, so a card cannot disagree with it.
+// A status this build does not know draws nothing, never a raw code, and neither
+// does a result stored before the section existed.
+const NO_LOAN_KEYS = {
+  no_surplus: 'fo.noSurplus',
+  household_over_limit: 'fo.householdOver',
+  no_room: 'fo.noRoom',
+}
+
+function FinancingOptions({ section, t }) {
+  const status = section?.status
+  const options = Array.isArray(section?.options) ? section.options : []
+  const hasOptions = (status === 'covered' || status === 'partial') && options.length > 0
+  const reasonKey = NO_LOAN_KEYS[status]
+  if (!hasOptions && !reasonKey) return null
+
+  const bestCode = section.recommended_by_rules
+  return (
+    <section className="ui-card mt-6 sm:p-8">
+      <p className="ui-eyebrow">{t('fo.eyebrow')}</p>
+      <h2 className="mt-1 text-2xl font-bold text-[var(--color-text)]">{t('fo.title')}</h2>
+
+      {hasOptions ? (
+        <>
+          <p className="mt-3 leading-7 text-[var(--color-text-muted)]">
+            {t(status === 'covered' ? 'fo.coveredIntro' : 'fo.partialIntro', { gap: formatCurrency(section.funding_gap, t) })}
+          </p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {options.map((option) => (
+              <OptionCard key={option.code} option={option} best={option.code === bestCode} t={t} />
+            ))}
+          </div>
+          {status === 'partial' && <p className="mt-5 leading-7 text-[var(--color-text)]">{t('fo.partialRest')}</p>}
+          {hasNumber(section.assumed_interest_rate_percent) && (
+            <p className="ui-chart-caption">{t('fo.assumption', { rate: section.assumed_interest_rate_percent })}</p>
+          )}
+          <details className="ui-disclosure mt-5">
+            <summary>{t('fo.how')}</summary>
+            <div className="ui-disclosure-body space-y-3">
+              <p>{t('fo.howText')}</p>
+              {section.household_checked === true && <p>{t('fo.howHousehold')}</p>}
+              {bestCode && <p>{t('fo.howBest')}</p>}
+            </div>
+          </details>
+        </>
+      ) : (
+        <p className="mt-3 leading-7 text-[var(--color-text-muted)]">{t(reasonKey)}</p>
+      )}
+    </section>
+  )
+}
+
+// Both borders are 2px wide so the cards in a row stay the same size; only the
+// colour marks the one the rules recommend. The verdict (what is still needed, or
+// the badge on the recommended card) is the last line, so every row above it
+// lines up across the cards in a row.
+function OptionCard({ option, best, t }) {
+  const stillNeeded = hasNumber(option.remaining_gap) && Number(option.remaining_gap) > 0
+  return (
+    <article
+      className={
+        'min-w-0 rounded-xl border-2 p-4 ' +
+        (best ? 'border-[var(--color-primary)]' : 'border-[var(--color-border)]')
+      }
+    >
+      <h3 className="text-base font-extrabold text-[var(--color-text)]">
+        {t('fo.term', { months: option.tenure_months })}
+      </h3>
+      <dl className="mt-3 space-y-2 text-sm">
+        <OptionRow label={t('fo.loan')} value={formatCurrency(option.loan_amount, t)} />
+        <OptionRow label={t('fo.perMonth')} value={formatCurrency(option.monthly_repayment, t)} />
+        <OptionRow label={t('fo.totalBack')} value={formatCurrency(option.total_repayment, t)} />
+        <OptionRow label={t('fo.interest')} value={formatCurrency(option.total_interest, t)} />
+      </dl>
+      {hasNumber(option.pressure_ratio_percent) && (
+        <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+          {t('ad.pressureIs', { value: formatPercent(option.pressure_ratio_percent, t) })}
+        </p>
+      )}
+      {hasNumber(option.household_repayment_percent) && (
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          {t('ch.householdPercent', { percent: formatPercent(option.household_repayment_percent, t) })}
+        </p>
+      )}
+      {stillNeeded && (
+        <p className="mt-3 text-sm font-bold text-[var(--color-text)]">
+          {t('fo.stillNeeded', { amount: formatCurrency(option.remaining_gap, t) })}
+        </p>
+      )}
+      {best && (
+        <p className="mt-3 w-fit rounded-xl border border-[var(--color-primary)] bg-[var(--color-surface-soft)] px-3 py-1 text-sm font-bold text-[var(--color-primary-strong)]">
+          {t('fo.best')}
+        </p>
+      )}
+    </article>
+  )
+}
+
+function OptionRow({ label, value }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+      <dt className="min-w-0 text-[var(--color-text-muted)]">{label}</dt>
+      <dd className="whitespace-nowrap font-bold text-[var(--color-text)]">{value}</dd>
+    </div>
+  )
+}
+
+// The optional plan, written by an AI service run by Meta in the reader's language.
+// What is sent is a short description with no figure, name or place in it, and the
+// words below say so. The reply is words around blanks: the backend fills the blanks
+// from the fixed rules and refuses a plan that breaks its checks, so a figure or a name
+// on screen is one the rules produced. Nothing is sent before the tick, and the advice
+// above stands without the plan.
+function PlanWriter() {
+  const { applicationData, setPlan } = useApp()
+  const { t, language } = useI18n()
+  const { request, plan } = applicationData
+
+  // Given for what is sent from here, so it lives in this component and nowhere else,
+  // and it is unticked again after every plan.
+  const [consent, setConsent] = useState(false)
+  const [consentMissing, setConsentMissing] = useState(false)
+  const [busy, setBusy] = useState(false)
+  // A plan.err* code, not a sentence, so it follows a change of language.
+  const [error, setError] = useState('')
+  const consentRef = useRef(null)
+  const requestRef = useRef(null)
+  const headingRef = useRef(null)
+  const justWritten = useRef(false)
+
+  // Leaving the page abandons the request in flight.
+  useEffect(() => () => requestRef.current?.abort(), [])
+
+  // A keyboard or a screen reader lands on a plan that has just been written, and not
+  // on one that was already there when the page opened.
+  useEffect(() => {
+    if (plan && justWritten.current) {
+      justWritten.current = false
+      headingRef.current?.focus()
+    }
+  }, [plan])
+
+  async function write() {
+    if (requestRef.current) return
+    setConsentMissing(!consent)
+    if (!consent) {
+      consentRef.current?.focus()
+      return
+    }
+
+    const controller = new AbortController()
+    requestRef.current = controller
+    setBusy(true)
+    setError('')
+    try {
+      const written = await requestPlan(request, language, true, { signal: controller.signal })
+      justWritten.current = true
+      setPlan(written, request)
+      setConsent(false)
+    } catch (failure) {
+      if (!isAbortError(failure)) setError(failure.code ?? 'plan.errGeneric')
+    } finally {
+      if (requestRef.current === controller) {
+        requestRef.current = null
+        setBusy(false)
+      }
+    }
+  }
+
+  const writtenIn = plan ? LANGUAGES.find((entry) => entry.code === plan.language) : null
+  const ownLanguage = LANGUAGES.find((entry) => entry.code === language)
+
+  return (
+    <section className="ui-card mt-6 sm:p-8">
+      <p className="ui-eyebrow">{t('plan.eyebrow')}</p>
+      <h2 ref={headingRef} tabIndex={-1} className="mt-1 text-2xl font-bold text-[var(--color-text)]">{t('plan.title')}</h2>
+
+      {plan ? (
+        <>
+          <p className="ui-notice mt-4">{t('plan.aiLabel')}</p>
+          {writtenIn && plan.language !== language && (
+            <p className="mt-3 text-sm text-[var(--color-text-muted)]">{t('plan.otherLanguage', { language: writtenIn.endonym })}</p>
+          )}
+
+          <p className="mt-4 leading-7 text-[var(--color-text)]">
+            <PlanLine segments={plan.summary} lang={plan.language} />
+          </p>
+
+          <h3 className="mt-6 text-lg font-bold text-[var(--color-text)]">{t('plan.stepsTitle')}</h3>
+          <ol className="mt-3 space-y-4">
+            {plan.steps.map((step, index) => (
+              <li key={index}>
+                <ActionItem number={index + 1}>
+                  <PlanLine segments={step} lang={plan.language} />
+                </ActionItem>
+              </li>
+            ))}
+          </ol>
+
+          {plan.cautions.length > 0 && (
+            <>
+              <h3 className="mt-6 text-lg font-bold text-[var(--color-text)]">{t('plan.cautionsTitle')}</h3>
+              <ul className="mt-3 space-y-2 leading-7 text-[var(--color-text)]">
+                {plan.cautions.map((caution, index) => (
+                  <li key={index}>• <PlanLine segments={caution} lang={plan.language} /></li>
+                ))}
+              </ul>
+            </>
+          )}
+          <p className="ui-notice ui-notice-warn mt-4 font-semibold">{t('plan.fixedCaution')}</p>
+
+          <details className="ui-disclosure mt-5">
+            <summary>{t('plan.how')}</summary>
+            <div className="ui-disclosure-body space-y-3">
+              <p>{t('plan.howText')}</p>
+              <p>{t('plan.howLimit')}</p>
+            </div>
+          </details>
+        </>
+      ) : (
+        <p className="mt-3 leading-7 text-[var(--color-text-muted)]">{t('plan.intro')}</p>
+      )}
+
+      <div className={plan ? 'mt-6 border-t border-[var(--color-border)] pt-6' : 'mt-5'}>
+        <p className="leading-7 text-[var(--color-text)]">{t('plan.sendsText')}</p>
+        <div className="mt-4">
+          <label className="ui-check">
+            <input
+              ref={consentRef}
+              type="checkbox"
+              id="plan-consent"
+              name="plan-consent"
+              checked={consent}
+              disabled={busy}
+              onChange={(event) => {
+                setConsent(event.target.checked)
+                setConsentMissing(false)
+              }}
+              aria-required="true"
+              aria-invalid={consentMissing || undefined}
+              aria-describedby={consentMissing ? 'plan-consent-error' : undefined}
+            />
+            <span>
+              {t('plan.consent')}
+              <span className="ui-required" aria-hidden="true">*</span>
+            </span>
+          </label>
+          {consentMissing && (
+            <p id="plan-consent-error" role="alert" className="ui-notice ui-notice-danger mt-3 font-bold text-[var(--color-danger)]">
+              {t('talk.consentRequired')}
+            </p>
+          )}
+        </div>
+
+        {error && (
+          <div role="alert" className="ui-notice ui-notice-danger mt-4 font-semibold text-[var(--color-danger)]">
+            {t(error)}
+          </div>
+        )}
+
+        {/* Always in the page, so the first message is announced. */}
+        <div role="status" className={busy ? 'ui-notice mt-4 font-semibold' : 'sr-only'}>
+          {busy ? t('plan.writing') : null}
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button size="lg" onClick={write} disabled={busy} className="w-full sm:w-auto">
+            {plan ? t('plan.again', { language: ownLanguage.endonym }) : t('plan.write')}
+          </Button>
+          {busy && (
+            <Button variant="secondary" size="lg" onClick={() => requestRef.current?.abort()}>
+              {t('talk.cancel')}
+            </Button>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// One line of the plan: the AI's words as it wrote them, and each figure or name the
+// fixed rules put into a blank, in bold. `lang` is the language the plan was written in.
+function PlanLine({ segments, lang }) {
+  return (
+    <span lang={lang}>
+      {segments.map((part, index) =>
+        part.t === 'fill' ? <strong key={index}>{part.v}</strong> : <span key={index}>{part.v}</span>,
+      )}
+    </span>
   )
 }
 

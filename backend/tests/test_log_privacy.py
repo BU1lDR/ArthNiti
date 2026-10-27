@@ -15,7 +15,6 @@ where a value is most likely to be printed.
 
 import json
 import logging
-from typing import get_args
 
 import pytest
 
@@ -32,7 +31,7 @@ from deployment_fixtures import (
     request_strings,
 )
 from market_fixtures import synthetic_market  # noqa: F401
-from privacy_fixtures import FIGURE, HEADCOUNT, assert_clean, sinks  # noqa: F401
+from privacy_fixtures import FIGURE, HEADCOUNT, assert_clean, marker, numeric_fields, sinks  # noqa: F401
 
 
 DEV = client_for(DEVELOPMENT)
@@ -49,11 +48,6 @@ MVP_SUMMARY_KEYS = {
 }
 
 
-def _marker(field, limit):
-    text = f"S3NT-{field}"
-    return text[:limit]
-
-
 def _string_limits(path):
     # Every string field of one route's body, from the dev app's OpenAPI with
     # consent required, so a field added later is covered without editing here.
@@ -65,20 +59,12 @@ def _string_limits(path):
     }
 
 
-def _numeric_fields(model):
-    return [
-        name
-        for name, field in model.model_fields.items()
-        if field.annotation in (int, float) or {int, float} & set(get_args(field.annotation))
-    ]
-
-
 def _marked_analysis_body():
     body = dict(ANALYSIS_BODY)
 
     for field, limit in _string_limits("/api/analysis/run").items():
-        body[field] = _marker(field, limit)
-    for field in _numeric_fields(UnifiedAnalysisRequest):
+        body[field] = marker(field, limit)
+    for field in numeric_fields(UnifiedAnalysisRequest):
         body[field] = HEADCOUNT if field == "employees" else FIGURE
 
     return body
@@ -91,7 +77,7 @@ def _marked_route_body(path):
     body = dict(VALID_BODIES[path])
 
     for field, limit in _string_limits(path).items():
-        body[field] = _marker(field, limit)
+        body[field] = marker(field, limit)
     for field, value in body.items():
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             body[field] = HEADCOUNT if field == "employees" else FIGURE

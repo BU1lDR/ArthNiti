@@ -4,12 +4,13 @@
 
 Nothing here calls Meta, so no key or network is needed. The fake finds answers by
 keyword in the words it is given, which lets a verifier decide what the helper
-"understands" by what it types. Everything else is the shipped app: the routes,
-the WAV check, the validation of what the model says, the status codes.
+"understands" by what it types. For the plan it writes the one the plan tests use,
+in the language the prompt asks for. Everything else is the shipped app: the
+routes, the WAV check, the validation of what the model says, the status codes.
 
 A side channel the real app does not have, for the verifier only:
 
-    POST /__fake  {"transcript": "...", "fail": "rate_limited", "delay": 2.5, "extraction": {...}}
+    POST /__fake  {"transcript": "...", "fail": "rate_limited", "delay": 2.5, "extraction": {...}, "plan": {...}}
                   sets how the fake answers; any key may be left out
     POST /__fake  {"reset": true}      back to the defaults, and forget the calls
     GET  /__fake                       what the fake was asked, oldest first
@@ -20,7 +21,10 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend"))
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "backend"))
+# plan_fixtures.py: the plan a model could write, in each language, already checked by the plan tests.
+sys.path.insert(1, str(ROOT / "backend" / "tests"))
 
 import uvicorn  # noqa: E402
 from fastapi import Request  # noqa: E402
@@ -28,8 +32,17 @@ from fastapi import Request  # noqa: E402
 from app.core.meta_client import MetaError  # noqa: E402
 from app.core.settings import load_settings  # noqa: E402
 from app.main import create_app  # noqa: E402
+from app.services import plan_service  # noqa: E402
+from app.services.intake_service import LANGUAGES  # noqa: E402
+from plan_fixtures import good_plan  # noqa: E402
 
 KEY = "LLM_1234567_" + "q" * 24
+
+# What plan_service.plan_messages writes into the instructions: the language to write in
+# and the placeholders the plan has to use. test_talk_fake_backend.py fails if they drift.
+PLAN_LANGUAGE = re.compile(r"Write the plan in (\w+),")
+PLAN_REQUIRED = re.compile(r"at least once: (.+?)\.\n")
+LANGUAGE_CODES = {name: code for code, name in LANGUAGES.items()}
 
 TEXT_RULES = (
     ("business_category", "tailoring", r"tailoring"),
@@ -55,6 +68,8 @@ DEFAULTS = {
     "delay": 0,
     # When set, returned as the model's reply instead of the keyword search.
     "extraction": None,
+    # The same for the plan: returned instead of the plan the plan tests use.
+    "plan": None,
 }
 
 
@@ -87,6 +102,9 @@ class Fake:
         return self.mode["transcript"]
 
     def complete_json(self, model, messages, schema_name, schema, max_tokens):
+        if schema_name == plan_service.SCHEMA_NAME:
+            return self._plan(messages)
+
         text = messages[-1]["content"]
         self._enter({"call": "extract", "text": text})
 
@@ -105,6 +123,15 @@ class Fake:
                 if (found := re.search(pattern, text, re.I))
             ],
         }
+
+    def _plan(self, messages):
+        instructions, situation = messages[0]["content"], messages[-1]["content"]
+        language = LANGUAGE_CODES[PLAN_LANGUAGE.search(instructions).group(1)]
+        required = plan_service.NAMED.findall(PLAN_REQUIRED.search(instructions).group(1))
+        # Everything the model was given, so a verifier can look for what must not be in it.
+        self._enter({"call": "plan", "language": language, "required": required, "text": instructions + "\n" + situation})
+
+        return self.mode["plan"] if self.mode["plan"] is not None else good_plan(language)
 
 
 fake = Fake()

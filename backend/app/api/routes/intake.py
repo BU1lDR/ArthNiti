@@ -12,6 +12,9 @@ What reaches Meta is the recording or the text, and what comes back is checked
 before the caller sees it (services/intake_service.py). A failed model call is
 told to the caller by status and one fixed sentence. Nothing Meta said and
 nothing the person said is in an error body or a log line.
+
+The hourly limit and the mapping of a failed call to a status are shared with
+the plan route (routes/advisor.py), which calls the model too.
 """
 
 import logging
@@ -56,7 +59,7 @@ def _busy(wait: int):
     return HTTPException(429, BUSY, headers={"Retry-After": str(wait)})
 
 
-def _refusal(error: MetaError):
+def refusal(error: MetaError):
     # The kind and status are ours; Meta's message and the person's words are
     # in neither (core/meta_client.py).
     ERRORS_LOGGER.warning("the model call failed: %s", error)
@@ -71,8 +74,12 @@ def _refusal(error: MetaError):
     return HTTPException(503, UNAVAILABLE)
 
 
-def _limiter(limit: int):
+def hourly_limiter(limit: int):
     """A function that counts one model call, or raises 429 once `limit` were counted in the last hour.
+
+    One is made for the app (main.py) and shared by every route that calls the
+    model, so the limit is on the calls in all. Only the event loop calls it
+    (the routes are async), so it needs no lock.
 
     ponytail: kept in this process's memory, so it resets on a restart and with
     several workers each has its own count. It is a cap on spend, not on abuse;
@@ -109,11 +116,8 @@ async def _body(request: Request):
     return bytes(body)
 
 
-def build_router(client, chat_model: str, asr_model: str, hourly_limit: int):
+def build_router(client, chat_model: str, asr_model: str, take):
     router = APIRouter(prefix="/api/intake", tags=["Intake"])
-
-    # Only the event loop calls this (the routes are async), so it needs no lock.
-    take = _limiter(hourly_limit)
 
     @router.post("/transcribe", response_model=TranscribeResponse)
     async def transcribe(request: Request, language: SpokenLanguage):
@@ -131,7 +135,7 @@ def build_router(client, chat_model: str, asr_model: str, hourly_limit: int):
                 client.transcribe, wav, intake.LANGUAGES[language], asr_model, intake.SPEECH_KEYWORDS
             )
         except MetaError as error:
-            raise _refusal(error) from None
+            raise refusal(error) from None
 
         return {"transcript": transcript}
 
@@ -151,7 +155,7 @@ def build_router(client, chat_model: str, asr_model: str, hourly_limit: int):
                 MAX_COMPLETION_TOKENS,
             )
         except MetaError as error:
-            raise _refusal(error) from None
+            raise refusal(error) from None
 
         try:
             return intake.validate_extraction(raw, body.text)

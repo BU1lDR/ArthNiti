@@ -14,7 +14,10 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from app.core.meta_client import MetaClient
+from app.services import plan_service
+from app.services.intake_service import LANGUAGES
 from intake_fixtures import wav_bytes
+from plan_fixtures import analyse
 
 FAKE_FILE = Path(__file__).resolve().parents[2] / "tools" / "verify" / "talk_fake_backend.py"
 
@@ -62,3 +65,58 @@ def test_the_fake_backend_serves_both_real_routes():
         "location_type",
         "initial_investment",
     }
+
+
+# The plan route. The fake writes the plan the plan tests use, in the language the
+# real prompt asks for, so a browser gate would drive the real route, the real checks
+# and the real rendering of the figures. No gate does yet (see the header of
+# tools/verify/talk-ui.mjs); these tests keep the fake in step with the route.
+
+
+def post_plan(client, answers, language="en"):
+    return client.post("/api/advisor/plan", json={"answers": answers, "language": language, "send_to_meta": True})
+
+
+def plan_calls(client):
+    return [call for call in client.get("/__fake").json() if call["call"] == "plan"]
+
+
+def test_the_fake_backend_writes_a_plan_in_each_language():
+    client = TestClient(load_fake_backend().app)
+    answers, analysis = analyse()
+    required = list(plan_service.build_context(answers, analysis)["required"])
+
+    for code in LANGUAGES:
+        written = post_plan(client, answers, code)
+        assert written.status_code == 200, (code, written.text)
+        assert written.json()["language"] == code
+        assert written.json()["attempts"] == 1
+
+    asked = plan_calls(client)
+    assert [call["language"] for call in asked] == list(LANGUAGES)
+    assert all(call["required"] == required for call in asked)
+
+
+def test_a_plan_the_checks_refuse_is_asked_for_twice_and_then_given_up_on():
+    client = TestClient(load_fake_backend().app)
+    answers, _ = analyse()
+    client.post("/__fake", json={"plan": {"summary": "You earn 5000 a month.", "steps": ["a", "b", "c"], "cautions": ["x"]}})
+
+    refused = post_plan(client, answers)
+
+    assert refused.status_code == 502
+    assert refused.json()["detail"] == plan_service.NO_PLAN
+    asked = plan_calls(client)
+    assert len(asked) == 2
+    assert "Your last reply was rejected" not in asked[0]["text"]
+    assert "Your last reply was rejected" in asked[1]["text"]
+
+
+def test_the_fake_fails_a_plan_the_way_meta_does():
+    client = TestClient(load_fake_backend().app)
+    answers, _ = analyse()
+
+    for kind, status in (("rate_limited", 429), ("unavailable", 503)):
+        client.post("/__fake", json={"reset": True, "fail": kind})
+        assert post_plan(client, answers).status_code == status, kind
+        assert len(plan_calls(client)) == 1, kind

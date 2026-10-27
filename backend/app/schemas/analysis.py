@@ -189,6 +189,7 @@ class ConsentedAnalysisRequest(UnifiedAnalysisRequest):
 class UnifiedAnalysisResponse(BaseModel):
     financial_analysis: dict
     risk_analysis: dict
+    financing_options: dict
     business_analysis: dict
     market_context: list[dict]
     # Untyped on purpose, so every key match_schemes builds reaches the UI --

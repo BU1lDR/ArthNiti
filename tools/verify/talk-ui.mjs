@@ -39,6 +39,14 @@
 //   S15  the consent lock holds from Stop until the recording is sent; a recording that
 //        cannot be finished is reported, sends nothing and unlocks
 //
+// NOT covered here: the written plan on /advisory. No browser has driven its card yet.
+// Its route and its state are tested by pytest (test_plan_service, test_advisor_route,
+// test_advisor_log_privacy) and app-state-test only. The page-side probes for it
+// (planProbe, planFailure, planSnapshot) are in this file and unused, and the scenarios
+// that would call them (the card at rest, its own consent tick, one plan, a plan in Hindi
+// then English, the ways to fail, 360 px, all 8 languages) are not written.
+//
+
 // Exit 0: nothing found. 1: a finding. 2: the run could not measure (wrong working
 // directory, a port held, a server or Edge would not start or went away, an element
 // the probe needs is missing, a wait never ended, the script crashed). A scenario
@@ -218,6 +226,10 @@ const USED_KEYS = [
   'talk.errBusy', 'talk.errUnclear', 'talk.errRecording', 'talk.errGeneric', 'talk.langNoSpeech',
   'talk.finding', 'talk.listening', 'talk.recording', 'talk.filledTitle', 'talk.said', 'nf.title',
   'cat.tailoring', 'cat.retail', 'area.rural', ...Object.values(FIELD_LABEL_KEYS),
+  'finance.submit', 'ad.notReady', 'ad.planTitle', 'fo.title',
+  'plan.eyebrow', 'plan.title', 'plan.intro', 'plan.sendsText', 'plan.consent', 'plan.write', 'plan.writing',
+  'plan.again', 'plan.otherLanguage', 'plan.aiLabel', 'plan.stepsTitle', 'plan.cautionsTitle', 'plan.fixedCaution',
+  'plan.how', 'plan.errUnavailable', 'plan.errBusy', 'plan.errNoPlan', 'plan.errGeneric',
 ]
 for (const key of USED_KEYS) {
   if (typeof STRINGS?.en?.[key] !== 'string') refuse(`${key} is not in the en dictionary, so there is no text to look for. Run node tools/keycheck.mjs.`)
@@ -483,12 +495,15 @@ function snapshot() {
   }
 }
 
-// Leaked dictionary keys, unfilled placeholders and stringified nothing.
-function leakScan() {
+// Leaked dictionary keys, unfilled placeholders and stringified nothing. `prefixes`
+// are the first parts of the keys to look for; without them, the /talk page's. (Call
+// it with no argument or with a real list: inPage turns an undefined one into null.)
+function leakScan(prefixes) {
   const text = document.body.innerText
   const found = []
+  const keys = (prefixes || ['talk', 'nav', 'common', 'cat', 'area', 'notice', 'consent', 'errf']).join('|')
   const patterns = [
-    ['dictionary key', /(?:^|[\s(])(?:talk|nav|common|cat|area|notice|consent|errf)\.[a-zA-Z]\w*/g],
+    ['dictionary key', new RegExp('(?:^|[\\s(])(?:' + keys + ')\\.[a-zA-Z]\\w*', 'g')],
     ['placeholder', /\{[a-zA-Z]+\}/g],
     ['stringified nothing', /\[object Object\]|\bundefined\b|\bNaN\b|\bnull%/g],
   ]
@@ -526,12 +541,16 @@ function stopProbe(recordLabel, stopLabel) {
   }
 }
 
-// 360 px phone: what is off-screen, too small to tap, or too small to read.
-function mobileProbe() {
-  const main = document.querySelector('#main')
+// 360 px phone: what is off-screen, too small to tap, or too small to read. Of the
+// element at `rootSelector`, or of the `ancestor` that contains it; a root that is
+// not there throws, so a page with nothing to measure is a fault and never a pass.
+function mobileProbe(rootSelector = '#main', ancestor = '') {
+  let main = document.querySelector(rootSelector)
+  if (main && ancestor) main = main.closest(ancestor)
+  if (!main) throw new Error('mobileProbe: nothing at ' + rootSelector + (ancestor ? ' inside a ' + ancestor : ''))
   const vw = document.documentElement.clientWidth
   const describe = (el) => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + ' "' + String(el.innerText || el.name || '').replace(/\s+/g, ' ').trim().slice(0, 28) + '"'
-  const out = { vw, scrollWidth: document.documentElement.scrollWidth, overflow: [], taps: [], small: [] }
+  const out = { vw, scrollWidth: document.documentElement.scrollWidth, measured: main.querySelectorAll('*').length, overflow: [], taps: [], small: [] }
   for (const el of main.querySelectorAll('*')) {
     if (el.closest('.sr-only')) continue
     const rect = el.getBoundingClientRect()
@@ -550,6 +569,111 @@ function mobileProbe() {
     if (rect.width < 43.5 || rect.height < 43.5) out.taps.push(describe(el) + ' ' + Math.round(rect.width) + 'x' + Math.round(rect.height))
   }
   return out
+}
+
+// Every request the page makes from now on, as the page makes it, with the answer that
+// came back. The fake logs only what reaches the model, and a request the page should
+// not have made is the thing to catch, so the page's own fetch is watched. A full
+// navigation takes it away: install it after the last load. `status` is 'rejected' for a
+// request the page abandoned or lost.
+function planProbe() {
+  const probe = { requests: [], at: 0 }
+  window.__plan = probe
+  const realFetch = window.fetch
+  window.fetch = function (input, init) {
+    const url = String(input && input.url ? input.url : input)
+    const entry = {
+      url,
+      method: (init && init.method) || 'GET',
+      contentType: init && init.headers ? new Headers(init.headers).get('content-type') : null,
+      body: init && typeof init.body === 'string' ? init.body : null,
+      sent: ++probe.at,
+      done: null,
+      status: null,
+      reply: null,
+    }
+    probe.requests.push(entry)
+    return realFetch.call(this, input, init).then(
+      (response) => {
+        entry.status = response.status
+        // Read from a copy, so the app still gets its own.
+        response.clone().text().then((text) => { entry.reply = text; entry.done = ++probe.at })
+        return response
+      },
+      (error) => {
+        entry.status = 'rejected'
+        entry.done = ++probe.at
+        throw error
+      },
+    )
+  }
+}
+
+// The next request to the plan route is answered from inside the page, the way a proxy
+// or a dropped connection would answer it, and never leaves the page. `how` is 'reject'
+// or 'reply' (with a status and a body). It takes itself away after one use.
+function planFailure(how, status, body) {
+  const realFetch = window.fetch
+  window.fetch = function (input, init) {
+    const url = String(input && input.url ? input.url : input)
+    if (!url.includes('/api/advisor/plan')) return realFetch.call(this, input, init)
+    window.fetch = realFetch
+    if (how === 'reject') return Promise.reject(new TypeError('Failed to fetch'))
+    return Promise.resolve(new Response(body, { status, headers: { 'content-type': 'application/json' } }))
+  }
+}
+
+// The plan card on /advisory, as plain data. Runs in the page. `card` is null when the
+// page has no such card. A line of the plan is the one element that carries `lang`: its
+// bold runs are what the fixed rules filled in, its plain runs are the AI's own words.
+function planSnapshot() {
+  const norm = window.__t.norm
+  const main = document.querySelector('#main')
+  const box = document.querySelector('#plan-consent')
+  const card = box ? box.closest('section') : null
+  const active = document.activeElement
+  const heading = card ? card.querySelector('h2') : null
+  const texts = (selector) => [...card.querySelectorAll(selector)].map((el) => norm(el.innerText))
+  const line = (el) => ({
+    lang: el.getAttribute('lang'),
+    text: norm(el.innerText),
+    fills: [...el.querySelectorAll(':scope > strong')].map((x) => norm(x.innerText)),
+    plain: [...el.querySelectorAll(':scope > span')].map((x) => norm(x.innerText)),
+  })
+  const details = card ? card.querySelector('details') : null
+  const summary = card ? card.querySelector(':scope > p > span[lang]') : null
+  return {
+    path: location.pathname,
+    h1: main && main.querySelector('h1') ? norm(main.querySelector('h1').innerText) : '',
+    headings: main ? [...main.querySelectorAll('h2')].map((el) => norm(el.innerText)) : [],
+    card: card && {
+      eyebrow: texts(':scope > p.ui-eyebrow')[0] ?? null,
+      title: norm(heading.innerText),
+      titleFocused: active === heading,
+      focus: active ? (active.id || active.tagName.toLowerCase()) : '',
+      paragraphs: texts(':scope > p'),
+      asks: texts(':scope > div > p'),
+      h3: texts('h3'),
+      consent: {
+        checked: box.checked,
+        disabled: box.disabled,
+        required: box.getAttribute('aria-required'),
+        invalid: box.getAttribute('aria-invalid'),
+        describedby: box.getAttribute('aria-describedby'),
+        label: norm(box.closest('label').innerText),
+      },
+      alerts: [...card.querySelectorAll('[role=alert]')].map((el) => ({ id: el.id, text: norm(el.innerText) })),
+      statusElements: card.querySelectorAll('[role=status]').length,
+      status: texts('[role=status]').join(' '),
+      buttons: [...card.querySelectorAll('button')].map((b) => ({ text: norm(b.innerText), disabled: b.disabled })),
+      summary: summary ? line(summary) : null,
+      steps: [...card.querySelectorAll('ol > li span[lang]')].map(line),
+      cautions: [...card.querySelectorAll('ul > li span[lang]')].map(line),
+      how: details
+        ? { title: norm(details.querySelector('summary').innerText), open: details.open, text: [...details.querySelectorAll('p')].map((el) => norm(el.textContent)) }
+        : null,
+    },
+  }
 }
 
 // --- the checks ---------------------------------------------------------------
@@ -589,11 +713,13 @@ const isBusy = (s, lang = 'en') => s.statuses.some((x) => x === norm(T(lang, 'ta
 const allEnded = (s) => s.tracks.length > 0 && s.tracks.every((x) => x === 'ended')
 const sameSet = (a, b) => a.length === b.length && new Set(a).size === a.length && b.every((x) => a.includes(x))
 
-async function waitSnap(what, ms, predicate) {
+// `read` is what is looked at: the /talk page by default, the plan card where a
+// scenario passes its own reader.
+async function waitSnap(what, ms, predicate, read = snap) {
   const end = Date.now() + ms
   let s
   for (;;) {
-    s = await snap()
+    s = await read()
     if (predicate(s)) return s
     if (Date.now() > end) throw new Fault(`never reached: ${what}; last state ${JSON.stringify(s).slice(0, 700)}`)
     await sleep(60)
@@ -603,10 +729,10 @@ async function waitSnap(what, ms, predicate) {
 // For a state the page under test must reach on its own, such as an error it owes
 // the reader. If it never gets there that is a finding, which the expect() that
 // follows records. waitSnap would call it a fault in the instrument and exit 2.
-async function settleSnap(ms, predicate) {
+async function settleSnap(ms, predicate, read = snap) {
   const end = Date.now() + ms
   for (;;) {
-    const s = await snap()
+    const s = await read()
     if (predicate(s) || Date.now() > end) return s
     await sleep(60)
   }

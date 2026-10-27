@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { districtsForState } from '../data/indiaLocations'
 import { MAX_RUPEES } from '../data/limits'
 import { LABEL_KEY_BY_PATH, planFill } from '../data/talkAnswers'
+import { isPlan } from '../data/planShape'
 
 const AppContext = createContext(null)
 
@@ -14,13 +15,14 @@ const STORAGE_KEY = 'sih-application'
 // 2 added `resultCleared`. 3 added `finance.householdIncome`. 4 removed
 // `profile.literacyLevel` and `business.employees`: no page asked for the first,
 // and nothing used the second, yet both were sent with every check. 5 added
-// `aiFilled`. None of the bumps moved or renamed anything, so every version is
-// still read: hydrate() fills a missing field in from EMPTY (the flag as false,
-// the income as '', the list as empty) and drops a field EMPTY no longer has. A
-// later bump that renames or moves a field must drop the older versions from
-// this set rather than let hydrate() half-restore them.
-const STORAGE_VERSION = 5
-const READABLE_VERSIONS = new Set([1, 2, 3, 4, 5])
+// `aiFilled`. 6 added `request` and `plan`. None of the bumps moved or renamed
+// anything, so every version is still read: hydrate() fills a missing field in
+// from EMPTY (the flag as false, the income as '', the list as empty, the request
+// and the plan as none) and drops a field EMPTY no longer has. A later bump that
+// renames or moves a field must drop the older versions from this set rather than
+// let hydrate() half-restore them.
+const STORAGE_VERSION = 6
+const READABLE_VERSIONS = new Set([1, 2, 3, 4, 5, 6])
 
 const EMPTY = {
   // State and district belong to the location step, which is the single place
@@ -69,6 +71,14 @@ const EMPTY = {
   // again, instead of looking as though nothing was ever checked. False again
   // once a new result arrives, and after starting over.
   resultCleared: false,
+
+  // The answers the result on screen was made from, as they were sent, and the plan
+  // the AI wrote for them (null until one is asked for). A plan fits those answers and
+  // no others, so both leave with the result when an answer changes (applyEdit()
+  // below), and neither is read back without a result. The plan is words the model
+  // wrote and figures the rules put in; its shape is in data/planShape.js.
+  request: null,
+  plan: null,
 
   // The answers the helper (/talk) wrote into the form that the reader has not
   // changed since, as "section.field" paths. A page lists them so they get
@@ -149,6 +159,8 @@ function pick(base, stored) {
   )
 }
 
+const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
+
 // Merge over the defaults section by section rather than trusting the stored
 // object wholesale. A field added after a payload was written would otherwise
 // arrive as `undefined`, and React silently turns a controlled input with an
@@ -156,6 +168,12 @@ function pick(base, stored) {
 // nothing in the console says why.
 function hydrate(data) {
   if (!data || typeof data !== 'object') return EMPTY
+
+  // The request and the plan mean something only beside the result they belong to,
+  // and a plan only beside the request it was written for. One of the wrong shape is
+  // dropped here and costs the reader nothing else.
+  const request = data.result && isPlainObject(data.request) ? data.request : null
+  const plan = request && isPlan(data.plan) ? data.plan : null
 
   return {
     profile: pick(EMPTY.profile, data.profile),
@@ -174,6 +192,8 @@ function hydrate(data) {
     // Only a real `true` counts, and never beside a result: the flag says a
     // result was thrown away, which cannot be so while one is present.
     resultCleared: data.resultCleared === true && !data.result,
+    request,
+    plan,
     // Only paths of answers the helper can fill: anything else in a stored list
     // would reach the banner as a question with no name. A one-item array would
     // pass hasOwn as its own text, so the type is checked first.
@@ -226,6 +246,9 @@ export function applyEdit(current, section, data) {
       ...data,
     },
     result: clears ? null : current.result,
+    // The request and the plan belong to the result, and go with it.
+    request: clears ? null : current.request,
+    plan: clears ? null : current.plan,
     // Set only when this change is the one that threw a result away. Once
     // set it stays set through later edits, which have no result left to
     // clear, until a new result arrives or the reader starts over.
@@ -246,6 +269,23 @@ export function applyHelperFill(current, patches) {
   for (const [section, data] of Object.entries(changed)) next = applyEdit(next, section, data)
   // applyEdit took every path it changed off the list, so none is listed twice.
   return { ...next, aiFilled: [...next.aiFilled, ...filled] }
+}
+
+// The answers after a check has come back: the result, the answers it was made from
+// (the request, as sent) and no plan, because a plan written for an earlier result is
+// not one for this.
+export function applyResult(current, result, request) {
+  return { ...current, result, request: request ?? null, plan: null, resultCleared: false }
+}
+
+// The answers after a plan has come back. It is kept only for the result it was
+// written for, whose request is held since the check. One that arrives after an
+// answer changed (the result and the request are gone), or after a new check (a
+// different request), or that is not a plan at all, is dropped.
+export function applyPlan(current, plan, request) {
+  if (!request || current.request !== request || !isPlan(plan)) return current
+
+  return { ...current, plan }
 }
 
 export function AppProvider({ children }) {
@@ -271,12 +311,13 @@ export function AppProvider({ children }) {
     setApplicationData((current) => applyHelperFill(current, patches))
   }
 
-  const setResult = (result) => {
-    setApplicationData((current) => ({
-      ...current,
-      result,
-      resultCleared: false,
-    }))
+  // `request` is what the check was made from: a plan is written for those answers.
+  const setResult = (result, request) => {
+    setApplicationData((current) => applyResult(current, result, request))
+  }
+
+  const setPlan = (plan, request) => {
+    setApplicationData((current) => applyPlan(current, plan, request))
   }
 
   // Starting over should not mean closing the tab by hand, and the next person
@@ -298,6 +339,7 @@ export function AppProvider({ children }) {
         updateSection,
         fillFromHelper,
         setResult,
+        setPlan,
         resetApplication,
       }}
     >

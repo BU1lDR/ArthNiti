@@ -16,6 +16,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { matchAnswers, patchesFor } from '../../frontend/src/data/talkAnswers.js'
+import { isPlan } from '../../frontend/src/data/planShape.js'
 
 const FRONTEND = fileURLToPath(new URL('../../frontend', import.meta.url))
 const frontendRequire = createRequire(join(FRONTEND, 'package.json'))
@@ -68,6 +69,47 @@ const blank = () => read(undefined)
 const withResult = () => ({ ...blank(), result: { financial_analysis: {} } })
 const said = (field, value) => ({ field, value, evidence: 'I said it' })
 
+// What the check sent, and a plan written for it, in the shape the plan route returns.
+const REQUEST = { business_category: 'tailoring', state: 'Uttar Pradesh', district: 'Lucknow' }
+const PLAN = {
+  language: 'en',
+  summary: [
+    { t: 'text', v: 'You can earn ' },
+    { t: 'fill', v: '₹15,000' },
+    { t: 'text', v: ' a month.' },
+  ],
+  steps: [[{ t: 'text', v: 'Ask at the district office.' }]],
+  cautions: [[{ t: 'text', v: 'These are estimates.' }]],
+  attempts: 1,
+}
+const withPlan = () => ({ ...withResult(), request: REQUEST, plan: PLAN })
+
+// Each of these must be refused wherever a plan comes in: off the wire, out of storage.
+const NOT_PLANS = [
+  ['nothing', undefined],
+  ['null', null],
+  ['a string', 'plan'],
+  ['a number', 5],
+  ['a list', [PLAN]],
+  ['an empty object', {}],
+  ['no language', { ...PLAN, language: undefined }],
+  ['a language that is not text', { ...PLAN, language: 5 }],
+  ['no summary', { ...PLAN, summary: undefined }],
+  ['an empty summary', { ...PLAN, summary: [] }],
+  ['a summary that is text, not segments', { ...PLAN, summary: 'You can earn ₹15,000' }],
+  ['a segment of a kind nobody sends', { ...PLAN, summary: [{ t: 'bold', v: 'x' }] }],
+  ['a segment whose value is not text', { ...PLAN, summary: [{ t: 'fill', v: 15000 }] }],
+  ['a segment that is null', { ...PLAN, summary: [null] }],
+  ['one bad segment among good ones', { ...PLAN, summary: [...PLAN.summary, { t: 'fill' }] }],
+  ['no steps', { ...PLAN, steps: [] }],
+  ['steps that are not lists of segments', { ...PLAN, steps: ['Ask at the office.'] }],
+  ['an empty step', { ...PLAN, steps: [[]] }],
+  ['one bad step among good ones', { ...PLAN, steps: [...PLAN.steps, 'Ask at the office.'] }],
+  ['cautions that are not a list', { ...PLAN, cautions: 'These are estimates.' }],
+  ['a caution that is not segments', { ...PLAN, cautions: [['These are estimates.']] }],
+  ['one bad caution among good ones', { ...PLAN, cautions: [...PLAN.cautions, []] }],
+]
+
 // The helper's fill for some spoken answers, the way /talk computes it.
 const fill = (state, ...answers) =>
   app.applyHelperFill(state, patchesFor(matchAnswers(answers, state.location.state), state.location))
@@ -80,13 +122,15 @@ describe('what is read back from sessionStorage', () => {
     assert.equal(start.business.category, '')
   })
 
-  test('a version 5 payload keeps the list of what the helper filled', () => {
-    const state = read({
-      v: 5,
-      data: { business: { category: 'dairy' }, aiFilled: ['business.category', 'finance.householdIncome'] },
-    })
-    assert.equal(state.business.category, 'dairy')
-    assert.deepEqual(state.aiFilled, ['business.category', 'finance.householdIncome'])
+  test('a version 5 or 6 payload keeps the list of what the helper filled', () => {
+    for (const v of [5, 6]) {
+      const state = read({
+        v,
+        data: { business: { category: 'dairy' }, aiFilled: ['business.category', 'finance.householdIncome'] },
+      })
+      assert.equal(state.business.category, 'dairy', `version ${v}`)
+      assert.deepEqual(state.aiFilled, ['business.category', 'finance.householdIncome'], `version ${v}`)
+    }
   })
 
   test('the list keeps only the paths of answers the helper can fill', () => {
@@ -121,19 +165,98 @@ describe('what is read back from sessionStorage', () => {
     }
   })
 
-  test('older payloads are still read, with an empty list', () => {
-    for (const v of [1, 2, 3, 4]) {
-      const state = read({ v, data: { business: { category: 'dairy' } } })
+  test('older payloads are still read, with an empty list and no plan', () => {
+    for (const v of [1, 2, 3, 4, 5]) {
+      const state = read({ v, data: { business: { category: 'dairy' }, result: { financial_analysis: {} } } })
       assert.equal(state.business.category, 'dairy', `version ${v}`)
       assert.deepEqual(state.aiFilled, [], `version ${v}`)
+      assert.ok(state.result, `version ${v}`)
+      assert.equal(state.request, null, `version ${v}`)
+      assert.equal(state.plan, null, `version ${v}`)
     }
   })
 
   test('a version nobody wrote is refused, not half-restored', () => {
-    for (const v of [0, 6, '5', null]) {
-      const state = read({ v, data: { business: { category: 'dairy' }, aiFilled: ['business.category'] } })
+    for (const v of [0, 7, '6', null]) {
+      const state = read({
+        v,
+        data: { business: { category: 'dairy' }, aiFilled: ['business.category'], result: {}, request: REQUEST, plan: PLAN },
+      })
       assert.equal(state.business.category, '', JSON.stringify(v))
       assert.deepEqual(state.aiFilled, [], JSON.stringify(v))
+      assert.equal(state.result, null, JSON.stringify(v))
+      assert.equal(state.plan, null, JSON.stringify(v))
+    }
+  })
+})
+
+describe('the request and the plan read back from sessionStorage', () => {
+  // A result on screen, the answers it was made from, and one answer to tell a
+  // guarded read from a blank form (readStored() falls back to one on any error).
+  const stored = (data) =>
+    read({ v: 6, data: { business: { category: 'dairy' }, result: { financial_analysis: {} }, ...data } })
+
+  test('the blank form has neither', () => {
+    assert.equal(blank().request, null)
+    assert.equal(blank().plan, null)
+  })
+
+  test('a version 6 payload keeps the request and the plan beside the result', () => {
+    const state = stored({ request: REQUEST, plan: PLAN })
+    assert.deepEqual(state.request, REQUEST)
+    assert.deepEqual(state.plan, PLAN)
+    assert.equal(state.business.category, 'dairy')
+  })
+
+  test('neither is kept without a result on screen', () => {
+    const state = read({ v: 6, data: { business: { category: 'dairy' }, request: REQUEST, plan: PLAN } })
+    assert.equal(state.business.category, 'dairy')
+    assert.equal(state.result, null)
+    assert.equal(state.request, null)
+    assert.equal(state.plan, null)
+  })
+
+  test('a plan is not kept without the request it was written for', () => {
+    const state = stored({ plan: PLAN })
+    assert.ok(state.result)
+    assert.equal(state.request, null)
+    assert.equal(state.plan, null)
+  })
+
+  test('a request that is not an object reads as none, and costs the reader no other answer', () => {
+    for (const request of [[], 'x', 5, null, true]) {
+      const state = stored({ request, plan: PLAN })
+      assert.equal(state.business.category, 'dairy', JSON.stringify(request))
+      assert.ok(state.result, JSON.stringify(request))
+      assert.equal(state.request, null, JSON.stringify(request))
+      assert.equal(state.plan, null, JSON.stringify(request))
+    }
+  })
+
+  test('a plan of the wrong shape reads as none, and the request and the answers stay', () => {
+    for (const [label, plan] of NOT_PLANS) {
+      const state = stored({ request: REQUEST, plan })
+      assert.equal(state.business.category, 'dairy', label)
+      assert.ok(state.result, label)
+      assert.deepEqual(state.request, REQUEST, label)
+      assert.equal(state.plan, null, label)
+    }
+  })
+})
+
+describe('isPlan', () => {
+  test('accepts the plan the route returns', () => {
+    assert.equal(isPlan(PLAN), true)
+  })
+
+  test('does not ask for the attempt count, and allows a plan with no cautions', () => {
+    assert.equal(isPlan({ ...PLAN, attempts: undefined }), true)
+    assert.equal(isPlan({ ...PLAN, cautions: [] }), true)
+  })
+
+  test('refuses everything that is not that shape', () => {
+    for (const [label, value] of NOT_PLANS) {
+      assert.equal(isPlan(value), false, label)
     }
   })
 })
@@ -190,6 +313,26 @@ describe('applyEdit', () => {
     assert.equal(app.applyEdit(blank(), 'finance', { monthlyEmi: '500' }).resultCleared, false)
   })
 
+  test('an answer that goes into the check takes the request and the plan away with the result', () => {
+    const next = app.applyEdit(withPlan(), 'finance', { monthlyEmi: '500' })
+    assert.equal(next.result, null)
+    assert.equal(next.request, null)
+    assert.equal(next.plan, null)
+  })
+
+  test('an answer that never leaves the tab, and the profile, leave the request and the plan alone', () => {
+    const start = withPlan()
+    for (const [section, data] of [
+      ['business', { businessName: 'Sita Tailors' }],
+      ['location', { village: 'Kakori' }],
+      ['profile', { language: 'Tamil' }],
+    ]) {
+      const next = app.applyEdit(start, section, data)
+      assert.equal(next.request, start.request, section)
+      assert.equal(next.plan, start.plan, section)
+    }
+  })
+
   test('an answer the reader changes is theirs: it leaves the helper-filled list, the others stay', () => {
     const start = { ...blank(), aiFilled: ['business.category', 'finance.monthlyEmi'] }
     const next = app.applyEdit(start, 'business', { category: 'retail' })
@@ -213,6 +356,68 @@ describe('applyEdit', () => {
     }
     const next = app.applyEdit(start, 'location', { state: 'Kerala', district: '' })
     assert.deepEqual(next.aiFilled, ['finance.monthlyEmi'])
+  })
+})
+
+describe('applyResult', () => {
+  const RESULT = { financial_analysis: { monthly_profit: 1 } }
+
+  test('keeps the result with the request it was made from, and no plan', () => {
+    const start = withPlan()
+    const next = app.applyResult(start, RESULT, REQUEST)
+    assert.equal(next.result, RESULT)
+    assert.equal(next.request, REQUEST)
+    assert.equal(next.plan, null, 'a plan written for the old result is not carried over')
+    assert.equal(next.resultCleared, false)
+  })
+
+  test('a result given with no request keeps none, and the answers are not touched', () => {
+    const start = blank()
+    const next = app.applyResult(start, RESULT)
+    assert.equal(next.result, RESULT)
+    assert.equal(next.request, null)
+    assert.deepEqual(next.business, start.business)
+    assert.deepEqual(next.finance, start.finance)
+  })
+
+  test('says no result was thrown away, because a new one has just arrived', () => {
+    const start = { ...withResult(), resultCleared: true }
+    assert.equal(app.applyResult(start, RESULT, REQUEST).resultCleared, false)
+  })
+})
+
+describe('applyPlan', () => {
+  const shown = () => app.applyResult(blank(), { financial_analysis: {} }, REQUEST)
+
+  test('keeps a plan written for the result on screen', () => {
+    const start = shown()
+    const next = app.applyPlan(start, PLAN, REQUEST)
+    assert.equal(next.plan, PLAN)
+    assert.equal(next.result, start.result)
+    assert.equal(next.request, REQUEST)
+  })
+
+  test('drops a plan written for answers that are not the ones on screen', () => {
+    const start = shown()
+    assert.equal(app.applyPlan(start, PLAN, { ...REQUEST, state: 'Kerala' }), start)
+  })
+
+  test('drops a plan once the result it was written for is gone', () => {
+    const edited = app.applyEdit(shown(), 'finance', { monthlyEmi: '500' })
+    assert.equal(app.applyPlan(edited, PLAN, REQUEST), edited)
+  })
+
+  test('drops a plan when no request is held, even if none is given with it', () => {
+    const start = withResult() // a result with no request: an older payload
+    assert.equal(app.applyPlan(start, PLAN, null), start)
+    assert.equal(app.applyPlan(start, PLAN, undefined), start)
+  })
+
+  test('drops what is not a plan', () => {
+    const start = shown()
+    for (const [label, value] of NOT_PLANS) {
+      assert.equal(app.applyPlan(start, value, REQUEST), start, label)
+    }
   })
 })
 

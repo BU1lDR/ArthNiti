@@ -1,5 +1,6 @@
 from app.services.financial_service import calculate_financial_metrics
 from app.services.risk_service import calculate_repayment_pressure
+from app.services.options_service import build_financing_options
 from app.services.business_service import calculate_business_analysis
 from app.services.market_service import get_market_context
 from app.services.scheme_service import match_schemes
@@ -28,6 +29,7 @@ def run_unified_analysis(
     The unified pipeline includes:
     - Financial analysis
     - Risk analysis
+    - Financing options for the funding gap
     - Business feasibility analysis
     - Hyperlocal market context
     - Government scheme matching
@@ -55,6 +57,15 @@ def run_unified_analysis(
         # The household's own monthly income, from all sources, or None when it
         # was not given. It is checked against the same total repayment as the
         # pressure figure; see risk_service for the RBI rule and its limits.
+        household_monthly_income=household_monthly_income,
+    )
+
+    # 2b. Financing options for the funding gap. Priced through the same
+    # function as step 2, so the 60-month option is the loan step 2 prices.
+    financing_options = build_financing_options(
+        monthly_surplus=financial_analysis["monthly_profit"],
+        monthly_emi=monthly_emi,
+        funding_gap=financial_analysis["funding_gap"],
         household_monthly_income=household_monthly_income,
     )
 
@@ -110,6 +121,7 @@ def run_unified_analysis(
     return {
         "financial_analysis": financial_analysis,
         "risk_analysis": risk_analysis,
+        "financing_options": financing_options,
         "business_analysis": business_analysis,
         "market_context": market_context,
         "scheme_matches": scheme_matches,

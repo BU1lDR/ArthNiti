@@ -1,3 +1,5 @@
+import { isPlan } from '../data/planShape'
+
 // Where the answers are sent. A production build must be given an https://
 // address: vite.config.js refuses to build in production mode without one, so
 // a deployed copy never falls back to sending financial answers in plain HTTP
@@ -243,14 +245,15 @@ const HELPER_STATUS_CODES = {
   503: HELPER_ERROR_CODES.unavailable,
 }
 
-// `statusCodes` adds what a status means for this call alone: 413 and 422 mean a
-// bad recording to the first call and nothing the reader can fix to the second.
+// One call to a route the app works without, for the helper and the plan alike.
+// `codes` are the caller's own error codes (unavailable and generic are needed here),
+// `statusCodes` what each status means to it, and `timeoutMs` how long it waits.
 // Cancelling and timing out are told apart the way runAnalysis does, by which
 // signal fired.
-async function callHelper(path, init, signal, statusCodes = {}) {
+async function callOptional(path, init, signal, { timeoutMs, codes, statusCodes }) {
   if (signal && signal.aborted) throw abortedError(signal.reason)
 
-  const timeout = AbortSignal.timeout(HELPER_TIMEOUT_MS)
+  const timeout = AbortSignal.timeout(timeoutMs)
   const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
 
   let response
@@ -259,22 +262,33 @@ async function callHelper(path, init, signal, statusCodes = {}) {
   } catch (error) {
     if (signal && signal.aborted) throw abortedError(error)
     // Not running and too slow read the same to the reader: try later, or type.
-    throw analysisError(HELPER_ERROR_CODES.unavailable, 'The helper is not available right now.', null, error)
+    throw analysisError(codes.unavailable, 'The service is not available right now.', null, error)
   }
 
   if (!response.ok) {
-    const code =
-      statusCodes[response.status] ?? HELPER_STATUS_CODES[response.status] ?? HELPER_ERROR_CODES.generic
-    throw analysisError(code, `The helper answered with status ${response.status}.`)
+    throw analysisError(
+      statusCodes[response.status] ?? codes.generic,
+      `The service answered with status ${response.status}.`,
+    )
   }
 
   try {
     return await response.json()
   } catch (error) {
     if (signal && signal.aborted) throw abortedError(error)
-    const code = timeout.aborted ? HELPER_ERROR_CODES.unavailable : HELPER_ERROR_CODES.generic
-    throw analysisError(code, 'The helper sent back something that could not be read.', null, error)
+    const code = timeout.aborted ? codes.unavailable : codes.generic
+    throw analysisError(code, 'The service sent back something that could not be read.', null, error)
   }
+}
+
+// `statusCodes` adds what a status means for this call alone: 413 and 422 mean a
+// bad recording to the first call and nothing the reader can fix to the second.
+function callHelper(path, init, signal, statusCodes = {}) {
+  return callOptional(path, init, signal, {
+    timeoutMs: HELPER_TIMEOUT_MS,
+    codes: HELPER_ERROR_CODES,
+    statusCodes: { ...HELPER_STATUS_CODES, ...statusCodes },
+  })
 }
 
 function unusableAnswer() {
@@ -308,4 +322,43 @@ export async function extractAnswers(text, languageCode, { signal } = {}) {
   )
   if (!data || !Array.isArray(data.answers)) throw unusableAnswer()
   return { answers: data.answers, ignored: Number.isInteger(data.ignored) ? data.ignored : 0 }
+}
+
+// The AI plan on /advisory: one call, and the page works without it. Of every call
+// the app makes it is the longest, and the route may make two tries of
+// CALL_TIMEOUT_SECONDS (plan_service.py) each, so this waits for both with a margin.
+// test_advisor_route.py holds the two together.
+const PLAN_TIMEOUT_MS = 330000
+
+const PLAN_ERROR_CODES = {
+  unavailable: 'plan.errUnavailable',
+  busy: 'plan.errBusy',
+  noPlan: 'plan.errNoPlan',
+  generic: 'plan.errGeneric',
+}
+
+// 404 is a deployment with the helper switched off, 502 a plan the checks refused twice.
+const PLAN_STATUS_CODES = {
+  404: PLAN_ERROR_CODES.unavailable,
+  429: PLAN_ERROR_CODES.busy,
+  502: PLAN_ERROR_CODES.noPlan,
+  503: PLAN_ERROR_CODES.unavailable,
+}
+
+// `request` is the answers the result on screen was made from, and `sendToMeta` the
+// reader's tick on the page: the route refuses a request without it. Resolves to the
+// plan, in the language asked for, already checked by isPlan().
+export async function requestPlan(request, languageCode, sendToMeta, { signal } = {}) {
+  const data = await callOptional(
+    '/api/advisor/plan',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: request, language: languageCode, send_to_meta: sendToMeta }),
+    },
+    signal,
+    { timeoutMs: PLAN_TIMEOUT_MS, codes: PLAN_ERROR_CODES, statusCodes: PLAN_STATUS_CODES },
+  )
+  if (!isPlan(data)) throw analysisError(PLAN_ERROR_CODES.generic, 'The plan came back in a shape that could not be used.')
+  return data
 }

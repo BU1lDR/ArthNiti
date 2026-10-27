@@ -34,6 +34,9 @@ class FakeModel:
         self.transcript = "main silai karti hoon"
         self.extraction = {"text_answers": [], "money_answers": []}
         self.failure = None
+        # The next chat replies, in order: a dict is returned, an exception is
+        # raised. Once they are used up, `failure` and `extraction` answer again.
+        self.replies = []
         # What the real client keeps of the last chat reply's token counts.
         self.last_usage = {}
         # The words the last speech call asked the model to favour. Kept apart
@@ -49,6 +52,11 @@ class FakeModel:
 
     def complete_json(self, model, messages, schema_name, schema, max_tokens):
         self.calls.append(("complete_json", model, messages, schema_name, schema, max_tokens))
+        if self.replies:
+            reply = self.replies.pop(0)
+            if isinstance(reply, Exception):
+                raise reply
+            return reply
         if self.failure:
             raise self.failure
         return self.extraction
