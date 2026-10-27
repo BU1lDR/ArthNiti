@@ -1,24 +1,24 @@
 # अर्थNiti — MVP
-## Shared team context: what we actually built
+## What we actually built
 
-> **Purpose:** the single shared context document for all six team members and their AI assistants.
+> **Purpose:** the product and project view of अर्थNiti, for its owner, for anyone reviewing it, and for any AI assistant working on it.
 > **Rule:** this file describes the MVP **as it exists in the repository**. When you change the build, change this file in the same commit. Anything not yet built is labelled **PLANNED** — never write a planned thing as though it works.
-> **Engineering detail lives in [CLAUDE.md](CLAUDE.md)** — exact file paths, response keys, thresholds, known traps. This file is the product/team view; CLAUDE.md is the code view. If they disagree, CLAUDE.md is newer.
+> **Engineering detail lives in [CLAUDE.md](CLAUDE.md)** — exact file paths, response keys, thresholds, known traps. This file is the product view; CLAUDE.md is the code view. If they disagree, CLAUDE.md is newer.
 
-**Status as of 27 September 2026.** We built this for the SIH 2026 internal college round, held on 14 September 2026 after being moved from 11 September, and we were **not selected**. The project continues on its own. The owner, Aryan Verma, decided its direction on 23 September 2026: it is a portfolio piece, and mainly a product to sell to businesses that serve real users. The project and the scheme data belong to the owner and the code is proprietary (see `LICENSE`). The hyperlocal claim stays, and since 24 September 2026 it is backed by 20 sourced rows for Lucknow and Varanasi from data.gov.in under GODL-India (see `DATA_SOURCES.md`). The DPDP Act is in scope: in a deployment the client organisation is the Data Fiduciary and we are its Data Processor. CLAUDE.md, "Decided by the owner", has the details and the two questions still open. The table below describes the working tree of branch `feature/dpdp-compliance` on 27 September 2026. That is `fix/standalone-backlog` (an optional household-income question and the RBI 50% household check, a confirmation before Start over, input caps, and CI), which is committed locally, plus the privacy and deployment work in Feature 16, which is not committed yet. Nothing of either is pushed (§11). Sections 16, 17, 19 (demo risks), 20 and 25 were written for the round and are kept as history.
+**Status as of 26 October 2026.** अर्थNiti is a solo project. Its owner, Aryan Verma, builds it alone and has entered it in the **Meta Global AI Developer Hackathon, Indie Track**. Submissions are due 4 November 2026, 9:00 PM ET, which is 5 November 07:30 IST; [docs/HACKATHON.md](docs/HACKATHON.md) has the dates, the checklist and the demo path. It began as a six-person college team build for the SIH 2026 internal round on 14 September 2026, where it was **not selected**, and the team's earlier work is credited in `README.md` and `DATA_SOURCES.md`. The owner decided its direction on 23 September 2026: it is a portfolio piece, and mainly a product to sell to businesses that serve real users. The project and the scheme data belong to the owner and the code is proprietary (see `LICENSE`). The hyperlocal claim stays, and since 24 September 2026 it is backed by 20 sourced rows for Lucknow and Varanasi from data.gov.in under GODL-India (see `DATA_SOURCES.md`). The DPDP Act is in scope: in a deployment the client organisation is the Data Fiduciary and we are its Data Processor. CLAUDE.md, "Decided by the owner", has the details and the questions still open. **The hackathon's model layer is PLANNED, not built (§15). Today the repo makes zero model calls.** The table below describes the working tree of branch `feature/dpdp-compliance`. That is `fix/standalone-backlog` (an optional household-income question and the RBI 50% household check, a confirmation before Start over, input caps, and CI), which is committed locally, plus the privacy and deployment work in Feature 16 and the verifier work, which are not committed yet. Nothing is pushed (§11). The team-era sections (the SIH round's presentation, its Q&A, its ritual and its status snapshots) were cut or rewritten on 26 October 2026; `docs/ENGINEERING_HISTORY.md` records what went.
 
 | | |
 |---|---|
 | Project name | **अर्थNiti** (frozen) |
-| Phase | Working prototype. The hackathon ended, so the feature freeze no longer applies. It continues as a standalone project |
+| Phase | Working prototype, solo. Entered in the Meta Global AI Developer Hackathon (Indie Track, due 4 Nov 2026), and meant to continue as a product afterwards |
 | Backend | Runs. 8 routers in development, 2 in production; 867 passing tests |
 | Frontend | Runs. 11 routes plus a catch-all, full journey works end to end |
 | Integration | Done — one API call carries the whole journey |
 | Datasets | 30 government schemes across 7 tiers, 20 sourced market rows (Lucknow + Varanasi, data.gov.in, GODL-India) |
 | Languages | 8 UI languages + a dialect phrase layer. **Backend prose is translated too** — see §2.6 |
-| LLM / AI model | **None. Zero model calls.** See §15 |
+| LLM / AI model | **None in the code today. Zero model calls.** A Meta Model API layer for the hackathon is PLANNED — see §15 |
 | Database | **None.** Answers are kept in the browser tab (`sessionStorage`), sent once to work out the result, and stored nowhere — see §6 and §8 |
-| Presentation | Delivered at the 14 September round (Saad + Tripti) |
+| Entry | Meta Global AI Developer Hackathon, Indie Track — [docs/HACKATHON.md](docs/HACKATHON.md) |
 
 ---
 
@@ -33,8 +33,12 @@ Written exactly like that: Devanagari **अर्थ** and Latin **Niti**, one w
 
 **The logo** is an eight-petal lotus rosette around a ₹ coin with three coins falling below it, drawn as SVG so it recolours itself for dark mode and still prints in full colour on the `/report` PDF. It appears in the masthead, on `/login`, in the footer, on the printed report and as the browser tab icon.
 
-## SIH Problem Statement
+## The problem statement it started from
+The SIH 2026 problem statement, quoted as issued, and the brief this project was built against:
+
 **AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs**
+
+Note the wording: the statement says "AI-driven", and the build is not (yet). The advice is hand-written rules; the planned model layer is an intake aid, not an adviser (§15).
 
 ## One-Line Pitch
 > अर्थNiti asks a rural micro-entrepreneur eight plain-language questions and returns a structured, explainable business and financing assessment — local market prices, monthly profit, repayment risk, matched government schemes, and a printable action plan.
@@ -79,7 +83,7 @@ Of the ten questions the blueprint set out to answer, here is where the MVP actu
 3. **Financially structured — PARTIALLY DELIVERED.** We convert investment and capital into a funding gap and test the EMI against surplus. We do not yet produce financing scenarios or an EMI schedule (§22).
 4. **Explainable — DELIVERED.** Scheme matches carry `match_reasons`; risk carries a `reason` sentence; business analysis carries `observations`. Advanced numbers sit behind a "Show detailed calculations" disclosure so the first screen stays readable.
 5. **Actionable — DELIVERED.** Every result page ends in next steps; `/report` prints.
-6. **Regional-language — DELIVERED.** This entry said "NOT DELIVERED — all output is English. Do not claim Hindi output" until 8 September 2026. **That is now wrong in the direction that costs us marks**, so read the replacement carefully before presenting:
+6. **Regional-language — DELIVERED.** This entry said "NOT DELIVERED — all output is English. Do not claim Hindi output" until 8 September 2026. **That is now wrong in the direction that undersells the build**, so read the replacement carefully before presenting:
    - **8 languages** — English, Hindi, Tamil, Telugu, Malayalam, Kannada, Marathi, Bengali — each listed in its own script with a sample line, so a reader who cannot read English can find their own language. **Hindi is the default**, not English.
    - **The generated advice and the scheme text change with it.** Every sentence a Python service composes carries a translation code beside it, and the frontend resolves the code to the reader's language. So do not say "the labels are translated" — the *output* is. On stage this is the single strongest moment in the walkthrough, and a **result** page is a better place to show it than a form page.
    - **A dialect phrase layer** on top: 30 varieties listed, of which **9 carry curated phrase overrides** for the highest-visibility strings (the greeting, the call to action, the words for money). Anything not overridden falls through to the language, so every dialect is a fully usable UI. Say **"dialect-aware phrasing"** — not "translated into Bhojpuri".
@@ -178,20 +182,20 @@ Overall status                 attention_needed  → "Decide how you will cover 
                                              any loan small enough to repay."
 ```
 
-Those are the numbers to have in your head on stage. If a figure on screen disagrees with this table, something regressed — check before presenting.
+Those are the numbers to have in your head when you demo it. If a figure on screen disagrees with this table, something regressed — check before recording or presenting.
 
 **Re-checked on 25 September 2026** by calling the analysis service directly, not over HTTP: every figure above is unchanged, the household check reads `not_checked` because the income was left blank, and `risk_analysis` now carries 19 keys. To show the household check, fill in the household income on `/finance`. With the same payload, ₹20,000 gives 15.56% of household income, within the limit, and changes nothing else. ₹5,000 gives 62.24%, over the limit: the status line becomes "Loan payments are too high for your household income", the next step becomes "start smaller, or find more of the money yourself first", and the advice adds "take a smaller loan, or none". The entered ₹2,000 EMI alone is within half of ₹5,000; the estimated loan for the gap is what takes it over.
 
 **Note the fit split, and do not call it a percentage.** Each card says "Made for your state" (the scheme names only Uttar Pradesh) or "For all of India". A third label, "For a few states, including yours", is for a scheme that names the reader's state among several (UNNATI in the North East, Vibrant Villages in the border states); it scores 100 like a one-state scheme and cannot appear for Uttar Pradesh. Behind them the score is 100 or 90, the only two values reachable, and it checks no eligibility rule, so the page no longer prints it as "90% match" (changed 23 September 2026), which reads as a 90% chance of qualifying. The demo block above shows the `fit_basis` value behind each label. Say "listed for your kind of work, then for your state, and the rules still have to be checked at the office", never "scored by a model" and never "you qualify".
 
-**Avoid on stage:** a typed-in *Other* that resembles nothing in the dataset — that is the only input left that matches zero schemes, and §21 explains why that is correct rather than broken. Every category except Other now has a market row in Lucknow and Varanasi; any other district shows the market section's empty state.
+**Avoid in the demo:** a typed-in *Other* that resembles nothing in the dataset — that is the only input left that matches zero schemes, and §21 explains why that is correct rather than broken. Every category except Other now has a market row in Lucknow and Varanasi; any other district shows the market section's empty state.
 
 ## What used to break the demo — and no longer does
 
 This section read **"State lives only in React memory … a page refresh wipes everything … do not refresh, and do not deep-link"** until 8 September 2026. **That is fixed.** Every answer and the API result now mirror into `sessionStorage['sih-application']`, so:
 
 - **A refresh no longer loses anything** within the tab. This was our single largest demo risk and it is closed.
-- **`sessionStorage`, not `localStorage`, and that is deliberate** — someone's revenue, debt and EMI must not sit on a shared demo laptop after they walk away, and a closed tab being a clean slate is exactly what we want between two judges.
+- **`sessionStorage`, not `localStorage`, and that is deliberate** — someone's revenue, debt and EMI must not sit on a shared laptop or a CSC counter computer after they walk away, and a closed tab being a clean slate is exactly what we want between two visitors (or two judges trying the demo).
 - **Language, dialect, theme and text size are in `localStorage` instead**, because a display preference is not personal financial data and *should* outlive the tab.
 - **"Start over" in the utility bar is the only way back to a blank form** without closing the tab. It appears only once there is something to lose. **Since 25 September 2026 it asks first**: a dialog says everything entered in this tab will be removed and cannot be got back, and "No" is the first button and takes the focus. `/report` also carries a line, hidden on paper, saying the figures were worked out from the answers the reader sent, that this tab keeps the answers and the report until Start over, and to print or save it as a PDF to keep it. Since 27 September 2026 the dialog also says Start over does not affect anything already sent.
 - **Changing an answer after seeing a result removes the result**, because the old result no longer matches the answers. Since 25 September 2026 each result page then says so ("You changed your answers") and offers a button back to the answers, instead of showing the ordinary empty state. And if the answers change while the check is still running, the late reply is not shown: `/finance` asks the reader to press the button again.
@@ -221,7 +225,7 @@ Matching is tiered: the entrepreneur's own district + state + category first; el
 
 ## Feature 4 — Business Feasibility Engine · **BUILT (reduced)**
 Returns operating surplus, operating margin %, annual surplus, estimated ROI %, `feasibility_status` (feasible / break_even / not_feasible) and plain-language observations.
-**Break-even units and cash-flow projection were not built** — we have no unit-economics inputs (selling price, variable cost per unit) to compute them from. See §25.
+**Break-even units and cash-flow projection were not built** — we have no unit-economics inputs (selling price, variable cost per unit) to compute them from. See §22.
 
 ## Feature 5 — Financial Structuring Engine · **PARTIAL**
 Built: monthly profit, profit margin, `funding_gap = max(initial_investment − available_capital, 0)`, repayment-pressure risk, and, when the reader gives their household income, a check of all household loan payments against half of it (Feature 8).
@@ -272,7 +276,7 @@ Framing that must stay: अर्थNiti is a **decision-support prototype, not 
 `advisory.recommendations[]` selected by financial status, profit-margin band (10% / 30%), cash reserve, the funding gap and, since 25 September 2026, the household check. A household the new loan takes over half its income is told to take a smaller loan, or none. One whose existing loans are already over half is told not to take a new loan until they are back to half or less. The next step on the result pages splits the same way. `/report` renders up to five as numbered steps and falls back to four sensible defaults if the engine returns none. `/report` prints to PDF with `break-inside: avoid` on every card and a forced-light colour set, so a dark-mode laptop still prints on white.
 
 ## Feature 10 — AI Chat Assistant · **NOT BUILT**
-There is no chat endpoint and no chat UI. `POST /api/chat` does not exist. Nobody should demo or promise it. It is the first item in §22.
+There is no chat endpoint and no chat UI. `POST /api/chat` does not exist, and the planned model layer (§15) is an intake layer, not a chat. Nobody should demo or promise a conversational assistant; §22 lists it as not planned.
 
 ## Feature 11 — Multilingual output · **BUILT**
 8 languages, Hindi by default, plus a dialect phrase layer — and the *generated advice and scheme text* change with the language, not only the labels. Full detail and the exact honest caveats are in §2.6. **This is the strongest single moment in the walkthrough**; switch language while standing on a **result** page.
@@ -287,14 +291,14 @@ Three chart types in `frontend/src/components/Charts.jsx`, drawn in CSS rather t
 Two independent switches on `<html>`, both persisted: **dark mode** and a **three-step text scale** that *multiplies* the reader's own browser font size rather than replacing it. (A high-contrast mode was a third until 8 September 2026, when it was removed at the owner's instruction. Both remaining themes are AA-checked and the text scale is untouched, but a dedicated high-contrast mode is not offered.) Plus a skip link, `<html lang>` tracking the chosen language, `aria-hidden` on every decorative glyph, and a 44px minimum touch target on every control. These are part of the government-service register we are borrowing, not extras bolted on top.
 
 ## Feature 14 — Instruction manual · **BUILT**
-A strip on the landing page opens a modal walkthrough of all eight screens — what each one asks for and why. **It carries its own language dropdown inside the panel**, so a reader who cannot read the current language can switch from where they are instead of hunting the utility bar first. Worth 20 seconds on stage: it is the answer to "how would a first-time rural user know what to do?"
+A strip on the landing page opens a modal walkthrough of all eight screens — what each one asks for and why. **It carries its own language dropdown inside the panel**, so a reader who cannot read the current language can switch from where they are instead of hunting the utility bar first. Worth 20 seconds in the demo: it is the answer to "how would a first-time rural user know what to do?"
 
 ## Feature 15 — Government-style interface · **BUILT (a deliberate design choice)**
 The chrome is modelled on Indian e-governance portals — a masthead with the lotus mark, a tricolour rule, a persistent utility bar, a horizontal nav band, breadcrumbs, plain bordered cards, a dense multi-column footer. **The reason is usability, not imitation:** a rural user has met that visual language before on a real government service and already knows how to read it.
 
 "Government-like" means those structural conventions. It does **not** mean 2000s-era visual quality — the brief was explicit that the interface must be understandable by low-literacy readers *without being basic*.
 
-**The on-screen "student prototype / not a Government of India service" notice was removed on 8 September 2026 at the owner's instruction.** So if a judge asks whether this could be mistaken for an official portal, **the answer is verbal now and someone has to give it** — say plainly that it is a student prototype and not a government service. What remains on screen is different and must not be tidied away: the footer's *verify eligibility at a government office* line, the footer's dates for when the scheme rules were checked, and, under the market section, the GODL-India attribution for each dataset it draws on, followed by a line saying the publishers do not endorse अर्थNiti and a no-warranty line. Those are data-provenance honesty, not an is-this-official disclaimer. (Corrected on 25 September 2026: this sentence named the *"Demo estimate — sample figures, not a real survey"* label on every market row, which was deleted on 24 September with the illustrative rows it labelled.)
+**The on-screen "student prototype / not a Government of India service" notice was removed on 8 September 2026 at the owner's instruction.** So if a judge asks whether this could be mistaken for an official portal, **the answer is verbal now and someone has to give it** — say plainly that it is a prototype built by one person and not a government service. What remains on screen is different and must not be tidied away: the footer's *verify eligibility at a government office* line, the footer's dates for when the scheme rules were checked, and, under the market section, the GODL-India attribution for each dataset it draws on, followed by a line saying the publishers do not endorse अर्थNiti and a no-warranty line. Those are data-provenance honesty, not an is-this-official disclaimer. (Corrected on 25 September 2026: this sentence named the *"Demo estimate — sample figures, not a real survey"* label on every market row, which was deleted on 24 September with the illustrative rows it labelled.)
 
 **The footer no longer prints a helpline number** (removed 25 September 2026). "Udyami Helpline 1800-11-6666" had never been checked against a source we could open, could not be tapped to call, and was in English on every page. The column now reads "Where to get help" and names the District Industries Centre and the block office. A number comes back only once it is verified.
 
@@ -321,7 +325,7 @@ Still-correct exclusions, and they are defensible answers to "why not?":
 - Aadhaar/PAN verification
 - ML models trained on data we do not have
 - A mobile app alongside the web app
-- A large multilingual voice system
+- A large multilingual voice system. (The planned hackathon layer, §15, is narrower: speak or type your answers once, a model fills the existing form fields, and you check them. It gives no advice and speaks nothing back.)
 - Web scraping
 - Autonomous financial decisions
 - Production authentication, blockchain, microservices
@@ -332,9 +336,9 @@ Added to that list during the build:
 - **A charting library.** The charts are hand-rolled in CSS on purpose — see Feature 12 for the three reasons, all of which are specific to this demo.
 - **An i18n library.** Eight plain dictionary objects and a 12-line lookup function, verified by our own parity script. A library would add a build dependency to solve a problem we do not have.
 - **A frontend test framework.** Instead there are **zero-dependency browser drivers** that drive Edge over CDP and assert on rendered output (§13). They were written because lint, build and pytest cannot see a leaked translation key, a `null%`, a page that scrolls sideways on a phone, or a logo that prints invisible. (This line said "eleven" until 25 September 2026; §13 has the count.)
-- **Route guards.** Any step is reachable from the nav bar. Submitting an incomplete form returns a readable error rather than being prevented — which is the honest behaviour for a prototype and one fewer thing to fail on stage.
+- **Route guards.** Any step is reachable from the nav bar. Submitting an incomplete form returns a readable error rather than being prevented — which is the honest behaviour for a prototype and one fewer thing to fail in the demo.
 
-**Since the round, not every item on that second list is still a decision** (reviewed 25 September 2026). Leaving out a charting library and an i18n library still stands, for reasons that do not depend on a demo. The database and the route guards were demo-era choices and are open questions now that the product is meant to be sold. Whatever replaces the tab, a reader's financial answers still do not go into `localStorage`, where they would outlive the tab on a shared device. The browser drivers standing in for a frontend test framework was never about the demo, but they run only on one Windows laptop and are not in CI. CI itself was on no list and now exists (§6).
+**Not every item on that second list is still a decision** (reviewed 25 September 2026, after the SIH round whose build wrote that list). Leaving out a charting library and an i18n library still stands, for reasons that do not depend on a demo. The database and the route guards were demo-era choices and are open questions now that the product is meant to be sold. Whatever replaces the tab, a reader's financial answers still do not go into `localStorage`, where they would outlive the tab on a shared device. The browser drivers standing in for a frontend test framework was never about the demo, but they run only on one Windows laptop and are not in CI. CI itself was on no list and now exists (§6).
 
 The goal was a **convincing, functional MVP**, and that is what exists.
 
@@ -397,7 +401,7 @@ Style rules, if you are adding code: services are pure functions returning plain
 **None.** No SQLite, no PostgreSQL, no ORM, no migrations. JSON files in `backend/app/data/` are the only data store, read once per process and cached read-only. **Nothing the user enters is stored on any server.** The answers live in the browser tab and are usually gone when it closes (§8). They are sent once, when step 4 is submitted, so the backend can work the result out. The backend keeps none of them, and its log line holds no answer (`docs/PROCESSOR_SCHEDULE.md` §4).
 
 ## AI Layer
-**None.** See §15 — this needs a whole section, because it is the single most likely thing for someone to misstate on stage.
+**None today.** A Meta Model API intake layer is PLANNED for the hackathon and does not exist yet (§15). §15 gets a whole section, because what the model does and does not do is the single most likely thing to be misstated.
 
 ## CORS
 In development, any `localhost` or `127.0.0.1` port, so a Vite server that falls back from 5173 to 5174 still works. In production (`ARTHNITI_ENV=production`), only the exact `https://` origins listed in `ARTHNITI_CORS_ORIGINS`. The backend refuses to start without that list, and refuses `*` in it. Neither mode allows credentials.
@@ -577,11 +581,11 @@ scheme match_score        = 60 (kind of work matches)
                             shown as fit_basis ("state" / "region" / "national"), never as a %
 ```
 
-**Five fields come back `null`, and that is a feature, not a gap** — it means *"we could not compute this"*, which is a different statement from zero. `profit_margin_percent` and `operating_margin_percent` when revenue is 0 (a margin needs revenue to be a share *of*, and printing `0%` there would read as break-even when it is actually a loss), `estimated_roi_percent` when investment is 0, `pressure_ratio_percent` when there is no positive surplus, and, since 25 September 2026, `household_repayment_percent` when the household income was left blank or is 0. **The UI prints "Not available" for the first four.** For the fifth it prints no percentage and no bar: a blank income shows a line saying the check was not done and naming the step where the income can be given, and a zero income shows the check's own sentence. This matters on stage because `Number(null)` is `0` in JavaScript, so a careless formatter turns "could not compute" into a confident, reassuring `0%` — that has been a live bug twice.
+**Five fields come back `null`, and that is a feature, not a gap** — it means *"we could not compute this"*, which is a different statement from zero. `profit_margin_percent` and `operating_margin_percent` when revenue is 0 (a margin needs revenue to be a share *of*, and printing `0%` there would read as break-even when it is actually a loss), `estimated_roi_percent` when investment is 0, `pressure_ratio_percent` when there is no positive surplus, and, since 25 September 2026, `household_repayment_percent` when the household income was left blank or is 0. **The UI prints "Not available" for the first four.** For the fifth it prints no percentage and no bar: a blank income shows a line saying the check was not done and naming the step where the income can be given, and a zero income shows the check's own sentence. This matters because `Number(null)` is `0` in JavaScript, so a careless formatter turns "could not compute" into a confident, reassuring `0%` — that has been a live bug twice.
 
 ## Two different expense questions — do not mix them up
 
-This trips people up, including on stage:
+This trips people up, including in the demo:
 
 - **`monthly_expenses`** (asked on `/finance`) means *everything the household spends*. It drives `monthly_profit`, and therefore the risk assessment.
 - **`monthly_operating_expenses`** (asked on `/business`) means *business costs only*. It drives `monthly_operating_surplus`, and therefore feasibility and ROI.
@@ -602,62 +606,41 @@ Scheme documents say "trading", "manufacturing", "services"; the UI asks the ent
 
 ---
 
-# 10. Team Structure
+# 10. Who built it
 
-## Saad — Presentation / Product Story
-Problem statement · user personas · solution narrative · SIH pitch · judge-facing demo script · PPT · storytelling · research/source tracking with Tripti.
+**Aryan Verma owns and builds अर्थNiti, alone, from 26 October 2026.** It is entered in the Meta Global AI Developer Hackathon as an individual project (Indie Track).
 
-## Tripti — Presentation / Research
-Problem research · government/scheme research · competitive analysis · sources and citations · PPT support · demo narration · **validation of claims** — including the §2 "delivered / not delivered" column, which is the difference between confident and overclaiming.
-
-## Netra — Frontend
-UI architecture · landing page · forms · navigation · results layout · responsive design · API integration.
-
-## Anmol — Frontend
-Component development · advisory results · scheme cards · action-plan UI · loading and error states · UI polish.
-*(Chat UI was on this list. There is no chat feature — reassign that time to §25.)*
-
-## Aryan — Backend
-FastAPI setup · API design · business calculations · financial engine · validation · backend testing.
-*(AI integration was on this list and did not happen — see §15.)*
-
-## Manjeet — Backend
-Data layer · scheme matching · market dataset · report content · backend integration · API testing.
-
-## Cross-team rule
-Nobody works in isolation. Every day: a 15-minute stand-up, one shared task board, one shared Git repository, one integration checkpoint, an end-of-day update.
+Until then it was a six-person college team build for the SIH 2026 internal round: Netra and Anmol on the frontend, Aryan and Manjeet on the backend, Saad and Tripti on the presentation and research. Their work is in the git history and the README credits them. **Whether their earlier work may be submitted to the hackathon, reused, or sold is not settled in writing.** `DATA_SOURCES.md` ("People") keeps that item open, and the hackathon's own rules decide what counts as built during the event ([docs/HACKATHON.md](docs/HACKATHON.md)).
 
 ---
 
-# 11. Git / Collaboration
+# 11. Git
 
-**Repo:** `https://github.com/BU1lDR/SIH_2026` (private).
+**Repo:** `https://github.com/BU1lDR/SIH_2026` (private). One person works in it now, but the earlier contributors' clones may still exist.
 
-The planned `develop` + `frontend/<name>` scheme was not adopted. Neither, any more, is the flat per-person scheme that replaced it. **The remote has exactly two branches** (true on 9 September 2026 and still true in the remote-tracking refs on 27 September 2026):
+**The remote has exactly two branches** (`git ls-remote --heads origin` is the authority, not a list in a document; measured 26 October 2026):
 
 ```text
 main            before-main
 ```
 
-**`origin/before-main` is the newest build anyone else can check out, and it is not the newest build.** It carries the government-style chrome, the 8-language layer, the charts, the cascading location data, `sessionStorage` and the accessibility switches. Everything from 23 September 2026 onwards exists only on the owner's laptop (measured 27 September 2026):
+**`origin/before-main` is the newest build anyone else can check out, and it is not the newest build.** It carries the government-style chrome, the 8-language layer, the charts, the cascading location data, `sessionStorage` and the accessibility switches. Everything from 23 September 2026 onwards exists only on the owner's laptop (measured 26 October 2026):
 
-- **Six local commits sit on top of `origin/before-main`, none pushed**: the owner's decisions with the licence and provenance files, the funding-gap fix, the scheme-fit fix, a docs correction, the sourced market data, and the standalone backlog. `git rev-list --left-right --count origin/before-main...HEAD` reports `0 / 6`. Local `before-main` holds only the first of the six, so it is 1 ahead of its remote.
-- **The work this document describes as of 25 September 2026 is the sixth of those commits**, on `fix/standalone-backlog`: the household check, the Start-over confirmation, the input caps, the tidier 422, the footer dates, the scheme-text corrections and CI.
-- **The privacy and deployment work (Feature 16) is not committed at all.** It sits in the working tree of `feature/dpdp-compliance`, which points at the same sixth commit, `4a2307e`, as `fix/standalone-backlog`.
-- **16 more local branches are placeholders, not work** — `feature/ai-advisory`, `feature/auth` and fourteen others, all at the first of the six commits with no commits of their own, none pushed. They name planned work; none of it has started.
+- **Six local commits sit on top of `origin/before-main`, none pushed**: the owner's decisions with the licence and provenance files, the funding-gap fix, the scheme-fit fix, a docs correction, the sourced market data, and the standalone backlog. `git rev-list --left-right --count origin/before-main...HEAD` reports `0 / 6`. Local `before-main` holds only the first of the six (`cf1c775`), so it is 1 ahead of its remote.
+- **The sixth of those commits, `4a2307e`, is the standalone backlog**: the household check, the Start-over confirmation, the input caps, the tidier 422, the footer dates, the scheme-text corrections and CI. `feature/dpdp-compliance` and `fix/standalone-backlog` both point at it.
+- **The privacy and deployment work (Feature 16), the verifier exit-code work and the 26 October identity edits are not committed at all.** They sit in the working tree of `feature/dpdp-compliance`.
+- **The other 17 `feature/*` branches hold no work of their own**: 16 sit at `cf1c775` and `feature/real-market-data` at `053a99e`, both already in HEAD's history. Their names (`feature/ai-advisory`, `feature/voice-assistant` and the rest) are planned work that never started.
 
-So a teammate who clones the repo today gets `before-main` as it was before any of this, and none of the figures in this document from 23 September on.
+So anyone who clones the repo today gets `before-main` as it was before any of this, and none of the figures in this document from 23 September on.
 
-This section used to list eleven branches — `backend`, `frontend`, `aryan`, `aryan-frontend`, `aryan-ui-redesign`, `aryan-gov-ui`, `netra`, `saad`, `tripti`, `Manjeet` — and named `aryan-gov-ui` as the live one. Those are gone; the work merged. `git ls-remote --heads origin` is the authority here, not a list in a document.
-
-**On the remote, `before-main` is simply ahead of `main`**: `git rev-list --left-right --count origin/main...origin/before-main` reports `0 / 185` (measured 25 September 2026; it was `0 / 172` when this line was first written), so merging is a fast-forward. Compare the `origin/` refs and not the local branch names — a leftover local `main` from early backend work can sit unpushed commits ahead of `origin/main` and make the same command report a divergence that exists on one laptop only.
+**On the remote, `before-main` is simply ahead of `main`**: `git rev-list --left-right --count origin/main...origin/before-main` reports `0 / 185` (measured 26 October 2026), so merging is a fast-forward. Compare the `origin/` refs and not the local branch names: local `main` carries 6 unpushed scaffolding commits from early backend work (`git rev-list --left-right --count origin/main...main` reports `0 / 6`), which makes the same command report a divergence that exists on one laptop only.
 
 Rules, still in force:
 1. **Never push directly to `main`.**
-2. Small commits with messages that say what changed.
+2. Small commits with messages that say what changed. No `Co-Authored-By` line and no tool attribution in a commit message or a PR description.
 3. Pull/rebase before a merge.
-4. Keep `.env` and API keys out of Git. `.env.example` is tracked and names the one key the build uses, the data.gov.in key for the market fetch; keep it in step if another key is added.
-5. **A push lands in five other people's working copies — get the owner's explicit confirmation before every push.** Approval for one push does not carry to the next. (This rule read "confirm before you push near the presentation" until 25 September 2026; the presentation is past and the rule now applies to every push.)
+4. Keep `.env` and API keys out of Git. `.env.example` is tracked and names every key the build uses: the data.gov.in key for the market fetch, and the Meta Model API key once the model layer exists (§15). Keep it in step if another key is added.
+5. **Any action that changes the GitHub repo needs the owner's explicit confirmation each time**: a push, a PR, a branch or tag, a release, a settings change. Approval for one does not carry to the next. Making the repo public is the biggest of these: it publishes the whole history, including the earlier contributors' commits, and it is not decided (see [docs/HACKATHON.md](docs/HACKATHON.md)).
 
 Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`, `screenshots`.
 
@@ -665,24 +648,11 @@ Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`
 
 ---
 
-# 12. Where the Ten-Day Plan Landed
+# 12. How the build landed
 
-Kept as a record, because the day numbers appear in earlier notes and stand-ups.
+The SIH build was planned as ten days: scope and contract, forms, a financial engine that works without AI, scheme matching, **AI integration**, hyperlocal data, explainability, testing, polish and rehearsal. Every step landed except the AI step, which never connected. Two defects from the way are worth remembering because they were silent: scheme matching had a category-direction bug that zeroed five of nine categories until 7 September, and `market_context` was computed and then discarded by the UI until 7 September. `docs/ENGINEERING_HISTORY.md` ("Known defects") has the dated record.
 
-| Planned | Outcome |
-|---|---|
-| Day 1 — freeze scope, stack, repo, API contract | **Done.** Name landed later than Day 1; everything else held |
-| Day 2 — core UI + backend foundations | **Done.** Forms and validation |
-| Day 3 — financial engine, dashboard works without AI | **Done** — and it turned out to be the whole product |
-| Day 4 — scheme matching + local context | **Done**, though scheme matching had a category-direction bug that silently zeroed five of nine categories until 7 Sept |
-| Day 5 — **AI integration**, full happy path end-to-end | **Half done.** The end-to-end path works. The LLM was never connected |
-| Day 6 — hyperlocal + personalization | **Done**, then found to be broken: `market_context` was computed and silently discarded by the UI. Fixed 7 Sept |
-| Day 7 — UX, explainability, responsible framing | **Done.** Disclosures, source labels, disclaimers, plain-language copy |
-| Day 8 — testing + demo scenarios | **Partial.** 867 backend tests as of 27 September 2026; no frontend *unit* tests, but 14 browser gates that assert on rendered output; one polished scenario rather than three |
-| Day 9 — polish + presentation | **In progress.** 7 Sept: a full defect sweep — 10 numbered defects plus 7 more, all fixed. 8 Sept: the government-style redesign, the translation layer, and a second audit closing 46 findings |
-| Day 10 — rehearsal + final build | **Pending.** §25 |
-
-The honest lesson, and a good answer to "what did you learn?": **the deterministic engine that was supposed to be scaffolding for the AI turned out to be the product.** Day 3's deliverable — "the financial dashboard works without AI" — is what we are demonstrating.
+The honest lesson, and a good answer to "what did you learn?": **the deterministic engine that was supposed to be scaffolding for the AI turned out to be the product.** That is why the hackathon layer (§15) is built around it and not in place of it: a model takes the answers in, and the rules still do all the arithmetic and write all the advice.
 
 ---
 
@@ -712,9 +682,10 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 - [x] **Output is in the reader's own language**, including the generated advice (§2.6)
 - [x] **Phone widths verified** — all 11 routes measured clean at 360 / 390 / 412 px, plus a 360 px pass in the dark theme at the large text size in Hindi
 - [x] **Print output verified** — the `/report` PDF, from a light laptop and from a dark one
-- [ ] Three demo scenarios — we have one
-- [ ] Presentation complete
-- [ ] Demo rehearsed at least 3 times
+- [ ] Three demo scenarios — there is one
+- [ ] Meta Model API layer (PLANNED, §15) — nothing of it exists in the repo yet
+- [ ] Hackathon submission complete — the checklist is in [docs/HACKATHON.md](docs/HACKATHON.md)
+- [ ] Demo recorded or rehearsed at least 3 times, on the machine and browser it will be shown from
 
 ## How the frontend is verified — there are no unit tests, and that is not the same as unverified
 
@@ -742,7 +713,7 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 
 Plus `parity4.mjs` (no browser needed) for translation-key parity and, since 25 September 2026, for the figures in each sentence: every translation must carry the same numbers as its English, in Latin digits, and every English scheme sentence the same numbers as `schemes.json`. And `refresh-cases.mjs` to regenerate the captured API responses the drivers seed — **run that one after any backend change**, because stale fixtures make the drivers pass while telling you nothing.
 
-The scripts are tracked in `tools/`; `screenshots/` stays gitignored and holds only the PNGs and JSON they write. **The browser drivers run only on the owner's Windows laptop**: the Edge path is hardcoded, and none of them is in CI. CI runs the server-free checks only (§6). A gate exits 1 on a finding and 2 when it could not measure (a server down, the wrong directory, a crash), so a 2 is never a pass; [tools/README.md](tools/README.md#exit-codes) lists every cause. **They are not a substitute for clicking through once on the presentation laptop, in the presentation browser.**
+The scripts are tracked in `tools/`; `screenshots/` stays gitignored and holds only the PNGs and JSON they write. **The browser drivers run only on the owner's Windows laptop**: the Edge path is hardcoded, and none of them is in CI. CI runs the server-free checks only (§6). A gate exits 1 on a finding and 2 when it could not measure (a server down, the wrong directory, a crash), so a 2 is never a pass; [tools/README.md](tools/README.md#exit-codes) lists every cause. **They are not a substitute for clicking through once on the machine and in the browser the demo will be shown from.**
 
 ## Still not verified
 - **Phone landscape orientation, real touch scrolling on physical hardware, and the on-screen keyboard covering a focused input.** Emulation cannot answer these; borrow a phone.
@@ -789,8 +760,8 @@ SIH_2026/
 │
 ├── docs/                     frontend_integration.md (the API contract),
 │                             PROCESSOR_SCHEDULE.md (for a deploying organisation),
-│                             requirements.txt
-├── presentation/             empty — Saad + Tripti
+│                             HACKATHON.md (the Meta hackathon entry), requirements.txt
+├── presentation/             empty, left over from the team build; nothing reads it
 ├── tools/                    tracked — 28 scripts, nearly all verifiers, 21 of them in verify/
 ├── screenshots/              gitignored, 8.1 GB — their output only: PNGs, report.json,
 │                             Edge profiles, plus 27 stale PNGs (do not circulate)
@@ -809,69 +780,56 @@ Differences from the plan worth knowing: no `docs/architecture.md` / `api.md` / 
 
 ---
 
-# 15. The AI Question — read this before you present
+# 15. The AI Question — read this before you describe the build
 
-**अर्थNiti currently makes zero LLM calls.** There is no model SDK in `requirements.txt`, no model API key, no environment variable the backend reads, no HTTP client used for inference, no `ai/` module. (The one key in `.env.example` is for the offline market-data fetch in `tools/`, not for a model.) Every number and every sentence the user sees is produced by hand-written Python `if`/`else` in `backend/app/services/`.
+**अर्थNiti makes zero model calls in the code today (26 October 2026).** There is no model SDK in `requirements.txt`, no model API key, no environment variable the backend reads for one, no HTTP client used for inference, no `ai/` module. (The one key in `.env.example` is for the offline market-data fetch in `tools/`, not for a model.) Every number and every sentence the user sees is produced by hand-written Python `if`/`else` in `backend/app/services/`.
 
-**Nobody on the team should describe the current build as using an LLM.** If a judge asks whether AI is running and the honest answer is dodged, one follow-up question — "which model?" — ends the conversation badly. If someone asks us to "improve the AI", clarify first whether they mean wiring up a real model or improving the rules.
+**A Meta Model API layer is PLANNED for the hackathon and is not built yet.** This section describes the plan and gets rewritten, in the same commit, as soon as code exists. Until then nobody should describe the build as using a model: not in the README, not on a slide, not in a video. A reviewer's follow-up, "which model?", ends the conversation badly if the honest answer is "none yet". If someone asks to "improve the AI", find out first whether they mean wiring up the model layer or improving the rules.
 
-## What to say instead
+## What to say today
 
-> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested — 867 tests. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. The AI-driven part of the problem statement is where this goes next: natural-language input, dialect-level paraphrasing, and a conversational 'why?' layer on top of the same engine — with the arithmetic staying in code."
+> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. Where a model earns its place is the front door: a first-time borrower should be able to say what they do in their own language instead of filling in a form, and the model's job ends at a draft that the person checks. The arithmetic stays in code."
 
 This is a strong position, honestly held. Do not weaken it by overclaiming.
 
-**One clarification the team keeps needing:** *"no LLM"* does not mean *"English only"*. Those were the same limitation until 7 September and are now separate — the multilingual output is built and is deterministic (a translation code per sentence, resolved against dictionaries we wrote), which is precisely *why* it is trustworthy enough to demo. Do not answer "is it multilingual?" with "no, there is no AI".
+**One clarification that keeps being needed:** *"no model"* does not mean *"English only"*. Those were the same limitation until 7 September and are now separate. The multilingual output is built and is deterministic (a translation code per sentence, resolved against dictionaries we wrote), which is precisely *why* it is trustworthy enough to demo. Do not answer "is it multilingual?" with "no, there is no AI".
 
-## PLANNED — the LLM layer, if and when it is added
+## PLANNED — the Meta Model API layer
+
+**What it is: an intake layer, not an adviser.** The reader speaks, or types, a few sentences about their business in their own language. The backend sends the audio to a speech model and the text to a language model with a fixed JSON schema, and gets back a draft of the form fields that the app already has: business kind, state, district and the amounts the reader mentioned. The page fills those fields in and marks each one *filled from what you said, please check*. The reader corrects anything, ticks consent, and submits. From there the existing deterministic engine does everything, unchanged.
+
+**Why this and not a chatbot:** the people this is for find a four-step form with money fields the hardest part, and speech is the interface they already use. A model is the right tool for turning loose speech into structured fields. It is the wrong tool for working out a repayment, so it never gets to.
 
 Boundary, non-negotiable:
 
-| The LLM may | The LLM must never |
+| The model may | The model must never |
 |---|---|
-| Rephrase our output in Hindi or a dialect | Compute any number |
-| Interpret a free-text business description | Decide scheme eligibility |
-| Answer "why?" from the structured result | Invent a scheme, a rule, an amount or a document |
-| Ask for a missing input | Replace a formula |
+| Turn speech into text | Compute any number the reader sees |
+| Turn a free-text description into draft values for the existing form fields | Decide scheme eligibility |
+| Say it did not understand, so the reader types instead | Invent a scheme, a rule, an amount or a document |
+| (Later, if built) Explain the engine's own result in plain words | Replace a formula, or see the engine's numbers before the reader has confirmed the inputs |
 
-Intended system role: *a rural micro-enterprise advisory assistant that uses only the provided structured data, distinguishes facts from assumptions, never invents scheme eligibility, never guarantees loans or profits, uses the deterministic outputs verbatim, recommends verification for important claims, and answers in simple language.*
+Rules the build has to meet before this section is rewritten as DONE:
 
-Context to supply: the entrepreneur profile, business profile, location, the computed financial metrics, the risk result, the matched schemes, the market rows and the stated assumptions — i.e. our existing 7-section response, unchanged.
+- **The app works fully without it.** The layer is off unless it is configured, the engine and every page run with no key, and a model failure of any kind leaves the form as it was, for the reader to type.
+- **The model's output is a draft.** Nothing it returns reaches the engine without the reader seeing it in the form and submitting. Amounts are validated by the same limits as typed ones.
+- **Its own consent.** Sending a recording or a transcript to Meta is a cross-border transfer to a further processor, so it needs its own tick, its own line in the notice and its own entry in `docs/PROCESSOR_SCHEDULE.md`. The existing consent covers only the 12 answers.
+- **Nothing it receives is kept or logged.** No audio and no transcript is stored, and none reaches a log line; `test_log_privacy.py` is extended to prove it.
+- **Keys stay on the server.** The browser never sees the model key, and `settings.py` refuses a bad value at startup.
+- **Said honestly on screen and in the docs:** no sentence anywhere says the advice is AI-generated.
 
-Preferred response shape:
+Facts about the Meta Model API that are **unconfirmed until tested with a real key**: the endpoint and model names (`muse-spark` for text, `muse-voice-transcribe-1.0` for speech), the structured-output format, and the limits (32 MB and 10 minutes of audio). Speech is documented for Hindi, Tamil, Telugu, Kannada, Marathi, Bengali and English and **not for Malayalam**, so the voice option is hidden for Malayalam and the text option stays.
 
-```json
-{
-  "summary": "...",
-  "key_insights": [],
-  "financial_explanation": [],
-  "scheme_explanation": [],
-  "risks": [],
-  "actions": []
-}
-```
+Second, only if the first works end to end and time remains: a plain-words "why is it this way?" for the result, written by the model from the engine's structured output, with a check that every number in its answer appears in the engine's own result and an answer that fails the check is dropped.
 
 ---
 
-# 16. Presentation Structure
+# 16. Demo Sequence
 
-> **History (round-era).** This section was written for the SIH 2026 internal round, held on 14 September 2026, which we were not selected from. It is kept because it records the thinking behind the build. It is not a current plan.
-
-Recommended 8–10 slides:
-
-1. Title — **अर्थNiti**
-2. Problem
-3. Who is affected
-4. Current gap
-5. Our solution
-6. How it works
-7. Innovation / USP
-8. Technology architecture
-9. Impact + scalability
-10. Demo / future vision
+> **Rewritten 26 October 2026.** This section was the slide list and demo script for the SIH 2026 internal round. The slide list is gone. The demo sequence below is the same walk through the real routes, and it is the base for the hackathon demo; [docs/HACKATHON.md](docs/HACKATHON.md) has the hackathon's own plan. When the Meta intake layer exists (§15) it becomes the first step here.
 
 ## Key message
-Do not spend the presentation explaining technology. Spend it on **problem → insight → solution → demo → impact.**
+Do not spend the demo explaining technology. Spend it on **problem → insight → solution → demo → impact.**
 
 ## Live demo sequence (matches the real routes)
 
@@ -891,7 +849,7 @@ Do not spend the presentation explaining technology. Spend it on **problem → i
                   aloud. This is the hyperlocal claim, on screen, labelled
 9.  /analysis   — ** SWITCH LANGUAGE TO HINDI OR TAMIL HERE. ** Do it standing on
                   this page, not on a form: the generated advice and the scheme
-                  text change too, which is the part judges do not expect
+                  text change too, which is the part viewers do not expect
 10. /analysis   — open "Show detailed calculations" — every figure is traceable
 11. /schemes    — 14 matches grouped by the office that runs them, Delhi down to
                   the reader's own Gram Panchayat. Read one office note aloud
@@ -902,32 +860,35 @@ Do not spend the presentation explaining technology. Spend it on **problem → i
 
 **Refreshing is now safe** — the journey survives it (§8). What is still not safe is opening a result page in a *fresh* tab, so keep the walkthrough in one tab.
 
-Optional 10-second additions if the panel looks interested: dark mode and the largest text scale, both from the utility bar; or a dialect on the landing page, where the greeting and the button text change.
+Optional 10-second additions if the audience looks interested: dark mode and the largest text scale, both from the utility bar; or a dialect on the landing page, where the greeting and the button text change.
 
 Have a fallback: a saved PDF of `/report` and a current set of screenshots, in case a laptop or port misbehaves. **Recapture them first — the ones in `screenshots/` at the top level are stale (§11).**
 
 ---
 
-# 17. Judge Questions to Prepare For
+# 17. Questions a Reviewer Will Ask
 
-> **History (round-era).** This section was written for the SIH 2026 internal round, held on 14 September 2026, which we were not selected from. It is kept because it records the thinking behind the build. It is not a current plan.
+> **Updated 26 October 2026 for the hackathon.** The questions are the ones the SIH round prepared for, still the right ones. Answers that depend on the Meta model layer say PLANNED, and are rewritten when it is built.
 
 ## "Why AI? Where is the AI?"
-Answer honestly, and lead with the design decision — see §15. Then: the *AI-driven* framing of the problem statement is the roadmap — natural-language input, dialect-level paraphrasing, conversational explanation — layered on an engine whose arithmetic stays deterministic. Do not claim a model is running. **And do not let this question also answer "is it multilingual?"** — the eight-language output is built and is deliberately *not* model-generated.
+Answer honestly, and lead with the design decision — see §15. **Today no model is running, and nobody should claim one is.** The plan, PLANNED and not built: the model does the intake, turning a spoken or typed description into the form fields the reader then checks, and the rules still do all the arithmetic and write all the advice. **And do not let this question also answer "is it multilingual?"** — the eight-language output is built and is deliberately *not* model-generated.
+
+## "Did you build this during the hackathon?"
+No, and say so before anyone asks. The first commit is dated 30 August 2026. The rules engine, the scheme and market data, the eight-language interface, the privacy work and the browser checks all existed before 26 October 2026, first as a six-person college team build and, since 26 October, as one person's project. What was built during the event is the model layer (§15, PLANNED) and the work around it. [docs/HACKATHON.md](docs/HACKATHON.md) keeps the dated list, and the event's own rules decide whether earlier work is allowed.
 
 ## "Is it actually in Hindi, or just the buttons?"
 **All of it** — the labels, the generated advice, the risk explanation and the scheme text, in 8 languages, with Hindi as the default rather than English. Show it rather than saying it: switch language while standing on `/analysis`. The mechanism is a translation code emitted beside every sentence the engine composes, resolved against dictionaries we wrote — so it cannot drift the way a paraphrasing model would.
 
-Then volunteer the limits, because they are the credible part: 30 dialects are listed and **9 carry curated phrase overrides**, which is dialect-aware phrasing rather than dialect translation; digits and money stay in Latin script on purpose, matching Indian currency and government forms; and **no native speaker has reviewed the wording** — parity, placeholders and the figures in each sentence are script-verified across 693 keys, naturalness is not.
+Then volunteer the limits, because they are the credible part: 30 dialects are listed and **9 carry curated phrase overrides**, which is dialect-aware phrasing rather than dialect translation; digits and money stay in Latin script on purpose, matching Indian currency and government forms; and **no native speaker has reviewed the wording** — parity, placeholders and the figures in each sentence are script-verified across 732 keys, naturalness is not.
 
 ## "How do you prevent hallucinations?"
-There is nothing to hallucinate. Every number comes from a unit-tested formula; every scheme fact comes from a structured dataset transcribed from an official source with a verification date. The source is kept on record internally; the app deliberately does not link out to government portals (the links were removed on 10 September 2026). When we do add a model, it will be allowed to rephrase and explain, never to calculate or to decide eligibility (§15).
+There is nothing to hallucinate in the advice. Every number comes from a unit-tested formula; every scheme fact comes from a structured dataset transcribed from an official source with a verification date. The source is kept on record internally; the app deliberately does not link out to government portals (the links were removed on 10 September 2026). The planned model layer (§15) only drafts form fields from what the reader said: it is never asked for a number, a scheme or an eligibility rule, its draft is shown to the reader to check before anything is computed, and its values pass the same limits as typed ones.
 
 ## "How is this different from ChatGPT?"
 ChatGPT does not know how many tailoring businesses are registered in Lucknow or what its mandis have been paying for wheat, cannot tell you whether *your* EMI fits *your* surplus, and will not tell you when it has no data for your district. अर्थNiti combines structured entrepreneur input, a district-level dataset, deterministic financial calculation, rule-based scheme matching with visible reasons, and a printable next-step plan — and it says out loud when a number is a state-level fallback rather than local.
 
 ## "Show me the hyperlocal part."
-`/analysis` → "Your local market". Then point at the provenance line. `district` means it is their own district; `state` would mean a state-level figure, and none exist yet, so any other district gets an honest empty state rather than Lucknow's numbers. **This is the differentiator judges remember**, because most prototypes silently present national averages as local.
+`/analysis` → "Your local market". Then point at the provenance line. `district` means it is their own district; `state` would mean a state-level figure, and none exist yet, so any other district gets an honest empty state rather than Lucknow's numbers. **This is the differentiator**, because most prototypes silently present national averages as local.
 
 ## "Is your market data real?"
 **Yes, since 24 September 2026, for two districts.** `/analysis` and `/report` show 20 rows for Lucknow and Varanasi from data.gov.in: mandi wholesale prices from Agmarknet (Ministry of Agriculture and Farmers Welfare) for agriculture, and counts of Udyam-registered businesses (Ministry of MSME) for the other seven kinds of work. Each row carries its source, the dataset's own update date and the fetch time, and the page prints each dataset's GODL-India attribution and says the publishers do not endorse the app. Every other district shows the empty state, because a Lucknow figure is not evidence about Kanpur. The scheme data **is** real too, transcribed from official portals with a `last_verified` date on every entry. (We keep the source URLs in our own generator as citations, but the app deliberately does not link a reader out to a government site — §6.) `DATA_SOURCES.md` has the details and what is still unresolved.
@@ -945,7 +906,7 @@ Because a business can be viable while the family is still short of money — se
 The engine does not change. What changes is data: more districts added to `tools/market-crosswalk.json` and fetched by `tools/fetch-market-data.mjs`, more schemes in `schemes.json` — the seven-tier structure is already there, so a new block-level scheme is a row, not a code change — and more languages, which is a ninth dictionary rather than a rewrite. Add a database when there is a reason to remember a user across devices.
 
 ## "Could this be mistaken for an official government portal?"
-**Somebody has to be ready for this one, because the on-screen notice was removed on 8 September 2026.** Answer it directly and without defensiveness: it is a student prototype and not a Government of India service. Then give the reason for the resemblance, which is the good part — a rural user has met this visual language on a real government service and already knows how to read a masthead, a nav band and a bordered card, so borrowing the *structure* lowers the learning cost. What is still on screen is data honesty rather than authority: the footer tells the reader to verify eligibility at a government office, and the market section names its sources and says their publishers do not endorse the app.
+**Somebody has to be ready for this one, because the on-screen notice was removed on 8 September 2026.** Answer it directly and without defensiveness: it is a prototype built by one person and not a Government of India service. Then give the reason for the resemblance, which is the good part — a rural user has met this visual language on a real government service and already knows how to read a masthead, a nav band and a bordered card, so borrowing the *structure* lowers the learning cost. What is still on screen is data honesty rather than authority: the footer tells the reader to verify eligibility at a government office, and the market section names its sources and says their publishers do not endorse the app.
 
 ## "Why does the login page not log anyone in?"
 Because it does not pretend to — it collects a name and carries it into step 1, and the journey works if you skip it. There is no password, no account and no server call. Real authentication is future work (§22); shipping a fake one would have been the dishonest option.
@@ -953,7 +914,7 @@ Because it does not pretend to — it collects a name and carries it into step 1
 ## "What is not finished?"
 Answer it straight: no chat, no EMI scenarios or break-even units, no suggested loan amount, market data for two districts only, no server-side persistence (the journey lives in the browser tab), 9 of the 30 dialects carry phrase overrides, the translations have not been reviewed by a native speaker, and a typed-in *Other* trade legitimately matches no schemes. Knowing your own gaps reads as competence.
 
-**Do not list "English-only output" or "a refresh wipes the journey" here** — both were true until 7–8 September and are the two things a teammate is most likely to say out of habit. They are built.
+**Do not list "English-only output" or "a refresh wipes the journey" here** — both were true until 7–8 September and are the two things most likely to be said out of habit. They are built.
 
 ---
 
@@ -967,24 +928,29 @@ For future production: entrepreneurs assisted · plans generated · financial-li
 
 # 19. Risk Register (current)
 
-## Demo risks — the ones that could bite at the round (history)
+## Demo risks
 
 | Risk | Mitigation |
 |---|---|
 | ~~A page refresh wipes the journey~~ | **Closed 8 Sept** — `sessionStorage` (§8) |
 | Opening a result page in a **fresh tab** still shows an empty state | Keep the whole walkthrough in one tab |
-| Picking a typed-in **Other** trade on stage shows zero schemes | Use Tailoring, Handicrafts or Food Processing (§3). Agriculture is safe now too |
+| Picking a typed-in **Other** trade in the demo shows zero schemes | Use Tailoring, Handicrafts or Food Processing (§3). Agriculture is safe now too |
 | Picking any district other than Lucknow or Varanasi shows no market data | Use Lucknow (or Varanasi) |
 | Port conflict — a stray uvicorn or Vite process | `netstat` + `taskkill` before starting (§6) |
 | `localhost` vs `127.0.0.1` mismatch (uvicorn binds IPv4; `vite preview` may bind `[::1]`) | Try both; pass `--host 127.0.0.1` |
-| A judge asks whether this is an official portal — **the on-screen notice is gone** | Answer verbally, and know the answer in advance (§17) |
+| A reviewer asks whether this is an official portal — **the on-screen notice is gone** | Answer verbally, and know the answer in advance (§17) |
 | Screenshots at the top of `screenshots/` are stale — old *Sahyog* branding | Recapture before circulating (§11) |
+| **The model API fails, is slow or rate-limited during the demo or while a reviewer tries it** | The layer is optional by design (§15): the form and the engine work without it, and the demo recording is made from a run that worked |
 
 ## Project risks
 
 | Risk | Mitigation |
 |---|---|
-| **Someone claims an LLM is running** | §15. Whole team reads it |
+| **Someone claims a model is running before the layer exists, or claims the advice is AI-generated** | §15. Read it before writing any description of the build |
+| **Presenting earlier work as built during the hackathon, or presenting the project as one person's from the start** | `docs/HACKATHON.md` keeps the dated list of what was built before 26 October and what was built during the event. The first commit is 30 August 2026 and the history shows several authors |
+| **Eligibility under the hackathon's rules** (earlier work, team size, government ties, a public repo) | The Official Rules decide, and the owner reads them. Open until then ([docs/HACKATHON.md](docs/HACKATHON.md)) |
+| **Earlier contributors' work submitted or sold without written permission** | `DATA_SOURCES.md` ("People") keeps it open |
+| **Sending a recording or a transcript to Meta without the reader's own consent** | A separate tick, a notice line and a `docs/PROCESSOR_SCHEDULE.md` entry before the layer is switched on (§15) |
 | **UNDERclaiming the language support** — saying "English only" or "we collect the preference but don't translate" out of habit | §2.6. It has been built since 7 Sept. This risk replaced its own opposite, which is why it is easy to get wrong |
 | Describing the dialect layer as translation | Say "dialect-aware phrasing". 9 of 30 varieties, a handful of phrases each (§2.6) |
 | Claiming the translations are professionally reviewed | They are not. Parity is script-verified; wording is not (§13) |
@@ -992,31 +958,15 @@ For future production: entrepreneurs assisted · plans generated · financial-li
 | Presenting prototype risk thresholds as financial rules | Label them as prototype assumptions every time (§4 Feature 8) |
 | Presenting the household check as a lending decision or as RBI compliance | It compares the reader's own, unchecked income figure against one RBI rule for microfinance loans. It never says a lender will lend (§4 Feature 8) |
 | Presenting two districts of market data as India-wide coverage | Say "two districts, sourced"; every other district shows the empty state |
-| A push landing in teammates' working copies | Get the owner's explicit confirmation before every push (§11) |
-| ~~Feature creep in the last three days~~ | Closed with the round: the feature freeze no longer applies (§1). §25 is kept as history |
+| A GitHub change (push, PR, branch, release, a public repo) made without the owner's confirmation | Get the owner's explicit confirmation every time (§11) |
+| Feature creep before the 4 November deadline | The build order and the cut list are in [docs/HACKATHON.md](docs/HACKATHON.md); the optional "why?" explainer goes first |
 | A contract change silently breaking the UI | Contract tests subscript every key — run `pytest` after any service edit. **Note they only catch a *removed* key, never an added one** (§7) |
 
 ---
 
-# 20. Daily Team Ritual
+# 20. (Removed)
 
-> **History (round-era).** This section was written for the SIH 2026 internal round, held on 14 September 2026, which we were not selected from. It is kept because it records the thinking behind the build. It is not a current plan.
-
-Four days left. Keep it tight.
-
-### 15-minute stand-up
-1. What did I finish? 2. What am I doing today? 3. What is blocking me?
-
-### End of day
-```text
-DONE:
-IN PROGRESS:
-BLOCKED:
-NEXT:
-```
-
-### Integration rule
-Frontend and backend talk directly about the contract at least once a day. Since **all seven UI sections come from one response**, a single renamed key breaks several pages at once — and the contract tests are the fastest way to find out.
+The daily stand-up and end-of-day template that stood here belonged to the six-person SIH team. It was removed on 26 October 2026 when the project became a solo build. The plan and the dates for the hackathon are in [docs/HACKATHON.md](docs/HACKATHON.md). The one idea in it that still holds: **since all the UI sections come from one response, a single renamed key breaks several pages at once, and the contract tests are the fastest way to find out.**
 
 ---
 
@@ -1057,14 +1007,14 @@ Eight of the nine rows are filled in both columns; only a typed-in *Other* is em
 
 # 22. Future Scope
 
-**Three items have moved off this list since it was written** — persistence, regional-language output and charts are all built (§8, §2.6, Feature 12). They are recorded as `DONE` below rather than deleted, because they still appear in older slide drafts and stand-up notes.
+**Three items have moved off this list since it was written** — persistence, regional-language output and charts are all built (§8, §2.6, Feature 12). They are recorded as `DONE` below rather than deleted, because they still appear in older notes and drafts.
 
 In rough order of value per unit of effort:
 
 1. ~~**Persistence**~~ — **DONE** for the demo (`sessionStorage`). A real database is still future work, and only worth it once a user should be remembered across days or devices
 2. ~~**Regional-language output**~~ — **DONE**, 8 languages including the generated prose. What remains: a native-speaker review, more dialect phrase coverage (9 of 30 today), and more languages
 3. **Read-aloud output** (`speechSynthesis`) — high impact for low-literacy users, small implementation, and it composes with the translation layer already in place. **Strongest remaining item for this audience**
-4. **The LLM layer under the §15 boundary** — natural-language input, a "why?" explainer, a conversational assistant
+4. **The model layer under the §15 boundary** — the speech-and-text intake for the hackathon is the first part and is PLANNED; a "why?" explainer is optional after it; a conversational assistant is not planned
 5. **Loan and EMI structuring** — suggested financing range, EMI scenarios, cash-flow coverage
 6. **Break-even and runway** — needs selling price and variable cost per unit added to the business form
 7. **More data** — more districts and states in the market dataset (it is two districts today), more schemes per tier, real authentication behind `/login`
@@ -1083,7 +1033,8 @@ In rough order of value per unit of effort:
                          ↓
         Text input, 8-language UI         [LIVE — Hindi by default]
         Dialect-aware phrasing            [LIVE — 9 of 30 varieties]
-        Voice in / read-aloud out         [PLANNED]
+        Voice in (speech to form fields)  [PLANNED — the hackathon layer, §15]
+        Read-aloud out                    [PLANNED]
                          ↓
                  Entrepreneur Profile     [LIVE]
                          ↓
@@ -1121,50 +1072,30 @@ In rough order of value per unit of effort:
 
 ---
 
-# 24. Team Decision Rules
+# 24. Decision Rules
 
 1. Prefer features that directly solve the entrepreneur's problem.
 2. **Prefer deterministic calculation over generated numbers.** This is now the product's identity, not just a rule.
 3. **Prefer verified data over impressive-looking fake data**, and label anything indicative.
 4. Prefer one polished workflow over many unfinished features.
-5. Integrate early; the contract is shared.
-6. ~~**No new features before the 11th.** Fixes and rehearsal only.~~ The round is over, so this rule no longer applies.
+5. Keep the frontend–backend contract in one place (`docs/frontend_integration.md`), and change it in the same commit as the code.
+6. ~~No new features before the SIH round.~~ Retired. The hackathon deadline brings its own cut list: [docs/HACKATHON.md](docs/HACKATHON.md).
 7. If a feature cannot be demonstrated clearly in under 60 seconds, question whether it belongs.
 8. **Never make the demo look more capable than the build.** An honest gap is defensible; a discovered overclaim is not.
 
 ---
 
-# 25. Remaining Work Before the Round (history)
+# 25. Remaining Work
 
-> **History (round-era).** This section was written for the SIH 2026 internal round, held on 14 September 2026, which we were not selected from. It is kept because it records the thinking behind the build. It is not a current plan.
+The checklist that stood here was the SIH round's (rehearsals, who answers which question, the freeze). It was removed on 26 October 2026. The live plan, the build order and the submission checklist are in [docs/HACKATHON.md](docs/HACKATHON.md). What it left open, and is still open:
 
-Ordered by demo impact. **Fixes and rehearsal only — no new features.** Three days left.
-
-### Done since this list was written
-- [x] **`sessionStorage` persistence** — the single largest demo risk, closed (§8)
-- [x] **8-language output including the generated prose** (§2.6)
-- [x] **Charts** — hand-rolled, print-safe (Feature 12)
-- [x] **A mobile-width pass** — 10 routes × 3 phone widths, measured clean
-- [x] **The print PDF path** — verified, from a light laptop and from a dark one
-- [x] **The government-style redesign**, the brand mark and the instruction manual
-- [x] **Two full audits** — 17 defects on 7 Sept, 46 findings on 8 Sept
-
-### Should happen
-- [ ] **Three full rehearsals** on the presentation laptop, in the presentation browser, following the §16 sequence — including the language switch at step 9
-- [ ] **Whole team reads §15 and §2.6.** The first so nobody claims an LLM is running; the second so nobody claims the output is English only. **Both errors are equally costly and the second is now the likelier one**
-- [ ] **Agree who answers the "could this be mistaken for an official portal?" question, and how** (§17). The on-screen notice is gone, so this answer has to exist in someone's head
-- [ ] **Walk every path you plan to show**, plus the one nobody has: the `api.js` timeout (stop the backend mid-request). There are no outbound links left to click — the scheme cards deliberately do not link to government portals (§6)
-- [ ] **Recapture the screenshots** — the top-level set still shows *Sahyog* branding (§11)
-
-### Nice to have
 - [ ] A second and third demo scenario — a moderate-risk and a high-repayment-pressure persona, to show the risk engine actually moving
-- [x] ~~Two or three more market rows so Retail, Services and Manufacturing are not empty in the market section~~ — done 24 September 2026 for Lucknow and Varanasi, through the fetch rather than by hand
+- [ ] **Walk every path you plan to show**, plus the one nobody has: the `api.js` timeout (stop the backend mid-request and confirm the message reads as a sentence). There are no outbound links left to click — the scheme cards deliberately do not link to government portals (§6)
+- [ ] **Recapture the screenshots** — the top-level set still shows *Sahyog* branding (§11)
 - [ ] A native speaker's eye over one language's wording, even just the landing page and `/analysis` (§13)
 - [ ] Phone landscape and a real device — emulation cannot answer either (§13)
-- [x] ~~Refresh `docs/frontend_integration.md` (stale on CORS and on the number of response sections) or delete it~~ — rewritten 27 September 2026 as the measured API contract
 
-### Explicitly not doing before the 11th
-LLM integration · a database · real authentication · read-aloud output · EMI scenarios · break-even units · frontend unit tests · more languages.
+Not planned for the hackathon: a database · real authentication · read-aloud output · EMI scenarios · break-even units · frontend unit tests · more languages.
 
 ---
 
@@ -1172,45 +1103,16 @@ LLM integration · a database · real authentication · read-aloud output · EMI
 
 Any AI assistant reading this file should:
 
-- Treat **[CLAUDE.md](CLAUDE.md)** as the authoritative engineering context and this file as the product/team context. CLAUDE.md is more likely to be current on code detail.
-- **Never describe अर्थNiti as using an LLM.** It does not (§15). If asked to "improve the AI", ask whether that means wiring up a model or improving the rules.
-- **Equally: never describe the output as English only.** It is translated into 8 languages, including every sentence the engine composes (§2.6). "No LLM" and "English only" were the same limitation until 7 September 2026 and are now separate facts.
+- Treat **[CLAUDE.md](CLAUDE.md)** as the authoritative engineering context and this file as the product context. CLAUDE.md is more likely to be current on code detail.
+- **Never describe अर्थNiti as using a model unless the model layer actually exists in the code (§15).** When it does, describe only what it does (it drafts form fields from speech and text), and never call the advice AI-generated. If asked to "improve the AI", ask whether that means building or extending the model layer or improving the rules.
+- **Equally: never describe the output as English only.** It is translated into 8 languages, including every sentence the engine composes (§2.6). "No model" and "English only" were the same limitation until 7 September 2026 and are now separate facts.
 - Remember there is **no database and no server-side persistence**. The journey lives in the browser tab (`sessionStorage`). Do not suggest a migration, an ORM model, or a query — and do not move financial answers into `localStorage`, which would leave them on a shared laptop after the user walks away.
 - **Any user-visible sentence needs a translation key, and a sentence must never be assembled from parts in JSX.** Concatenating a translated label with a value and a Latin full stop puts English word order into a Devanagari sentence. Give the whole phrase its own key with a placeholder.
 - Keep financial calculations deterministic and unit-tested. Never move arithmetic into a model.
 - **Never widen scheme eligibility** to make output look more complete (§9, §21).
 - Guard on the raw value before printing a number. The backend sends `null` for anything it could not compute, and `Number(null)` is `0` — a naive guard turns "could not compute" into a confident, favourable `0%`. This has been a live bug twice.
-- The hackathon is over, so the old rule — "prefer the demo path over refactors and infrastructure" — is retired. Work in this order: correct advice first, then honest claims, then a build a fresh clone can reproduce and verify, then polish. CLAUDE.md carries the full status line.
-- **Ask for explicit confirmation before any action that changes the GitHub repository** — push, PR, branch or tag creation or deletion, releases, settings. Local commits when requested are fine. Approval for one push does not carry to the next. Six people share this repo.
+- The order of work is: correct advice first, then honest claims, then a build a fresh clone can reproduce and verify, then polish. Until the hackathon submission (the working deadline is the evening of 3 November 2026 IST), "prefer the demo path over refactors" applies again to new work. CLAUDE.md carries the full status line.
+- **Ask for explicit confirmation before any action that changes the GitHub repository** — push, PR, branch or tag creation or deletion, releases, settings, visibility. Local commits when requested are fine. Approval for one push does not carry to the next. The repo may still have collaborators from the team build.
 - Run `pytest` after any service or schema edit; run `npm run lint` and `npm run build` after any frontend edit; run `node tools/parity4.mjs` after touching any dictionary; run `node tools/verify/refresh-cases.mjs` after any backend change, or the browser drivers will keep passing against last week's response.
 - Clean up any server you start (§6).
 - When suggesting code, name the exact file path. When changing architecture, explain why and update this file in the same commit.
-
----
-
-# 27. Status Snapshot — 9 September 2026 (before the round)
-
-> Kept as a dated snapshot. The build figures in it are still accurate (figures updated 27 September 2026, and they describe the working tree of `feature/dpdp-compliance`, §11). The phase and countdown lines are history, and the outbound scheme URLs it mentions were removed on 10 September.
-
-**Phase (then):** working prototype, feature-frozen except polish
-**Time to presentation (then):** the round was then scheduled for 11 September 2026; it was later moved to the 14th
-**Branch (then):** `before-main`
-
-| | |
-|---|---|
-| **MVP status** | **Working end to end.** 11 routes plus a catch-all, one API call, 7 populated result sections |
-| **Backend** | 8 routers in development, 2 in production · 867 tests passing in a few seconds |
-| **Frontend** | Lint clean · production build clean · translation parity clean (732 keys × 8 languages) |
-| **Data** | 30 schemes across 7 tiers (official sources, 29 of 30 URLs verified 7 Sept) · 20 sourced market rows (Lucknow + Varanasi, GODL-India) |
-| **AI integration** | **None, by decision.** Deterministic rules engine (§15) |
-| **Database** | **None.** The journey persists in the browser tab (`sessionStorage`); the answers are sent once to work out the result and stored nowhere |
-| **Language output** | **8 languages, Hindi by default, including the generated advice** (§2.6) |
-| **Interface** | Government-style chrome, 2 accessibility switches (dark theme, 3-step text scale), hand-rolled charts, an instruction manual, a light motion layer that honours `prefers-reduced-motion` |
-| **Verification** | 867 backend tests · 28 zero-dependency scripts in `tools/`, 19 of them driving a browser over CDP, on the owner's Windows laptop only · phone widths, print output, motion and scroll-on-navigation all measured clean · CI written and never run (§6) |
-| **Known defects** | 17 found and fixed 7 Sept (10 numbered + 7 more); **46 findings closed in the 8 Sept audit**. See docs/ENGINEERING_HISTORY.md |
-| **Still open** | Translations unreviewed by a native speaker · dialect phrases on 9 of 30 varieties · phone landscape and physical touch untested |
-| **Presentation** | In progress — Saad + Tripti. `presentation/` is still empty |
-
-**Next milestone:** rehearse three times on the presentation laptop, and make sure the whole team has read both §15 and §2.6 (§25).
-
-**The team:** Saad — presentation · Tripti — presentation/research · Netra — frontend · Anmol — frontend · Aryan — backend · Manjeet — backend.

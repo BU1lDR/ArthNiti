@@ -1,7 +1,7 @@
 # अर्थNiti — assets
 
 Everything here is a **source asset for people**: the slide deck, the poster, the
-report, a teammate who needs the logo. Almost none of it is loaded by the running
+report, anyone who needs the logo. Almost none of it is loaded by the running
 app — see the two tables below before you move, rename or delete anything.
 
 Written 9 Sept 2026, for the internal round on 11 Sept.
@@ -174,8 +174,8 @@ before changing any of them.
 ### Stale
 
 `hero.png` (343×361) predates the government-style redesign and **nothing
-references it.** It was left in place because it may be a teammate's
-work-in-progress. Don't use it in the deck; the branding on it is out of date.
+references it.** It was left in place because it may be someone's
+work-in-progress from the team build. Don't use it in the deck; the branding on it is out of date.
 
 Same for `frontend/public/icons.svg` and `frontend/public/town-consulting.svg` —
 both unreferenced. `town-consulting.svg` is the line-art hero backdrop the photo

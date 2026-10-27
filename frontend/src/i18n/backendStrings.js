@@ -29,7 +29,7 @@
 // end in `।`, the Dravidian scripts use `.`. Digits and money amounts stay in
 // Latin script, because that is what is printed on currency and on forms.
 //
-// NOT reviewed by a native speaker on the team. Wording was chosen for
+// NOT reviewed by any native speaker. Wording was chosen for
 // naturalness rather than word-for-word fidelity, which is the right trade for
 // this audience but does mean a reviewer should read it before any real launch.
 

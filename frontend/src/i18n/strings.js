@@ -32,7 +32,7 @@
 //
 // Wording aims to sound like how the language is actually spoken rather than a
 // word-for-word rendering of the English, and uses everyday words over financial
-// vocabulary throughout. Still unreviewed by a native speaker on the team. The
+// vocabulary throughout. Still unreviewed by any native speaker. The
 // highest-stakes strings are the money ones — anything that tells a user how
 // much they need to arrange or how much is left over.
 

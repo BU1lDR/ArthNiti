@@ -51,4 +51,4 @@ None are shipped. The stylesheet asks for "Noto Sans", then Inter, then the syst
 
 ## People
 
-The code was written by Aryan Verma (the owner), Manjeet and Netra, according to the git history. **UNRESOLVED:** get a written assignment of rights from Manjeet and Netra before any sale or exclusive licence.
+Aryan Verma (the owner) now builds and maintains this alone. Before 26 Oct 2026 it was a six-person college team project, and the git history shows earlier code from Manjeet and Netra. **UNRESOLVED:** get a written assignment of rights, or at least a written permission to submit and reuse their work, from Manjeet and Netra (and from anyone else whose work is in the repo) before any hackathon submission, sale or exclusive licence.

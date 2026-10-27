@@ -1284,6 +1284,235 @@ mobile-audit's pattern now takes a leading minus. Red and green, on the loss see
 
 drive, lang-layout, mobile-audit and print-audit read `case_*.json` at load, so a missing fixture also exits 1 there.
 
+### Verifier exit codes, 30 Sept 2026, reviewed and re-measured 26 Oct (branch `feature/dpdp-compliance`)
+
+The previous section ended on a gap it left open: a crash exited 1, the code for a finding, in 14 of the 18 gates. Measured, it was wider than that. A gate that could not measure at all (no server, the wrong directory, Edge gone) mostly exited 1 too, and sometimes 0. So a red run could be a broken instrument, and a green one a run that never looked.
+
+**The rule since 30 Sept.** 0: it measured and found nothing. 1: a finding, and under `--broken` the pass. 2: it could not measure. A 2 is never a finding and never a pass. A `report.json` on disk comes from a run that reached its verdict, with `"exit"` as its first key. tools/README "Exit codes" lists every cause of a 2, and the gates that draw the line elsewhere on purpose.
+
+**In order.**
+
+1. 30 Sept, 14:23–14:28: the "before" measurements below.
+2. Nine agents, one per file group, put the rule into the scripts.
+3. 30 Sept, 20:21–23:13: sweep E measured the result.
+4. 30 Sept, 20:27–23:33 by the dates of its working files: a review of the diff produced 32 findings, which are 29 distinct problems (below).
+5. 30 Sept 23:43 to 01:29 on 1 Oct, by the dates of their working files: eight fix agents (g1 to g8) worked through the 32. Their reports did not survive, so nothing below says which agent fixed which finding.
+6. 26 Oct: for many of the fixes I planted the defect the finding described and ran the pre-fix script and the shipped one against it (the table below). For the rest I read the fix agents' own records, or ran the changed slice of the script against synthetic input (see "Still open"). Then the whole sweep was run again, partly on scripts that were edited while it ran or after it (see "Re-run of the sweep").
+
+**Before, 30 Sept 14:23–14:28**, on the tree as it stood before the work:
+
+| Condition | What happened |
+|---|---|
+| run from the wrong directory | every script exited 1 except glyph-audit and `market-lib-test`, which exited 0. field-align, hero-art, brand-mark, manual-audit and hero-geom created their Edge profile there |
+| no server up | of the 15 browser scripts, 11 exited 1, hero-geom among them; motion-audit, scroll-audit, text-align and figure-audit exited 2. load-perf took 58 s to exit 1, and scroll-audit and text-align 46 and 43 s to exit 2. motion-audit, text-align and load-perf each wrote a `report.json` |
+| port 5179 held by a listener that never answers | market-ui printed nothing until a 300 s timeout killed it |
+
+**What changed**, in every script unless one is named:
+
+- `process.exitCode = 2` is set first, and only the verdict changes it. The working directory is checked next: from the wrong one a script exits 2 and touches nothing. Only then is the last `report.json` deleted. The new one is written at the verdict.
+- Checked before Edge starts: the server, with a 5 s limit (for error-banner and scroll-audit, also the backend and its CORS preflight; for figure-audit, its four cases at 20 s each); a held port (9333 for mobile-audit, 5179 and 9373 for market-ui); the seed version; the inputs (`case_*.json`, `market-lib.mjs`, the dictionaries); the arguments.
+- During the run, each of these is a fault: Edge's own error page, a failed navigation, a status outside 2xx. The CDP client rejects every pending call when its socket closes and will not send on one that is not open. The crash handlers wait 1 s, then exit 2.
+- A page that measured nothing is a 2: `UNSEEDED`, `NOT-RENDERED`, `NOT-MOUNTED`, a target not on the page, or a probe that compared nothing. So is a `--broken` run whose planted defect went unreported.
+- Some exceptions were kept on purpose; tools/README gives the reasons:
+  - drive's `BLANK`, load-perf's unmounted app and a page that threw but rendered (`PAGE-ERROR`) are findings;
+  - print-audit splits a block with no box under print (`HIDDEN`, 1) from one not in the DOM (`BLOCK`, 2);
+  - manual-audit's click and focus-trap failures, and motion-audit's `INERT`, are findings;
+  - field-align's warning that no row had uneven questions leaves the exit alone;
+  - market-ui exits 130 on a signal.
+
+**Three things found on the way.** tools/README "Exit codes" has the measurements for each.
+
+- **127.** The first pre-flight checks called `process.exit(2)`. With a backend answering 503, error-banner, scroll-audit and figure-audit exited 127 (0xC0000409). On Node 24.18.1 on Windows, an exit within about 100 ms of a `fetch()` aborts node. A pre-flight check now sets the code and returns; a crash waits 1 s before exiting.
+- **A dead socket read as 0.** With Edge killed mid-run, a pending CDP call never settled and nothing held the event loop open. node exited 0 with no report, as though the run had passed. svgcheck exited 13 (an unsettled top-level await) or hung.
+- **A 304 reads as 200** in the navigation timing entry, so the status checks need no exemption for it.
+
+**After: sweep E**, 30 Sept, 20:21 to 23:13, in two parts:
+
+| Condition | Result |
+|---|---|
+| plain, servers up: 21 scripts, plus refresh-cases | all 0; every report starts with `exit` |
+| `--broken`: 9 runs | all 1 |
+| a bad argument: 9 cases | all 2 within 1 s. mobile-audit's two bad `--out=` values left the old report, since `--out=` is checked before the delete; the other 7 deleted it |
+| 9333 held (mobile-audit); 9222 answering 503 (drive) | 2 in 2 s; 2 in 25 s |
+| drive piped through `head -n 2` | 2 in 6 s, no report |
+| Edge killed by PID mid-run: 16 runs, and load-perf | all 2, no report. hero-vibrance and svgcheck had finished before their Edge was found; set F covers both |
+| Vite killed mid-run: 15 gates, and market-ui's own Vite | all 2, no report, except hero-vibrance (below) |
+| the backend with a narrow CORS list, or in production mode | error-banner and scroll-audit 2. figure-audit 0, correctly: it calls the backend from Node, and production serves the one route it uses |
+| the backend down, silent, or answering 503 | all 2, in 0–20 s |
+| load-perf plain; Edge killed; the preview killed | 0; 2; 2 |
+| every route answering a blank 200 | 2, except drive (`BLANK`) and load-perf (not mounted), each 1 by policy. Slow: see "Still open" |
+| Vite silent, accepting and never answering | all 2 in 5–6 s, except hero-vibrance, which hung until the harness killed it at 903 s |
+| Vite answering 503 | all 2 within 1 s; hero-vibrance in 5 s |
+| 5179 held (market-ui); 4173 silent (load-perf) | 2 in 2 s; 2 in 5 s |
+| no servers at all | all 2 within 2 s |
+| the wrong directory | all 2 within 1 s, the previous report left as it was; glyph-audit 0, since it resolves its own paths |
+
+Also in E13: keycheck with any of its three maps renamed, and market-ui with `market-lib.mjs` broken, missing or no longer exporting what it uses, all exited 2. Each printed its own library error; the unplanted copy exited 2 as well, because the copy had no `case_good.json`, so that control showed nothing. parity4 with `--root=` lacking `languages.js` or the notice record failed the check that needs it (1), and with no dictionaries exited 2. print-audit with a block hidden under print exited 1 (`HIDDEN`), and with one removed exited 2 (`BLOCK`).
+
+**hero-vibrance** was the gate the pre-flight work missed. It had no server check, and its navigation waited for a load event that a silent server never sends. It now has the same server check and a `navigate()` that throws on `errorText`, and it writes its report (`"exit": 0`) after the screenshots. Set F, 23:27–23:31:
+
+- no server, a silent Vite and a 503 each gave 2 within 5 s;
+- the wrong directory gave 2 and left the old report;
+- plain gave 0, twice;
+- Edge killed mid-run gave 2, twice, in 5 s;
+- Vite killed after the page loaded gave 0, twice. That is correct: the page had already been measured, and Vite's client logs the lost connection without throwing.
+
+Set G, 23:32, fixed the timing. A server that answers the pre-flight and then stops listening gives 2 in 2 s, with `net::ERR_CONNECTION_REFUSED`.
+
+**svgcheck against a fake DevTools endpoint** (set F). Four endpoints each gave 2 within 2 s: one that drops the socket on the first frame, one that answers it with a close frame, one that drops the socket straight after the handshake, and one whose `webSocketDebuggerUrl` names a port nothing listens on. A socket that completes the handshake and never answers hung until the harness killed it (124, at 73 s under a 60 s `timeout`), because no CDP call has a time limit.
+
+**Harness faults on 30 Sept (mine, not the scripts'):**
+
+- The first blank-page batch ended in a bare `wait`. That waited on the held listeners as well and never returned; the batches now wait on their own PIDs.
+- field-align's first blank-page run hit the harness's 900 s limit (124). Given 2,400 s, it exited 2 at 1,152 s.
+- The first "Edge killed" run of hero-vibrance killed nothing, because the gate had finished before its Edge was found. Set F re-ran it with delays of 0 and 1 s.
+
+**The review of the diff.** Sweep E tested what the rule is about: servers, Edge, directories. It could not test whether the checks themselves were right. At least eight review groups read the changed scripts against the rule and against tools/README (the records name eight; a group with nothing surviving would leave none), and a verifier traced each claim through the code. 32 findings survived:
+
+| Group | Scripts | Findings |
+|---|---|---|
+| 1 | drive, hero-art, brand-mark, keycheck, parity4 | 10 |
+| 2 | field-align, print-audit | 5 |
+| 3 | motion-audit, hero-geom, hero-vibrance, svgcheck | 6 |
+| 4 | scroll-audit, text-align | 3 |
+| 5 | manual-audit, error-banner | 2 |
+| 6 | market-ui, load-perf, figure-audit | 2 |
+| 7 | cross-cutting | 4 |
+| 8 | mobile-audit, lang-layout | 0 survived (see "Refuted") |
+
+- **Weight.** 6 medium and 26 low. 27 confirmed by tracing the code and 5 plausible. The five are four problems: hero-art's fixed sleep before the probe; motion-audit's one-off read of the motion tokens (listed twice); error-banner's comma test (its duplicate was plausible, the other confirmed); load-perf's fixed 2.5 s wait for Edge's endpoint. The medium ones:
+  - parity4 skipping a dictionary line it does not match;
+  - print-audit never comparing the theme it seeded with the theme it measured;
+  - print-audit's opaque-background regex, whose single backslashes in an untagged template literal made it match no computed colour;
+  - scroll-audit probing the backend only before Edge starts, so a backend lost mid-run read as `NO-NAV` (exit 1) instead of a fault (exit 2);
+  - error-banner's comma test;
+  - motion-audit's token read.
+- **Kind.** 13 false findings (the gate reports a defect the app does not have), 11 false passes (a defect it should catch goes through), 2 false faults (a 2 where the page was fine) and 6 mismatches between a comment or the README and the code.
+- **Duplicates.** 29 distinct problems. Three pairs describe the same defect twice: error-banner's comma test, scroll-audit's submit hop and motion-audit's token read. Two drive findings sit on the same line (the raw-key regex and the deployer-supplied text) but are different defects. The list was kept as the verifier left it.
+- **Refuted.** At least one finding was refuted: a medium `false-pass` in mobile-audit (line 528), a possible race between the seed written straight after the render poll and the app's mount effects, which could write the previous state back over the seed. The record survives only up to its failure scenario, because the index file it was copied from was truncated. Why the verifier refuted it is lost, and so is any other refuted record. The rate of that race was never measured (see "Still open").
+- Each group also returned a list of what it had checked and found sound. Group 1's: every crash reaches the exit-2 handler in all six files, `node --check` passes, and no `process.exit` can race a `fetch()`.
+
+**What the fixes changed, measured 26 Oct.** "Before" is the script as it stood after sweep E and the hero-vibrance work, saved before the fix agents started. "Now" is the shipped script. Each row plants one defect, in the page, in a copy of the script's input, or in a stub server standing in for the backend, and runs the old and the new script against it. Figures separated by semicolons follow the order of the plants in the second column. "Not run" means the old script was never run on that plant. These are scratch runs and are not in the repo.
+
+| Gate | Planted | Before | Now |
+|---|---|---|---|
+| print-audit | the page throws away the seeded theme | 0 | 2 (`UNSEEDED`) |
+| print-audit | the page throws away the seeded language | 0 | 2 (`UNSEEDED`, `PROBE`) |
+| print-audit | body ink and `--color-danger` written in `oklch()` | 0 | 2 (`PROBE`) |
+| print-audit | `.ui-breadcrumb` renamed on every page, so none renders it; a `.ui-manual` strip put in `#main` on every page | 0; 0 | 2; 2 (`PROBE`) |
+| print-audit | the print block's first hide rule gains a class the script's list lacks; a second hide rule appears; no hide rule | 0; 0; 0 | 2; 2; 2 (`PROBE`) |
+| print-audit | no `break-inside: avoid` rule | 2 | 2 |
+| print-audit | one card written in `oklch()`; one card painted black | 2; 1 | 2; 1 (`PAPER`, `TOKENS`) |
+| print-audit | every `.ui-card` transparent under print (what the regex finding described) | 1: 12 findings, 6 `PAPER` and 6 `TOKENS` | 0: no finding in 6 renders |
+| drive | a deployer sets `VITE_FIDUCIARY_NAME="Secure Credit Finance Ltd"` and `VITE_PRIVACY_CONTACT="privacy.officer@nbfc.in"` | 1: 6 findings (`FORBIDDEN CLAIM`, `UNTRANSLATED KEY LEAKED`) | 0: both values are neutralised before the scan, and named in the report |
+| drive | a scheme card's copy edited | 0 | 0 |
+| drive | the card selector matches nothing; matches the whole `main` | 1: 13 `SCHEME CARD NOT FOUND`; 1: 13 findings naming 14 schemes (`WRONG FIT LABEL`) | 2 in 10 s, no report; 2 in 10 s, no report |
+| hero-art | `--color-bg` rewritten to the same colour as an `rgb()` value; as an `oklch()` value | 1; 1: the old script read it as NaN and reported "0% of the artwork is perceptible" in every mode, with a false 1.25:1 on the subtitle and chip row | 0; 0 |
+| hero-art | `--color-bg` rewritten to `#ffffff` | 1: dark mode only, subtitle and chip row at 1.14:1 | 1: the same finding |
+| hero-art | `--color-bg` rewritten to `#fff` | 1, for the wrong reason: read as `rgb(255,15,NaN)`, so all 3 modes failed | 1, for the right one: the `#ffffff` finding, 1 of 3 modes, 1.14:1 |
+| hero-art | `--color-bg` rewritten to a word that is not a colour; to `transparent`; to nothing | 1; 1; 1 (the NaN failure again) | 2; 2; 2 |
+| hero-art | the real tree | 0 in 8 s | 0 in 2 s (the fixed sleeps became a wait for the page to settle) |
+| svgcheck | a throwaway git repo of four good SVGs: `a#b.svg`, `c%41d.svg`, `plain.svg` and `sp ace.svg` | 1: two refused (the hand-built file URL breaks on `#` and `%`) | 0: all four checked |
+| svgcheck | the same repo plus a tracked `bad.svg` that holds plain text, and an untracked `new.svg` | not run | 1: six checked, one refused (`bad.svg`), the untracked file named and checked |
+| svgcheck | a tracked SVG deleted from disk; no SVG at all; not a git repo; no `git` on PATH | not run | 2; 2; 2; 2, each with its own message |
+| hero-art; brand-mark | Edge killed by PID 3 s into the run | not run | 2 in 3 s (`Page.navigate: CDP socket closed`); 2 in 3 s (`Runtime.evaluate: CDP socket closed`) |
+| svgcheck | Edge killed by PID 4 s into the run, in two copies of the script that wait 6 s inside the run: one between calls, one inside the probe, so a call is pending when Edge dies | not run | 2 in 8 s; 2 in 5 s (`Runtime.evaluate: CDP socket closed`). The same two copies with no kill gave 0 in 8 s and 7 s |
+| motion-audit | the reduced-motion guard moved out of `@layer base`, at runtime on every load | not run (the fix changed a comment, not the check) | plain 0, as the comment now says. `--broken` 2: the ten kinds were reported, but with the guard already out there was none inside `@layer base` for the refuter to take out. A refuter fault, not a pass |
+| scroll-audit | a stub backend that passes the pre-flight check and then answers the submit with 503; never answers; resets the connection; answers 500 | 1 (`NO-NAV`); 1; 1; not run | 2 (`NO-BACKEND`); 2; 2; 2, each 73–74 s |
+| scroll-audit | the stub answers the submit with 422 | not run | 1 (`NO-NAV`; the page did not navigate on a request it was told was invalid), 74 s |
+| error-banner | a stub backend that hangs from the first request | 1 | 2 in 182 s, 16 faults |
+| error-banner | the stub resets every connection | 2 | 2 in 79 s, 8 faults |
+| error-banner | the stub answers 503 | 1 | 1 in 80 s until the status-tracking edit of 16:35; after it 2 in 79 s, 8 faults (`HTTP 503, not the 422 an empty form gets`) |
+| figure-audit | a page error thrown 700 ms into each of the 32 loads; the shipped script's copy also gets one synthetic error after the last width's probe, to reach its late arm | 291 of 352 rows carry it, exit 1 | 64 rows, exit 1: the planted error once per load, in the first row probed after it arrived (32), and the synthetic late error in the last row (32) |
+
+The error-banner hang and reset rows were measured at 16:16–16:31, before the status-tracking edit. The 503 row was run again after it, together with a plain run against the real backend (0 in 80 s).
+
+The pre-fix figure-audit copied the page errors collected so far into every width row probed after they arrived, so one error was counted up to 11 times. I predicted 352 rows would carry the planted error and 291 did: 360 and 412 were mostly probed before it arrived (1 and 2 of the 32 loads had it by then).
+
+The hero-art colour rows show what the finding on its page-background parse meant. `rgb()` and `oklch()` are legal colours that the old script read as NaN, so every mode failed on "0% of the artwork is perceptible", with a false 1.25:1 on the subtitle and chip row, and a value that is not a colour is not a finding about the app at all. The `#ffffff` rows are the control: a legal colour in the format the old script could read gives the same real finding (1.14:1, dark mode) before and after.
+
+Also run, no change needed in the result: print-audit's two "paper" plants (the page background in `oklch()` and in black) gave 0 on both versions. That was a harness fault, not a pass. The probe starts at the first `.ui-card` and never reads the page background, so the plants measured nothing. They are not counted anywhere above, and the card plants and the transparent-card run replaced them.
+
+**Mirror runs of the three static scripts** (a copy of the input with one change, old and new script):
+
+- parity4, 25 cases. Changed: seven went 0 to 2, three went 1 to 2 and five went 0 to 1. Unchanged: ten (the control, and cases that were already right).
+- keycheck, 22 cases. Changed: two went 0 to 2, nine went 1 to 2, two went 0 to 2 on a missing map, and one went 1 to 0: a legal shape of map entry that the old script reported as an error. Unchanged: six at 0, one at 2, and one at 1, which is a real finding.
+- svgcheck, 12 cases against a throwaway git repo and a fake Edge path: all 2, each with its own message. `git` not on PATH, not a repo, no SVG, an SVG gitignored (so not listed), an SVG indexed and then deleted, upper-case `.SVG`, and names with a space, `#`, `%` and non-ASCII all behave. An untracked SVG is named and checked with the rest. The old string-concatenated file URL fails for `#` and `%`; `pathToFileURL` resolves all six names.
+
+**Found beyond the 32:**
+
+- print-audit's fix read only the first hide rule in the print block, so a class hidden by a second rule drifted unnoticed. It now reads every rule. The version as the fix agent left it exited 0 on the second-rule plant.
+- drive's parse of the `FIT_KEYS` map, as the fix agent first wrote it, silently dropped any line it could not read (a double-quoted value, a template literal, an entry split over two lines, a spread, a computed key) and the first entry when it sat on the opening line, and exited 0. The shipped parse throws on such a line, names it, and exits 2. A 17-case mirror (D0–D16) ran the parse block of each version, sliced out of the file, against a mutated copy of `backendText.js`. Six cases were wrong in the first parse (D4, D6, D12, D13, D15 and D16: each exited 0 with an entry missing from the map) and none in the shipped one. The other eleven, comments, blank lines, CRLF and a quoted key among them, gave the same exit code in both.
+- error-banner exited 1 against a backend that answers 503, in the old script and in the fixed one. That is a finding where the app was fine. The script now tracks the request's status and treats any answer other than 422 as a fault (the 503 row above).
+- a comment in figure-audit claimed more than the code did.
+- a silent DevTools port makes svgcheck, hero-art and load-perf wait 183–184 s before they exit 2. The cause is the polling loop that waits for the endpoint (80 tries, each up to a 2 s `AbortSignal.timeout` plus a 250 ms sleep, about 180 s). Nothing listening at all gives up in about 21 s. Not fixed (see "Still open").
+
+Two corrections to the review's own figures. drive's raw-key regex lacked 14 prefixes, not four (`adv`, `doc`, `elig`, `err`, `lvl`, `lvlnote`, `man`, `nxt`, `obs`, `rsn`, `scat`, `sdata`, `sum`, `why`): the dictionaries define 47 prefixes and the hand-kept list had 33. It is now derived from the merged dictionary table. And finding #11, print-audit's regex, had no direct run until the transparent-card plant above.
+
+**Re-run of the sweep, 26 Oct, 14:28:51–15:14:01**, on the tree after the fix agents' work, same conditions as sweep E. Four scripts were edited on 26 Oct, so the sweep did not run all of them as shipped: print-audit at 14:50 and figure-audit at 15:08, both during the sweep, and drive at 15:16 and error-banner at 16:35, after it. The plain runs made after those edits: print-audit and drive at 15:20, both 0; error-banner against the real backend at 16:37, 0 in 80 s; figure-audit at 19:11, 0 in 64 s (352 measurements, no finding). Each report starts with `exit`.
+
+| Condition | Result |
+|---|---|
+| refresh-cases | 0 |
+| plain, servers up: 21 scripts | all 0; every report starts with `exit` |
+| `--broken`: 9 runs | all 1 |
+| a bad argument: 9 cases | all 2 in 0 s; mobile-audit's two bad `--out=` values left the old report |
+| 9333 held (mobile-audit); 9222 answering 503 (drive) | 2 in 2 s; 2 in 24 s |
+| Edge killed by PID mid-run: 18 runs | 15 gave 2, in 7–20 s. hero-art, brand-mark and svgcheck had finished first (0). hero-vibrance, which sweep E missed, gave 2 in 7 s |
+| Vite killed mid-run: 16 runs | 13 gave 2, in 9–20 s. hero-art, brand-mark and hero-vibrance had finished first (0) |
+| drive piped through `head` | 2 in 5 s, no report |
+| the backend with a narrow CORS list; in production mode | error-banner and scroll-audit 2; figure-audit 0 |
+| the backend down, silent, or answering 503 | 10 runs, all 2, in 0–21 s |
+| load-perf plain; Edge killed; the preview killed | 0 in 55 s; 2 in 16 s; 2 in 17 s |
+| Vite silent: 15 runs; Vite answering 503: 15 runs; 5179 held; 4173 silent | all 2, in 0–6 s. hero-vibrance no longer hangs |
+| no servers at all, from the repo root: 21 runs (16 plain, 5 `--broken`) | all 2 in 0–1 s |
+| the wrong directory, with an old `report.json` planted: 23 runs | 22 gave 2 in 0–1 s, and 17 of those left the planted report alone (the other five write none); glyph-audit gave 0 |
+
+Nothing was left listening, and no Edge was left, after the sweep.
+
+How long a clean run takes, in seconds: lang-layout 280, field-align 121, error-banner 79, scroll-audit 73, market-ui 69, figure-audit 63, load-perf 55, mobile-audit 47, drive 43, text-align 37, print-audit 21, motion-audit 21, hero-geom 15, manual-audit 14, hero-vibrance 6, hero-art 3, brand-mark 2, svgcheck 2. With `--broken`: field-align 122 (258 for its sweep variant), scroll-audit 74, market-ui 69, figure-audit 67–69 for each of three kinds, text-align 41, motion-audit 22.
+
+**Harness faults on 26 Oct (mine, not the scripts'):**
+
+- The two "paper" plants described above, which measured nothing.
+- A plant written through a shell heredoc lost half its backslashes, and two plants' anchors were written with LF in files that are CRLF. The plant scripts refuse unless each anchor is found exactly once, so the second kind failed loudly; the first was caught because the plant behaved like no plant. The plants are now written with the Write tool.
+- The Bash tool's working directory moves with every `cd`, so each command now starts with an explicit `cd` to the repo.
+- My first list of parity4's unchanged mirror cases named five; the table has ten. One extra script read the wrong figure-audit output directory.
+- The first error-banner run against a 503 backend counted as "new" was the unfixed script; the fixed one was run again (Y14 in the scratch notes).
+- Six runs meant to kill Edge 1–2 s into hero-art, brand-mark and svgcheck: four killed nothing, because the gate had finished first (exit 0). Only hero-art's and brand-mark's runs landed (both 2 in 3 s). Two slowed copies of svgcheck replaced the other runs.
+- The review's refuted records were lost when the index file I copied them from was truncated (above).
+
+**Still open:**
+
+- No CDP call has a time limit, so an Edge that keeps its socket open and stops answering hangs a gate. Measured 26 Oct against a listener that accepts the connection and never answers: svgcheck 183 s, hero-art 183 s, load-perf 184 s, each exit 2.
+- A blank page's 2 is slow, because each load waits out its render poll. Measured times on 30 Sept, each 2 unless marked, and not re-measured:
+
+  | Gate | Seconds |
+  |---|---|
+  | field-align | 1,152 |
+  | market-ui | 956 |
+  | drive (1) | 807 |
+  | mobile-audit | 511 |
+  | figure-audit | 356 |
+  | error-banner | 239 |
+  | print-audit | 66 |
+  | load-perf (1) | 58 |
+  | scroll-audit | 43 |
+  | text-align | 39 |
+  | lang-layout | 33 |
+  | motion-audit | 9 |
+- Only drive, figure-audit, mobile-audit and market-ui kill their own Edge when they fault. In the others `edge.kill()` leaks it.
+- assetgen has no working-directory check.
+- motion-audit has four arms that nothing refutes: `REDUCED-ITER`, `REDUCED-SCROLL`, `ALWAYS-REDUCED` and `UNREACHABLE`.
+- market-ui seeds `v: STORAGE_VERSION`, so a change to `EMPTY`'s shape reaches it as blank fields, not as a refusal. Under `--broken` it exits 2 on a real `DICT-EN` finding, a documented exception to "a 2 is never a finding". The E13 control for its library check is weak (above).
+- brand-mark flags an edge only when dL\* is under `MIN_EDGE` (3), so exactly 3 passes.
+- mobile-audit covers English and Hindi only, and the race in the one refuted record that survives (`mobile-audit.mjs:528`) was never measured.
+- figure-audit counts a page error that arrives before the last width's probe or during its screenshot. One that arrives after that, in the milliseconds before the next load, is not counted.
+- keycheck and drive exit 2 on a map entry that spans lines.
+- scroll-audit's `/privacy` back-link hop (the review found it always clicked the breadcrumb's Home link) was not re-run on 26 Oct. The fix agent's own plant from 1 Oct, a back link retargeted to `/profile`, gave 0 on the old script and `NO-NAV` on the fixed one. I read those two outputs and did not repeat them.
+- The table above is what I re-ran on 26 Oct. For the other fixes I read the fix agents' records from 1 Oct, their own plants, kept in the scratch tree and not in the repo. For changes that are pure logic I also ran the changed slice of the script against synthetic input: drive's list of key prefixes (47 derived, 33 hand-kept), motion-audit's wait for the stylesheet (nine cases), scroll-audit's verdict, request wrapper and per-hop refuter check, error-banner's field-list check (a banner naming one field passed the old comma rule in 7 of 8 languages), load-perf's wait for Edge and market-ui's verdict. I did not repeat the page plants for those.
+- error-banner prints a 503 response's string `detail` raw.
+
 ### The scheme expansion, 7 Sept 2026
 
 On the brief "add more schemes — Block/Taluka/Circle, Village/Urban Local Body, Regional, District, Sub-District, State/UT, Central". What landed:

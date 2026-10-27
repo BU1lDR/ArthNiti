@@ -1,6 +1,6 @@
 # अर्थNiti
 
-Hyper-local business advice and financial structuring for rural micro-entrepreneurs. We built it for Smart India Hackathon 2026 and now keep it going as a standalone project.
+Hyper-local business advice and financial structuring for rural micro-entrepreneurs. An individual project by Aryan Verma, entered in the [Meta Global AI Developer Hackathon](https://dev.meta.ai/events/global-hackathon), Indie Track.
 
 Someone running a small business in a village — a tailor, a weaver, a woman keeping four buffaloes — opens this on a cheap Android phone, answers nineteen plain questions in their own language, and gets four things back:
 
@@ -11,11 +11,11 @@ Someone running a small business in a village — a tailor, a weaver, a woman ke
 
 Eight Indian languages, with dialect-aware phrasing layered on top. Thirty real schemes across all seven administrative tiers.
 
-**Where it stands.** We built this for the SIH 2026 internal college round, held on 14 September 2026, and weren't selected. The project continues on its own now, as a portfolio piece and, mainly, as a product to sell to businesses that work with real users. It belongs to Aryan Verma and is proprietary. See [LICENSE](LICENSE); this is not open source, even though the repo may be shared. It is still a prototype, not production software, and the rest of this file tries not to pretend otherwise. Anything below about "the demo" or "the round" is how the build was used for the hackathon, not a current goal.
+**Where it stands.** One person, Aryan Verma, builds and owns this. It began in September 2026 as a six-person college team project for the Smart India Hackathon (SIH) 2026 internal round, held on 14 September, where the team wasn't selected. Since 26 October 2026 it is an individual project, entered in the Meta Global AI Developer Hackathon, Indie Track (26 October to 4 November 2026; submissions are due 4 November, 9:00 PM ET, which is 5 November, 07:30 IST). Beyond the hackathon it stays a portfolio piece and, mainly, a product for businesses that work with real users. It is proprietary; see [LICENSE](LICENSE). This is not open source, even though the repo may be shared. It is still a prototype, not production software, and the rest of this file tries not to pretend otherwise. [docs/HACKATHON.md](docs/HACKATHON.md) says what existed before the hackathon and what was added during it. Anything below about "the demo" or "the round" dates from the team build and is not a current goal.
 
 ## Two things to know before you read the code
 
-**There is no LLM in here.** Every number and every sentence the user sees comes out of hand-written Python in `backend/app/services/` — plain `if`/`else`, nothing more. No SDK, no API key, no inference call anywhere in the repo. That's a deliberate choice, and `OUR_MVP.md` §15 makes the argument for it, but please don't describe the app as using generative AI. If someone asks you to "improve the AI", find out first whether they mean wire up a real model or sharpen the rules.
+**No model writes a number or a line of advice.** Every figure and every sentence the user sees comes out of hand-written Python in `backend/app/services/` — plain `if`/`else`, nothing more. As of 26 October 2026 there is no SDK, API key or inference call anywhere in the repo. That's a deliberate choice, and `OUR_MVP.md` §15 makes the argument for it. For the Meta hackathon a voice and text intake layer on the Meta Model API is being added (planned, not built yet: this paragraph and [docs/HACKATHON.md](docs/HACKATHON.md) change when it exists). The rule holds whatever gets added: a model may help someone fill in the form, and they check what it filled in, but it never computes a figure, a risk band or a scheme match, and it never writes the advice. Please don't describe the app as giving AI-generated advice. If someone asks you to "improve the AI", find out first whether they mean the intake or the rules.
 
 There's no database either. All client state lives in the browser's `sessionStorage`. The answers leave the browser once, when step 4 is submitted, so the backend can work the result out. The backend stores none of them. It writes one log line per request, which holds no answer but does hold a code computed from them ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §4).
 
@@ -172,7 +172,7 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 | `frontend/src/index.css` | design tokens, the `.ui-*` system, and the print stylesheet |
 | `tools/` | 28 `.mjs` files, nearly all of them verifiers, plus the market data fetch and its maps — [tools/README.md](tools/README.md) explains them |
 | `.github/workflows/ci.yml` | the CI workflow, which has not run yet (see [CI](#ci)) |
-| `presentation/` | empty for now. Saad and Tripti |
+| `presentation/` | empty, and git does not keep empty folders. Left over from the team build; nothing reads it |
 
 ## How it fits together
 
@@ -182,9 +182,9 @@ The other seven (`/health`, `/api/entrepreneur/profile`, `/api/business/analyze`
 
 CORS in development allows any `localhost` or `127.0.0.1` port. In production it allows only the exact `https://` origins in `ARTHNITI_CORS_ORIGINS`, and the backend won't start without them. Neither mode allows credentials.
 
-The frontend is React 19, Vite 8, Tailwind 4 and react-router 7. No TypeScript, no charting library, no i18n library, no state library, no frontend test framework. Those were choices for a two-week hackathon build and not all of them have been revisited since. Treat the missing frontend tests as open, not decided: apart from lint, the build and the dictionary scripts, the frontend is checked only by the Windows-only browser scripts in `tools/verify/`. The charts are hand-rolled on CSS in `components/Charts.jsx` so they survive dark mode and `window.print()`, and every one of them prints its number as text next to the bar.
+The frontend is React 19, Vite 8, Tailwind 4 and react-router 7. No TypeScript, no charting library, no i18n library, no state library, no frontend test framework. Those were choices for a fast prototype build and not all of them have been revisited since. Treat the missing frontend tests as open, not decided: apart from lint, the build and the dictionary scripts, the frontend is checked only by the Windows-only browser scripts in `tools/verify/`. The charts are hand-rolled on CSS in `components/Charts.jsx` so they survive dark mode and `window.print()`, and every one of them prints its number as text next to the bar.
 
-Client state sits in `AppContext` and is mirrored into `sessionStorage` rather than `localStorage`. That's on purpose: someone's revenue, debt and EMI shouldn't still be sitting on a shared demo laptop after they walk away, and a closed tab should be a clean slate between two judges. Within a single tab it survives a refresh, which is what we actually needed. `sessionStorage` only decides where the answers sit in the browser: submitting step 4 still sends them to the backend. Language, dialect, theme and text size *do* use `localStorage`, because a UI preference isn't financial data.
+Client state sits in `AppContext` and is mirrored into `sessionStorage` rather than `localStorage`. That's on purpose: someone's revenue, debt and EMI shouldn't still be sitting on a shared phone or a CSC computer after they walk away, and a closed tab should be a clean slate between two visitors. Within a single tab it survives a refresh, which is what we actually needed. `sessionStorage` only decides where the answers sit in the browser: submitting step 4 still sends them to the backend. Language, dialect, theme and text size *do* use `localStorage`, because a UI preference isn't financial data.
 
 The whole interface is modelled on Indian e-governance portals — masthead, tricolour band, a utility bar that's always there, breadcrumbs, a dense footer. That's not nostalgia. A rural user has met this visual language on a real government service and already knows how to read it.
 
@@ -254,7 +254,8 @@ Run the browser verifiers after any UI change, and `refresh-cases.mjs` after tou
 | [docs/ENGINEERING_HISTORY.md](docs/ENGINEERING_HISTORY.md) | the archive: the full reasoning behind each fix and verifier, dated: CLAUDE.md as it read up to 25 Sept 2026, plus later entries. About 300 KB, so read one section at a time | CLAUDE.md names a decision and you need the reason for it |
 | [docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) | for the organisation deploying it: what is collected, sent, logged and kept, every setting, consent, CORS, and what that organisation has to do itself | you're deploying it, or a client's security or compliance staff ask |
 | [docs/frontend_integration.md](docs/frontend_integration.md) | the API contract of `POST /api/analysis/run`: request, response, errors | you're calling the API or changing its shape |
-| [OUR_MVP.md](OUR_MVP.md) | the product view: what's built and what isn't, and the team split. It also still carries the hackathon's demo script and judge answers | you need the product picture or the team split |
+| [docs/HACKATHON.md](docs/HACKATHON.md) | the Meta Global AI Developer Hackathon entry: the dates, what existed before it and what was built during it, how the AI is used and where it is not, the demo path, the submission checklist | you're judging, submitting or demoing the entry |
+| [OUR_MVP.md](OUR_MVP.md) | the product view: what's built and what isn't | you need the product picture |
 | [tools/README.md](tools/README.md) | the verification suite | a verifier failed, or you're writing a new one |
 | [LICENSE](LICENSE) | proprietary licence: all rights reserved by the owner | before you copy, share or deploy any of it |
 | [DATA_SOURCES.md](DATA_SOURCES.md) | where every dataset and image came from, what licence it's under, and which ones are still unresolved | you're adding data or an image, or a buyer asks |
@@ -270,13 +271,9 @@ cd backend && ../.venv/Scripts/python.exe -m pytest tests -q    # the test count
 ls tools/*.mjs tools/verify/*.mjs | wc -l       # the script count
 ```
 
-## Team, and how we're using git
+## Who built it, and how git is used
 
-| | |
-|---|---|
-| Netra, Anmol | Frontend |
-| Aryan, Manjeet | Backend |
-| Saad, Tripti | Presentation, product story, research |
+Aryan Verma builds and owns this alone from 26 October 2026. The September 2026 SIH build was a team effort: Netra and Anmol on the frontend, Aryan and Manjeet on the backend, Saad and Tripti on presentation, product story and research. Their earlier work is in the git history, and the written permission to reuse it is still outstanding ([DATA_SOURCES.md](DATA_SOURCES.md), "People").
 
 The remote has two branches, `before-main` and `main`, and **`before-main`** is the one to check out. It does not yet hold everything this file describes. `LICENSE`, `DATA_SOURCES.md` and `THIRD_PARTY_NOTICES.md`, the sourced market data, the funding-gap and scheme-fit fixes, the household check, CI and input caps, and the privacy and deployment work above were all made locally and haven't been pushed. As measured on 27 September 2026, `fix/standalone-backlog` is 6 commits ahead of `origin/before-main` (`git rev-list --left-right --count origin/before-main...fix/standalone-backlog` gives `0 / 6`). The working branch, `feature/dpdp-compliance`, sits on the same commit (`4a2307e`), and its privacy and deployment changes are not yet committed.
 
@@ -284,7 +281,7 @@ On the remote, `before-main` is simply ahead of `main`: `git rev-list --left-rig
 
 Compare the `origin/` refs, though, not your local branch names. A local `main` left over from early backend work can be sitting several commits ahead of `origin/main` and never have been pushed. One here is, by six, and then `main...before-main` reports `1 / 181` and looks like a genuine divergence. It isn't. Those commits exist on one laptop. This README said `1 / 166` and called it a real merge for exactly that reason.
 
-Never commit to `main`. The repo is private and shared between six of us, so a push lands in everyone's working copy — tell people before you do it.
+Never commit to `main`. The repo is private, and the earlier team members may still have clones, so say so before you push, rename or delete a branch.
 
 Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`, `screenshots/`. That last one is where the verifiers dump their PNGs and reports, and it's ignored because it reaches several gigabytes of browser profile data. The scripts themselves are in `tools/` and are tracked.
 
@@ -292,7 +289,7 @@ Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`
 
 These are the current limits, written down so nobody overclaims:
 
-- No LLM, no database, no authentication. All three were deliberate for the hackathon build. Whether they stay that way depends on what the project gets used for next.
+- No database and no authentication, both deliberate for the prototype. Whether they stay that way depends on what the project gets used for next. No model produces any figure or advice, and until the Meta intake layer is built there is no model in the repo at all.
 - The non-English wording hasn't been checked by a native speaker, and that now covers 732 keys, the household-check wording and the privacy notice included. The non-English notice shouldn't be shown to real users until someone has reviewed it ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §9.1). Parity, placeholders, identical-to-English and the figures are all script-verified; *naturalness* isn't. We've already caught two real mistakes by eye, which suggests there are more.
 - The household income is whatever the reader types, and nothing checks it. Who counts as the household for an unmarried adult (their parents and their parents' unmarried children, themselves included) is our reading of RBI's definition, and nobody has verified it. A reader who types 0 instead of leaving the field blank has to confirm it with a tick, and is then treated as having no income.
 - Nothing here settles whether a deployment meets the DPDP Act. The deploying organisation is the Data Fiduciary and we are its processor. The build gives it a notice, a consent record, a processing log with no answer in it, and production defaults. The organisation still has its own obligations (schedule §7 and §8), and some points need its lawyer (§9.3). The DPDP Rules apply from May 2027.

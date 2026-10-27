@@ -1,26 +1,29 @@
 # अर्थNiti — MVP
 
-**Project statement:** "AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs." That is the SIH 2026 problem statement, quoted as issued. The build has no AI in it (see below).
+**Project statement:** "AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs" is the SIH 2026 problem statement, quoted as issued. It is not this build's claim: no AI writes the advice (see "The model's job").
 
-**Status:** built for the SIH 2026 internal college round (14 Sept 2026). **The team was not selected.** It continues as a standalone project and is still a prototype. The old rule "prefer the demo path over refactors" **no longer applies**. Work in this order:
+**Status:** an **individual project**. Aryan Verma builds it alone since 26 Oct 2026, entered in the **Meta Global AI Developer Hackathon, Indie Track** ([event](https://dev.meta.ai/events/global-hackathon), [Cerebral Valley](https://cerebralvalley.ai/e/meta-ai-developer-hackathon)). The window is 26 Oct to 4 Nov 2026. **Submission is due 4 Nov, 9:00 PM ET = 5 Nov, 07:30 IST**: finish by the evening of 3 Nov IST. Until 26 Oct it was a six-person team project for the SIH 2026 internal college round (14 Sept), where the team was not selected. It is still a prototype. Work in this order:
 
 1. the advice is correct for the inputs it is given;
-2. nothing on screen claims more than the code can back;
+2. nothing on screen claims more than the code can back, the model's role included;
 3. a fresh clone can reproduce and verify the build;
 4. polish.
 
-**Decided by the owner, 23 Sept 2026:**
+Until 3 Nov IST, "demo path over refactors" applies again to new work. `docs/HACKATHON.md` holds the demo path, the built-before-vs-during note and the submission checklist.
 
-- **Purpose: a portfolio piece, and mainly a B2B product** for NBFCs, MFIs, SHG federations, CSC operators and similar. **Real people will act on the output**, so correctness, data honesty, DPDP compliance and security are requirements, not polish.
-- **Ownership: Aryan Verma** owns the project and the scheme data. The repo is proprietary (`LICENSE`). Teammates' contributions (Manjeet, Netra) need a written assignment before any sale: a legal item, not a code one.
+**Decided by the owner:**
+
+- **23 Sept 2026. Purpose: a portfolio piece, and mainly a B2B product** for NBFCs, MFIs, SHG federations, CSC operators and similar. **Real people will act on the output**, so correctness, data honesty, DPDP compliance and security are requirements, not polish.
+- **Ownership: Aryan Verma** owns the project and the scheme data. The repo is proprietary (`LICENSE`). The earlier team's work (Manjeet, Netra and others) needs written permission before the submission and a written assignment before any sale: a legal item, not a code one.
+- **26 Oct 2026. Solo, and entered in the Meta hackathon.**
 - **The hyperlocal claim stays, backed by real data**: 20 sourced market rows for Lucknow and Varanasi from data.gov.in under GODL-India (`DATA_SOURCES.md`). `match_level` is the honesty marker for how local a figure is.
 - **DPDP is in scope.** In a B2B deployment the client is the Data Fiduciary and we are its Data Processor. Never write "compliant", "secure", "anonymous" or "untraceable"; the Rules apply from 13 May 2027. What a deployer needs is in `docs/PROCESSOR_SCHEDULE.md`.
 
 **Still open:** whether an on-screen non-affiliation line comes back or the government look goes, and what `/login` becomes.
 
-**Repo:** `https://github.com/BU1lDR/SIH_2026` (**private**).
+**Repo:** `https://github.com/BU1lDR/SIH_2026` (**private**; the name dates from the team build, and a rename or going public is a GitHub change).
 
-> **Ask for explicit confirmation before any action that changes the GitHub repo**: push, PR, branch or tag creation or deletion, releases, settings. Local commits are fine when requested. Approval for one push does not carry to the next. The repo is shared with a 6-person team.
+> **Ask for explicit confirmation before any action that changes the GitHub repo**: push, PR, branch or tag creation or deletion, releases, settings, visibility, rename. Local commits are fine when requested. Approval for one push does not carry to the next. The earlier team members may still hold clones.
 
 ---
 
@@ -44,7 +47,8 @@ This file loads into every session and every subagent. **The long-form history �
 | `docs/ENGINEERING_HISTORY.md` | the archive: why each rule exists, measured at the time | read by section, on demand |
 | `docs/frontend_integration.md` | the request, response and error contract of `POST /api/analysis/run` | an engineer calling the API |
 | `docs/PROCESSOR_SCHEDULE.md` | what is sent, held and logged; config; C1–C11, D1–D10; lawyer items | the client's technical and compliance staff, their lawyer, the deployer |
-| `OUR_MVP.md` | product and team view; its demo script and judge answers are round-era history | the team |
+| `docs/HACKATHON.md` | the Meta entry: dates, built before vs during, where the model is used and where not, demo path, submission checklist | the owner, a judge |
+| `OUR_MVP.md` | the product view: what is built and what is not | anyone who needs the product picture |
 
 **Standing instruction: update `README.md` every time the MVP changes.** A change that adds a route, a language, a scheme tier, an endpoint, a verifier script or a dependency is not finished until the README reflects it. **README, CLAUDE.md and OUR_MVP.md state counts, and every count is measured, never carried forward.** When a count changes, `grep -rn "<number>" README.md CLAUDE.md OUR_MVP.md`. Measure with:
 
@@ -56,9 +60,9 @@ A doc that contradicts itself by one does not look broken. Readers take it as a 
 
 Stale docs: `frontend/README.md` is Vite boilerplate. `docs/requirements.txt` is unrelated to `backend/requirements.txt`.
 
-### There is no LLM
+### The model's job
 
-Every number and every sentence the user sees comes from hand-written Python `if`/`else` in `backend/app/services/`. There is no model call, SDK, API key or inference client. `OUR_MVP.md` §15 sets out why. **Do not describe the build as using an LLM.** If asked to "improve the AI", find out whether the ask is to wire up a real model or to improve the rules. Never move arithmetic into a model.
+As of 26 Oct 2026 there is **no model**: every number and sentence the user sees comes from hand-written Python `if`/`else` in `backend/app/services/`, and the repo has no model call, SDK, API key or inference client. A Meta Model API intake layer for the hackathon is **planned, not built**: rewrite this section and the README's when the code lands. `OUR_MVP.md` §15 sets out why the core stays rules. What holds whatever is added: a model may transcribe speech and propose values for the form's fields, which the person checks and edits. **It never computes a figure, a risk band, a scheme match or the advice.** **Do not describe the build as AI-driven advice.** Never move arithmetic into a model.
 
 ---
 
@@ -139,8 +143,8 @@ The look is deliberately modelled on Indian e-governance portals. `AppShell` ren
 - skip link;
 - utility bar, **tools only**: language, dialect, text size, theme and start-over;
 - masthead: lotus mark, the `अर्थNiti` wordmark, tagline, login;
-- tricolour rule, nav bar, breadcrumb, journey progress;
-- `<main id="main" tabIndex={-1}>`;
+- tricolour rule, nav bar;
+- `<main id="main" tabIndex={-1}>`, holding the breadcrumb (not on the landing page), the journey progress (journey and result pages) and the page;
 - three-column footer (brand, journey links, `common.helpTitle`/`helpText`);
 - a bottom line with `common.disclaimer`, `common.schemesChecked` and the `common.privacy` link to `/privacy`.
 
@@ -384,15 +388,8 @@ cd backend && ../.venv/Scripts/python.exe -m pytest tests -q      # 867 passed, 
 
 - `node tools/verify/refresh-cases.mjs` regenerates the `case_*.json` fixtures. Run it after any change to services, schemas or data. The fixtures are untracked and go stale silently.
 
-**Vite up** (`http://localhost:5173`): the browser gates, each with its own CDP port and Edge profile. They drive Edge at a hardcoded Windows path, so they are Windows-only and not in CI.
+**Vite up** (`http://localhost:5173`): the browser gates. `drive` (8 passes / 41 loads: leaked keys, `null%`, `NaN`, raw enums, the fit label), `mobile-audit`, `print-audit`, `text-align`, `field-align`, `lang-layout`, `motion-audit`, `hero-art`, `brand-mark`, `manual-audit` (it includes the no-pill check), `market-ui` (it starts its own Vite on 5179), and `error-banner`, `scroll-audit` and `figure-audit`, which also need the backend. Each has its own CDP port and Edge profile, and `tools/README.md` says what each checks. They drive Edge at a hardcoded Windows path, so they are Windows-only and not in CI.
 
-- **Gates:**
-  - `drive`: 8 passes / 41 loads checking leaked keys, `null%`, `NaN`, raw enums and the fit label.
-  - `mobile-audit`: 360/390/412px.
-  - `print-audit`, `text-align`, `field-align`, `lang-layout`, `motion-audit`, `hero-art`, `brand-mark`.
-  - `manual-audit`, which includes the no-pill check.
-  - `market-ui`, which starts its own Vite on 5179.
-  - `error-banner`, `scroll-audit` and `figure-audit`, which also need the backend.
 - **`--broken` must exit 1:** `scroll-audit`, `text-align`, `field-align`, `market-ui`, `figure-audit` (`=split|over|tiny`) and `motion-audit`.
 - **Exit 2 is an instrument fault, never a finding or a pass:** a crash, the wrong cwd, a server or Edge down or lost, a page with nothing to measure, a refuter that missed, or a seed the app discards (it measures clean as a blank page). The seeding scripts refuse a `SEED_VERSION` outside `READABLE_VERSIONS` and fail an empty result route as `UNSEEDED`. `drive` seeds v2 on purpose, for its hydrate check. Only `market-lib-test` (`node --test`) exits 1 on a crash. Details: `tools/README.md` § Exit codes. A `report.json` starts with `exit`; a run stopped by a thrown fault leaves none.
 - **Reports only:** `hero-geom`, `hero-vibrance` and `load-perf`'s timings. `load-perf` needs `npm run preview` on 4173 and exits 1 only when the app does not mount.
@@ -411,38 +408,13 @@ Traps:
 
 ## Still open
 
-**Advice and data**
+**Advice and data:** a household income of 0 needs a tick and then gives "do not take a new loan"; the household income is self-reported; the pressure figure errs high when another earner pays their own loan; **no eligibility rule is evaluated anywhere** (`sc.eligUnchecked` says so on the page); `stale` is decided at fetch time; the Udyam counts cannot be reproduced; the scheme rules have no re-check schedule (the footer date and `test_review_dates.py` are the only guard); there is no helpline number.
 
-- A household income of 0 has to be confirmed with a tick, and then gives "do not take a new loan".
-- The household income is self-reported.
-- The pressure figure errs high when another earner pays their own loan.
-- **No eligibility rule is evaluated anywhere.** `sc.eligUnchecked` says so on the page.
-- `stale` is decided at fetch time.
-- The Udyam counts cannot be reproduced.
-- The scheme rules have no re-check schedule. The only guard is the footer date (`test_review_dates.py`).
-- There is no helpline number.
+**Build and verification:** the verifier gaps (Edge leaks, unrefuted arms, narrow coverage, slow blank-page 2s) are in the history section "Verifier exit codes". The dependencies have no hashes. `backend/venv/` is stale; `.venv` is in use. The print PDF and the `api.js` timeout have not been clicked through by hand. Phones: landscape, real touch and the on-screen keyboard are unverified.
 
-**Build and verification**
+Also open, stated where they apply: the household definition, market coverage, dialect coverage and the translation review, CI never run, the Windows-only gates.
 
-- Only `drive`, `figure-audit`, `mobile-audit` and `market-ui` kill their own Edge; the others' `edge.kill()` leaks it.
-- `motion-audit` has 4 unrefuted arms.
-- `market-ui` seeds `v: STORAGE_VERSION`, so a change to `EMPTY`'s shape reaches it as blank fields, not a refusal.
-- `brand-mark` flags an edge only when `dL* < MIN_EDGE` (3), so exactly 3 passes.
-- `mobile-audit` covers only English and Hindi.
-- The dependencies have no hashes.
-- `backend/venv/` is stale; `.venv` is the one in use.
-- The print PDF and the `api.js` timeout have not been clicked through by hand.
-- Phones: landscape, real touch and the on-screen keyboard are unverified.
-
-Also open, and stated where they apply:
-
-- the household definition;
-- market coverage;
-- dialect coverage and the translation review;
-- CI never run;
-- the Windows-only gates.
-
-**Legal:** the teammate IP assignments.
+**Legal:** the earlier team's written permission (before the submission) and IP assignments (before any sale).
 
 **DPDP** (the full list is `docs/PROCESSOR_SCHEDULE.md` §9):
 
@@ -458,9 +430,9 @@ Also open, and stated where they apply:
 
 ## Git
 
-- **Branch state:** as of 27 Sept 2026, `feature/dpdp-compliance` and `fix/standalone-backlog` are both at `4a2307e`, 6 local commits ahead of `origin/before-main` (`e84f9a3`), none pushed. **The DPDP work is uncommitted in the working tree** of `feature/dpdp-compliance`. The 16 other `feature/*` branches are empty placeholders.
+- **Branch state:** as of 26 Oct 2026, `feature/dpdp-compliance` is at `4a2307e`, 6 local commits ahead of `origin/before-main`, none pushed (`git rev-list --left-right --count origin/before-main...HEAD` gives `0 6`). **The DPDP work, the verifier exit-code work and the hackathon edits are uncommitted in the working tree.** The other 17 `feature/*` branches hold no work of their own (16 at `cf1c775`, `feature/real-market-data` at `053a99e`, both already in HEAD's history).
 - **The remote has two branches, `before-main` and `main`.** `origin/before-main` is a fast-forward of `origin/main`. Compare `origin/` refs, not local names: local `main` carries 6 unpushed scaffolding commits.
 - Never commit to `main`. **Commit messages carry no Co-Authored-By line and no Claude attribution.**
 - The brand-asset working-tree changes, dated 13 Sept (`tools/assetgen.mjs`, `frontend/src/assets/README.md`, two regenerated lockups, and two untracked `arthniti-wordmark-on-*.png` files), are the owner's to commit. Leave them out of other commits.
 - Ignored: `.venv/`, `venv/`, `node_modules/`, `dist/`, `.env*` except `.env.example`, `.claude/`, `screenshots/` (verifier output, 8 GB) and `.market-cache/`.
-- **Team:** Netra & Anmol frontend, Aryan & Manjeet backend, Saad & Tripti presentation.
+- **Team:** none. Aryan Verma works alone since 26 Oct 2026; the September build had six contributors (`DATA_SOURCES.md`, People).
