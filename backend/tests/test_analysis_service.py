@@ -11,7 +11,6 @@ def test_unified_analysis_returns_all_sections():
         monthly_emi=10000,
         initial_investment=100000,
         monthly_operating_expenses=30000,
-        employees=2,
         existing_debt=0,
     )
 
@@ -170,7 +169,6 @@ def test_unified_analysis_preserves_input_values():
         monthly_emi=4000,
         initial_investment=75000,
         monthly_operating_expenses=12000,
-        employees=3,
         existing_debt=15000,
     )
 

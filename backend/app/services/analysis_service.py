@@ -16,17 +16,9 @@ def run_unified_analysis(
     monthly_emi: float,
     initial_investment: float,
     monthly_operating_expenses: float,
-    employees: int = 0,
     existing_debt: float = 0,
-    user_language: str = "Hindi",
-    preferred_dialect: str | None = None,
-    literacy_level: str = "low",
-    entrepreneur_type: str | None = None,
     location_type: str = "rural",
     district: str = "",
-    village: str = "",
-    market_type: str = "",
-    customers: str = "",
     household_monthly_income: float | None = None,
 ):
     """
@@ -41,6 +33,10 @@ def run_unified_analysis(
     - Government scheme matching
     - Advisory generation
     - Low-literacy-friendly MVP summary
+
+    Every parameter changes the result. The request still accepts eight more
+    fields (schemas/analysis.py IGNORED_FIELDS) that nothing here read, or that
+    were only echoed back; the route drops those before calling this.
     """
 
     # 1. Financial analysis
@@ -68,7 +64,6 @@ def run_unified_analysis(
         initial_investment=initial_investment,
         expected_monthly_revenue=expected_monthly_revenue,
         monthly_operating_expenses=monthly_operating_expenses,
-        employees=employees,
         existing_debt=existing_debt,
     )
 
@@ -77,9 +72,6 @@ def run_unified_analysis(
         state=state,
         district=district,
         business_category=business_category,
-        village=village,
-        market_type=market_type,
-        customers=customers,
     )
 
     # 5. Government scheme matching
@@ -109,13 +101,10 @@ def run_unified_analysis(
         risk_analysis=risk_analysis,
         business_analysis=business_analysis,
         advisory=advisory,
-        user_language=user_language,
-        preferred_dialect=preferred_dialect,
-        literacy_level=literacy_level,
     )
 
-    # Additional context for personalization
-    mvp_summary["entrepreneur_type"] = entrepreneur_type
+    # The one answer the summary still carries back: it is sent, and it decided
+    # which schemes are open to the reader.
     mvp_summary["location_type"] = location_type
 
     return {

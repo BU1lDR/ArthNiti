@@ -22,6 +22,10 @@
 //      schemes.json sentence it stands for: description_code -> description,
 //      support_type_code -> support_type, eligibility_codes[i] ->
 //      eligibility_rules[i], document_codes[i] -> documents[i].
+//   9. the notice text (every NOTICE_KEYS value, all 8 languages) hashes to the
+//      sha256 recorded in tools/notice-version.json for NOTICE_VERSION. A consent
+//      record names the notice it was given against only by that version, so the
+//      wording behind a version must never change under it.
 //
 // 6 and 8 never normalise. A legitimate difference goes in DIGIT_ALLOW or
 // SOURCE_ALLOW below, with the figures on both sides and a reason. Both sides are
@@ -30,11 +34,30 @@
 //
 // --root=<dir> reads the four dictionaries and schemes.json from a copy of the
 // tree instead of the repo (frontend/src/i18n/ and backend/app/data/ under it).
-// That is how 6-8 were proven to fire without editing the real files:
+// For check 9 the copy must also hold frontend/src/config/notice.js,
+// frontend/src/i18n/languages.js and tools/notice-version.json.
+// That is how 6-9 were proven to fire without editing the real files:
 //   node tools/parity4.mjs --root=/tmp/p4copy
 
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+
+// Exit 0: every check passed. 1: one failed. A file a check compares against
+// that is missing, unreadable or does not parse fails that check, so it is a 1
+// too: schemes.json fails 8, and notice.js, languages.js or
+// tools/notice-version.json fails 9, as does a languages.js whose
+// DIALECT_PHRASES is not a plain object of { key: text } objects keyed by
+// English keys. 2: a crash, and only a crash: anything thrown that nothing
+// catches, such as the wrong working directory, a --root with no dictionaries in
+// it, or a dictionary it cannot read or parse (the comment above parse() sets out
+// the one layout it reads; it throws on any other). Node's own exit on an
+// uncaught error is also 1, which read as a failed check, so this exits 2.
+process.on('uncaughtException', (error) => {
+  console.error(error)
+  process.exit(2)
+})
 
 const ROOT_ARG = process.argv.find((a) => a.startsWith('--root='))
 const ROOT = resolve(ROOT_ARG ? ROOT_ARG.slice('--root='.length) : '.')
@@ -47,6 +70,17 @@ const FILES = [
 ]
 const SCHEME_FILE = 'frontend/src/i18n/schemeStrings.js'
 const SCHEMES_JSON = 'backend/app/data/schemes.json'
+const NOTICE_FILE = 'frontend/src/config/notice.js'
+const LANGUAGES_FILE = 'frontend/src/i18n/languages.js'
+const NOTICE_RECORD = 'tools/notice-version.json'
+
+// Check 9: the backend's consent schema accepts a notice_version only in this
+// shape, so a version it would reject fails here first.
+const NOTICE_VERSION_RULE = /^[0-9A-Za-z.-]{1,40}$/
+const SHA256_HEX = /^[0-9a-f]{64}$/
+const PLACEHOLDER_SHA = '0'.repeat(64)
+// The keys a notice block or /privacy renders by prefix. Each must be pinned.
+const NOTICE_PREFIX = /^(notice|consent|privacy)\./
 
 const LANGS = ['en', 'hi', 'ta', 'te', 'ml', 'kn', 'mr', 'bn']
 
@@ -59,6 +93,7 @@ const CHECKS = [
   'figures vs English',
   'Latin digits only',
   'figures vs schemes.json',
+  'notice text vs recorded version',
 ]
 
 // Values that are legitimately identical to English: proper nouns, bare numbers,
@@ -112,28 +147,57 @@ function judge(want, got, entry, wantSide, gotSide) {
 
 const codePoint = (c) => 'U+' + c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')
 
+// The layout every check reads. A language's dict opens with `const xx = {`
+// alone on its line (a trailing // comment is allowed) and closes at the next
+// line that starts with `}`. Each line inside it is blank, a // comment, or one
+// whole entry written `  'key': 'value',`: two spaces, single quotes with \' for
+// an apostrophe, and the trailing comma. parse() throws on any other line there,
+// and on a language dict opened any other way, so the run exits 2. It used to
+// skip such a line, which hid its key from every check: a trailing comment,
+// double quotes or a re-indent each did that, silently. A file whose en dict is
+// missing or empty throws too: there is no English to compare the others with.
+// Declarations of any other name, and the lines between dicts, are not read.
+const DECLARES = /^(?:export\s+)?(?:const|let|var)\s+([\w$]+)/
+const OPENER = /^const (\w+) = \{\s*(?:\/\/.*)?$/
+const ENTRY = /^ {2}'([^']+)': '((?:[^'\\]|\\.)*)',$/
+const BLANK_OR_COMMENT = /^\s*(?:\/\/.*)?$/
+
 function parse(file) {
   const text = readFileSync(resolve(ROOT, file), 'utf8')
   const dicts = {}
   let lang = null
 
-  for (const line of text.split(/\r?\n/)) {
-    const open = line.match(/^const (\w+) = \{/)
-    if (open) {
-      lang = open[1]
-      dicts[lang] = { order: [], map: new Map(), dupes: [] }
-      continue
+  text.split(/\r?\n/).forEach((line, i) => {
+    const at = file + ':' + (i + 1) + ': '
+    if (/^\}/.test(line)) { lang = null; return }
+
+    if (lang) {
+      if (BLANK_OR_COMMENT.test(line)) return
+      const entry = line.match(ENTRY)
+      if (!entry) {
+        throw new Error(at + 'cannot read this line of the ' + lang + ' dict, so no check would see what it holds: ' +
+          JSON.stringify(line) + ". A line in a dict is blank, a // comment, or one whole entry written  'key': 'value',")
+      }
+      const [, key, value] = entry
+      if (dicts[lang].map.has(key)) dicts[lang].dupes.push(key)
+      dicts[lang].order.push(key)
+      dicts[lang].map.set(key, value)
+      return
     }
-    if (!lang) continue
 
-    // Only top-level entries of the dict, single-quoted key, single-quoted value.
-    const entry = line.match(/^ {2}'([^']+)': '(.*)',$/)
-    if (!entry) continue
+    const name = line.match(DECLARES)?.[1]
+    if (!LANGS.includes(name)) return
+    if (!OPENER.test(line)) {
+      throw new Error(at + 'the ' + name + ' dict must open with `const ' + name + ' = {` alone on its line, ' +
+        'or no check can read it: ' + JSON.stringify(line))
+    }
+    lang = name
+    dicts[lang] = { order: [], map: new Map(), dupes: [] }
+  })
 
-    const [, key, value] = entry
-    if (dicts[lang].map.has(key)) dicts[lang].dupes.push(key)
-    dicts[lang].order.push(key)
-    dicts[lang].map.set(key, value)
+  if (!dicts.en?.map.size) {
+    throw new Error(file + ': ' + (dicts.en ? 'the en dict has no entries' : 'no `const en = {` dict') +
+      ', so there is no English to compare the other languages with')
   }
   return dicts
 }
@@ -159,8 +223,7 @@ const digitAllowWrong = new Set()
 
 for (const file of FILES) {
   const dicts = parsed[file]
-  const en = dicts.en
-  if (!en) { console.log(file); fail(1, 'no `en` dict found'); continue }
+  const en = dicts.en // parse() threw if it is missing or empty
 
   console.log('\n' + file + '  (' + en.map.size + ' keys in en)')
 
@@ -313,6 +376,152 @@ if (schemes) {
   console.log('  ' + pairs.length + ' sentences across ' + schemes.length + ' schemes compared: ' + tally[8] + ' failing, ' +
     sourceAllowUsed.size + ' allowlisted' + (sourceAllowUsed.size ? ' (' + [...sourceAllowUsed].join(', ') + ')' : ''))
   if (uncoded) console.log('  ' + uncoded + ' sentence(s) carry no code and were not compared')
+}
+
+// --- 9: the notice text vs the version recorded for it ----------------------
+// The hash covers the text only, not the version, so "text changed, version
+// kept" can be told apart from a stale record. It hashes the raw source text
+// parse() read (the dictionaries import each other extensionlessly, which Node
+// cannot resolve), so re-escaping a value changes it with no visible change:
+// that fails safe. parse() strips \r, so CRLF and LF checkouts hash the same. It
+// covers the templates, not the deployment values filled into {fiduciary},
+// {contact} or {days}.
+
+console.log('\n' + NOTICE_FILE + ' vs ' + NOTICE_RECORD)
+let notice = null
+try {
+  notice = await import(pathToFileURL(resolve(ROOT, NOTICE_FILE)).href)
+} catch (error) {
+  fail(9, 'cannot import ' + NOTICE_FILE + ': ' + error.message + ' (it must be a plain module with no imports)')
+}
+if (notice) {
+  const version = notice.NOTICE_VERSION
+  const keys = notice.NOTICE_KEYS
+  const versionOk = typeof version === 'string' && NOTICE_VERSION_RULE.test(version)
+  if (!versionOk) {
+    fail(9, 'NOTICE_VERSION ' + JSON.stringify(version) +
+      ' must be 1-40 characters of 0-9 A-Z a-z . - (the backend rejects anything else)')
+  }
+
+  let keysOk = Array.isArray(keys) && keys.length > 0 && keys.every((k) => typeof k === 'string')
+  if (!keysOk) fail(9, 'NOTICE_KEYS must be a non-empty array of strings')
+  const listed = new Set(keysOk ? keys : [])
+  // /privacy renders SENT_FIELD_KEYS, in this order, as the list of what is sent.
+  const sent = notice.SENT_FIELD_KEYS
+  const sentOk = Array.isArray(sent) && sent.length > 0 && sent.every((k) => typeof k === 'string')
+  if (!sentOk) fail(9, 'SENT_FIELD_KEYS must be a non-empty array of strings')
+
+  if (keysOk) {
+    const seen = new Set()
+    for (const key of keys) {
+      if (seen.has(key)) { keysOk = false; fail(9, 'NOTICE_KEYS lists ' + key + ' twice'); continue }
+      seen.add(key)
+      const file = owner.get(key)
+      if (!file) { keysOk = false; fail(9, 'NOTICE_KEYS ' + key + ' is not an English key in any dictionary file'); continue }
+      for (const lang of LANGS) {
+        if (!parsed[file][lang]?.map.has(key)) { keysOk = false; fail(9, 'NOTICE_KEYS ' + key + ' has no ' + lang + ' value in ' + file) }
+      }
+    }
+
+    // The notice blocks render every notice.*, consent.* and privacy.* key and
+    // /privacy renders every SENT_FIELD_KEYS label, so an unlisted one would
+    // change the notice without changing the hash.
+    if (sentOk) {
+      for (const key of sent) {
+        if (!listed.has(key)) fail(9, 'SENT_FIELD_KEYS ' + key + ' is rendered on /privacy but NOTICE_KEYS does not list it, so the hash does not cover it')
+      }
+    }
+    for (const key of owner.keys()) {
+      if (NOTICE_PREFIX.test(key) && !listed.has(key)) {
+        fail(9, key + ' is a notice key (notice.*, consent.* or privacy.*) but NOTICE_KEYS does not list it, so the hash does not cover it')
+      }
+    }
+  }
+
+  // t() looks a key up in the dialect first, so an override would put words on
+  // the page that the hash never saw. t() reads DIALECT_PHRASES[dialect][key],
+  // so this can vouch only for that shape: a plain object of plain objects whose
+  // keys are English keys. Anything else fails 9. A renamed export, a string, an
+  // array or a nested object used to give this loop nothing to look at, and pass.
+  let dialects = null
+  let imported = false
+  try {
+    dialects = (await import(pathToFileURL(resolve(ROOT, LANGUAGES_FILE)).href)).DIALECT_PHRASES
+    imported = true
+  } catch (error) {
+    fail(9, 'cannot import ' + LANGUAGES_FILE + ': ' + error.message)
+  }
+  // Object.keys() has to see every key t() can find, so the prototype must be
+  // Object.prototype or null: any other could hold more.
+  const plain = (v) => v !== null && typeof v === 'object' && [Object.prototype, null].includes(Object.getPrototypeOf(v))
+  const kind = (v) => Object.prototype.toString.call(v).slice(8, -1)
+  if (imported && !plain(dialects)) {
+    fail(9, LANGUAGES_FILE + ' must export DIALECT_PHRASES as a plain object of dialect overrides, and ' +
+      (dialects === undefined ? 'it exports none' : 'it is ' + kind(dialects)) + ', so no override of the notice can be checked')
+  }
+  for (const [dialect, phrases] of plain(dialects) ? Object.entries(dialects) : []) {
+    if (!plain(phrases)) {
+      fail(9, "DIALECT_PHRASES['" + dialect + "'] is " + kind(phrases) +
+        ', not a plain object of { key: text } overrides, so its overrides cannot be checked')
+      continue
+    }
+    for (const key of Object.keys(phrases)) {
+      if (listed.has(key)) {
+        fail(9, 'NOTICE_KEYS ' + key + " is overridden by DIALECT_PHRASES['" + dialect +
+          "'], so the rendered notice differs from the hashed text. Remove the override")
+      } else if (!owner.has(key)) {
+        fail(9, "DIALECT_PHRASES['" + dialect + "'] overrides " + key + ', which is not an English key in any ' +
+          'dictionary file, so this check cannot tell what it replaces')
+      }
+    }
+  }
+
+  let sha = null
+  if (keysOk && sentOk) {
+    let blob = ''
+    for (const key of [...keys].sort()) {
+      for (const lang of LANGS) blob += lang + '\t' + key + '\t' + parsed[owner.get(key)][lang].map.get(key) + '\n'
+    }
+    // Which labels the "what is sent" list shows, and in what order. The labels'
+    // text is covered above; this covers a field added to, dropped from or moved
+    // in the list, which changes the page without changing any value.
+    blob += 'sent\t' + sent.join(',') + '\n'
+    sha = createHash('sha256').update(blob, 'utf8').digest('hex')
+  }
+
+  let record = null
+  let readable = true
+  try {
+    record = JSON.parse(readFileSync(resolve(ROOT, NOTICE_RECORD), 'utf8'))
+  } catch (error) {
+    readable = false
+    fail(9, 'cannot read ' + NOTICE_RECORD + ': ' + error.message)
+  }
+  if (readable && !(record?.constructor === Object && typeof record.version === 'string' && SHA256_HEX.test(record.sha256))) {
+    fail(9, NOTICE_RECORD + ' must be {"version": "...", "sha256": "<64 hex>"}')
+    record = null
+  }
+
+  const want = (v) => '{"version":"' + v + '","sha256":"' + sha + '"}'
+  if (record && sha && versionOk) {
+    const sameText = record.sha256 === sha
+    if (record.sha256 === PLACEHOLDER_SHA) {
+      fail(9, NOTICE_RECORD + ' holds the placeholder sha256 (64 zeros), so no notice text is recorded yet. Once the notice text is final, set it to ' + want(version))
+    } else if (record.version === version && !sameText) {
+      fail(9, 'the notice text changed but NOTICE_VERSION is still ' + version + '. Bump NOTICE_VERSION in ' + NOTICE_FILE +
+        ' and set ' + NOTICE_RECORD + ' to {"version":"<new>","sha256":"' + sha + '"}')
+    } else if (record.version !== version && sameText) {
+      fail(9, 'NOTICE_VERSION was bumped to ' + version + ' but the notice text is unchanged (sha256 matches the record for ' +
+        record.version + '). Revert the bump, or record ' + want(version))
+    } else if (record.version !== version) {
+      fail(9, 'NOTICE_VERSION is ' + version + ' but ' + NOTICE_RECORD + ' records ' + record.version + '. Set it to ' + want(version))
+    } else {
+      console.log('  ' + keys.length + ' keys x ' + LANGS.length + ' languages, NOTICE_VERSION ' + version + ', sha256 ' +
+        sha.slice(0, 12) + '... matches ' + NOTICE_RECORD)
+    }
+  } else if (sha) {
+    console.log('  sha256 ' + sha + ' not compared with ' + NOTICE_RECORD + ': fix the failures above first')
+  }
 }
 
 const failing = CHECKS.map((name, i) => [name, tally[i + 1]]).filter(([, n]) => n)

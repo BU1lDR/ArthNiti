@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.schemas.limits import MAX_RUPEES
+from app.schemas.limits import MAX_CATEGORY_LENGTH, MAX_PLACE_LENGTH, MAX_RUPEES
 
 
 class AdvisoryRequest(BaseModel):
@@ -20,6 +20,7 @@ class AdvisoryRequest(BaseModel):
         default=None, ge=0, le=MAX_RUPEES, allow_inf_nan=False
     )
 
-    state: Optional[str] = None
-    district: Optional[str] = None
-    business_category: Optional[str] = None
+    # Capped like every text field; see limits.py.
+    state: Optional[str] = Field(default=None, max_length=MAX_PLACE_LENGTH)
+    district: Optional[str] = Field(default=None, max_length=MAX_PLACE_LENGTH)
+    business_category: Optional[str] = Field(default=None, max_length=MAX_CATEGORY_LENGTH)

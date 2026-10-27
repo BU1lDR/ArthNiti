@@ -114,8 +114,11 @@ export default function SchemesPage() {
               {/* The heading names the office and the line under it says where
                   the reader would physically go. That pairing is the point of
                   showing the tier at all — 'Block' on its own means nothing to
-                  someone who has never been sent to a block office. */}
-              <div className="ui-card-soft">
+                  someone who has never been sent to a block office. Its side
+                  padding is the scheme cards' own, so its icon starts on the
+                  same line as the icons in the cards under it: at the default
+                  20px it sat 12px to their left. */}
+              <div className="ui-card-soft sm:px-8">
                 <div className="flex min-w-0 items-start gap-3">
                   <div className="ui-feature-icon shrink-0" aria-hidden="true">{LEVEL_ICONS[group.level] || '🏛️'}</div>
                   <div className="min-w-0">

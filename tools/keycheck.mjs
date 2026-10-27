@@ -29,6 +29,20 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
+// Exit 0: nothing found. 1: a finding. 2: the run could not check: the wrong
+// working directory, an input file gone missing, a JSON input that does not
+// parse, a dictionary file it reads no `en` key from, an `en` line whose key it
+// cannot read, a map it reads from backendText.js (CATEGORY_KEYS, LEVEL_KEYS,
+// COMMODITY_KEYS) that is not there, holds a line it cannot read or has no
+// entries, or any other crash. A dictionary or map it could not read used to
+// become findings for keys and values it never compared. Node's own exit on an
+// uncaught error is also 1, which read as a finding, so anything thrown that
+// nothing catches exits 2 instead.
+process.on('uncaughtException', (error) => {
+  console.error(error)
+  process.exit(2)
+})
+
 const DICTS = [
   'frontend/src/i18n/strings.js',
   'frontend/src/i18n/resultStrings.js',
@@ -48,19 +62,35 @@ const MARKET_NIC_MAP = 'tools/market-nic-map.json'
 const MARKET_COMMODITIES = 'tools/market-commodities.json'
 
 // --- what is defined -------------------------------------------------------
-// Same line-oriented parse parity4.mjs uses: `const en = {` opens a dict, and a
-// key line is `  'some.key': '...'`. Only `en` matters here — parity4 already
-// guarantees the other seven carry the same keys.
+// A looser form of parity4.mjs's line parse: `const en = {` opens the dict, the
+// next line starting `}` closes it, and a key line is any line in it that starts,
+// at any indent, with `'some.key':`. Only `en` matters here — parity4 already
+// guarantees the other seven carry the same keys. A key this misses would make
+// every use of it a false finding, so it throws (exit 2) on an `en` line that
+// starts like an entry but not with a single-quoted key, and on a file it reads
+// no `en` key from. parity4 refuses, with a 2, every layout but its own.
+const ENTRY_SHAPED = /^\s*["'][^"']+["']\s*:/
 const defined = new Map() // key -> file it came from
 for (const path of DICTS) {
   let lang = null
-  for (const line of readFileSync(path, 'utf8').split(/\r?\n/)) {
+  let found = 0
+  readFileSync(path, 'utf8').split(/\r?\n/).forEach((line, i) => {
     const open = line.match(/^const (\w+) = \{/)
     if (open) lang = open[1]
     if (/^\}/.test(line)) lang = null
-    if (lang !== 'en') continue
+    if (lang !== 'en') return
     const kv = line.match(/^\s*'([^']+)':/)
-    if (kv) defined.set(kv[1], path)
+    if (kv) {
+      defined.set(kv[1], path)
+      found++
+    } else if (ENTRY_SHAPED.test(line)) {
+      throw new Error(`${path}:${i + 1}: cannot read the key on this en line, so every use of it would be a false ` +
+        `finding: ${JSON.stringify(line)}. Write the key in single quotes, then the colon: 'some.key':`)
+    }
+  })
+  if (!found) {
+    throw new Error(`${path}: no en key read (no \`const en = {\` line, or no line in it starts 'some.key':), so ` +
+      'every key it defines would be a false finding')
   }
 }
 
@@ -175,12 +205,33 @@ for (const [category, entry] of Object.entries(JSON.parse(readFileSync(MARKET_NI
 //    MAP ENTRY rather than a missing dictionary key, and only comparing the map
 //    against the dataset can see it.
 const backendTextSrc = readFileSync(BACKEND_TEXT, 'utf8')
+// Every line of a map, from the rest of its opening line to the `}` that starts
+// a line, is blank, a // comment, or one entry: a bare or single-quoted key, a
+// colon, a single-quoted value, an optional comma, an optional // comment.
+// Anything else throws (exit 2), and so does a map with no entries: a line this
+// skipped used to leave its value unmapped, a false finding, and a map it could
+// not read at all made every value one.
+const MAP_ENTRY = /^\s*(?:'([^'\\]+)'|([\w$]+))\s*:\s*'([\w.]+)',?\s*(?:\/\/.*)?$/
 const mapEntries = (mapName) => {
-  const open = backendTextSrc.indexOf(`const ${mapName} = {`)
+  const opener = `const ${mapName} = {`
+  const open = backendTextSrc.indexOf(opener)
   if (open < 0) return null
-  const body = backendTextSrc.slice(open, backendTextSrc.indexOf('\n}', open))
+  const close = backendTextSrc.indexOf('\n}', open)
+  const firstLine = backendTextSrc.slice(0, open).split('\n').length
   const out = new Map()
-  for (const m of body.matchAll(/^\s*'?([\w -]+?)'?:\s*'([\w.]+)',/gm)) out.set(m[1], m[2])
+  backendTextSrc.slice(open + opener.length, close < 0 ? undefined : close).split('\n').forEach((raw, i) => {
+    const line = raw.trimEnd()
+    if (/^\s*(?:\/\/.*)?$/.test(line)) return
+    const m = line.match(MAP_ENTRY)
+    if (!m) {
+      throw new Error(`${BACKEND_TEXT}:${firstLine + i}: cannot read this ${mapName} line, so the value it maps ` +
+        `would be reported unmapped: ${JSON.stringify(raw)}`)
+    }
+    out.set(m[1] ?? m[2], m[3])
+  })
+  if (!out.size) {
+    throw new Error(`${BACKEND_TEXT}: ${mapName} has no entries, so every value checked against it would be reported unmapped`)
+  }
   return out
 }
 
@@ -193,10 +244,10 @@ const unmappedValues = []
 // [''] and the suffix is used as-is.
 const checkMapped = (mapName, values, what, keyPrefixes) => {
   const map = mapEntries(mapName)
-  if (!map) {
-    unmappedValues.push(`  ${mapName} not found in ${BACKEND_TEXT} — cannot check ${what}`)
-    return
-  }
+  // Not found means backendText.js no longer declares `const NAME = {`. Nothing
+  // was compared, so it throws and exits 2: it used to count as one unmapped
+  // value, a finding, for a check that never ran.
+  if (!map) throw new Error(`${mapName} not found in ${BACKEND_TEXT}: cannot check ${what}`)
   for (const value of [...values].sort()) {
     if (!map.has(value)) {
       unmappedValues.push(`  ${what} ${JSON.stringify(value)} has no ${mapName} entry`)

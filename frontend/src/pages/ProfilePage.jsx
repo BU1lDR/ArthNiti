@@ -1,6 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
+import ShortNotice from '../components/ShortNotice'
 import { useI18n } from '../i18n/LanguageContext'
 import { LANGUAGES } from '../i18n/languages'
 
@@ -19,8 +20,11 @@ function ProfilePage() {
 
   // The picker here and the one in the header are the same setting, so this
   // writes through to the language context rather than keeping a second copy.
-  // It also mirrors the choice onto `profile` because that is what the request
-  // payload and the report read.
+  // It also mirrors the choice onto `profile`, which only isStarted() reads, so
+  // Start over is offered once a language is picked. Nothing sends it and
+  // nothing prints it: the request and the report both read the language
+  // context, and the request carries the language only as part of the consent
+  // record.
   const handleLanguageChange = (event) => {
     const code = event.target.value
     const entry = LANGUAGES.find((item) => item.code === code)
@@ -55,6 +59,8 @@ function ProfilePage() {
         <p className="ui-page-subtitle">{t('profile.subtitle')}</p>
       </div>
 
+      <ShortNotice className="mb-6" />
+
       <form onSubmit={handleContinue} className="space-y-6">
         <div className="ui-formsection">
           <div className="ui-formsection-head">
@@ -66,7 +72,7 @@ function ProfilePage() {
               <label className="text-base font-extrabold" htmlFor="profile-name">
                 {t('profile.name')}<span className="ui-required" aria-hidden="true">*</span>
               </label>
-              <input id="profile-name" name="name" value={profile.name} onChange={handleChange} type="text" placeholder={t('profile.namePh')} className={fieldClass} autoComplete="name" required />
+              <input id="profile-name" name="name" value={profile.name} onChange={handleChange} type="text" placeholder={t('profile.namePh')} className={fieldClass} autoComplete="off" required />
             </div>
 
             <div>

@@ -1378,6 +1378,31 @@ summary:focus-visible {
   margin-bottom: auto;
 }
 
+/* A checkbox with its sentence: the box in one column, the text in the other, so
+   a label that wraps to three lines in Tamil stays indented beside the box rather
+   than running back under it. The whole label is the click target.
+
+   accent-color rather than a hand-drawn box: the native control keeps its own
+   keyboard, focus and checked-state behaviour, and `color-scheme: dark` on the
+   dark theme already recolours its unchecked face. The coarse-pointer block
+   below grows the box to 44px. */
+.ui-check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.ui-check > input[type="checkbox"] {
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0.15rem 0 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
 /* The ₹ marker on a money input.
    It used to sit at the end of the question, after the question mark, as one more
    inline span in the label. That put a unit annotation inside a wrapping sentence,
@@ -1594,6 +1619,34 @@ summary:focus-visible {
   color: var(--color-danger);
 }
 
+/* The large figures on the result pages get the same guarantee by another route:
+   the monthly figure at the top of /analysis and the money and margin tiles on
+   /analysis and /report. The form accepts up to ₹100 crore, and the longest
+   figures that allows, ₹1,00,00,00,000 and a margin of -99,99,99,99,900%, are
+   wider than a tile at the tile's own size. Measured 29 Sept 2026 in Edge, they
+   broke mid-number in 26 of 432 measurements, 24 of them at the largest text
+   scale: the monthly figure on a 360px phone, the funding-gap tile on /analysis
+   at 1024 and 1100px, and the margin tile at 640px and from 1024px up on
+   /analysis and at 1024 and 1100px on /report. Kept on one line and nothing
+   more, they would run out of the tile instead, so they also shrink, and only
+   when they would not fit.
+
+   The element around the figure is a size container, so 100cqi is the width the
+   figure has, and Figure.jsx sets --figure-chars to its length. 0.6em is a
+   generous width per character: the two figures above measure 0.49em and 0.51em
+   a character in bold Segoe UI, because the commas are narrow. A figure that fits
+   keeps 1em, the size of the line it sits in.
+
+   Behind @supports because a browser without container units would keep the
+   figure on one line at full size and let it run out of the tile. There it wraps
+   as it did before. */
+@supports (font-size: 1cqi) {
+  .ui-figure {
+    white-space: nowrap;
+    font-size: min(1em, 100cqi / (var(--figure-chars) * 0.6));
+  }
+}
+
 .ui-bar-track {
   position: relative;
   height: 26px;
@@ -1777,7 +1830,10 @@ summary:focus-visible {
   justify-content: space-between;
   gap: 10px;
   color: var(--color-text-muted);
-  font-size: 0.78rem;
+  /* 0.78rem is 11.7px at the smallest text scale (0.94), under the 12px floor
+     mobile-audit holds text to, so it is clamped there. At the default scale and
+     above the rem value wins, as before. */
+  font-size: max(12px, 0.78rem);
 }
 
 @media (max-width: 800px) {
@@ -1886,6 +1942,28 @@ summary:focus-visible {
     min-width: 44px;
   }
 
+  /* The privacy notice link on the footer's bottom line stands alone, like the
+     breadcrumb's "Home", and it is a flex item there, so it is not the inline
+     phrase-link mobile-audit exempts. */
+  .ui-footer-bottom a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* The consent and zero-income checkboxes. A 1.35rem box is a 21px target, and
+     the label around it does not help the audit, which measures the input. */
+  .ui-check {
+    min-height: 44px;
+  }
+
+  .ui-check > input[type="checkbox"] {
+    width: 44px;
+    height: 44px;
+    margin-top: 0;
+  }
+
   /* The masthead's 76px minimum plus a wrapped brand block left a lot of dead
      space above the fold on a 740px-tall screen. */
   .ui-masthead-inner {
@@ -1898,7 +1976,7 @@ summary:focus-visible {
 }
 
 /* Long unbroken strings are the other narrow-screen failure: a district name, a
-   scheme name, an email typed on /login, or a Rs. figure with no spaces will
+   scheme name, a name typed on /login, or a Rs. figure with no spaces will
    push out of its card at 360px where it fitted at 1440px. `overflow-wrap`
    breaks only when there is no other option, so ordinary prose is untouched. */
 @media (max-width: 640px) {
@@ -2106,7 +2184,8 @@ summary:focus-visible {
      tricolour band and the whole government footer, helpline column and all,
      printed onto the sheet. Hiding a parent removes its `-inner` children from
      layout too, so those need no separate entry. Measured by print-audit.mjs,
-     which reports a class matching no element as a dead rule for this reason. */
+     which exits 2 when this list names a class its own list does not, or when
+     no audited route has an element carrying a class its list names. */
   .ui-utilitybar,
   .ui-masthead,
   .ui-tricolour,
@@ -2149,5 +2228,18 @@ summary:focus-visible {
 
   .ui-disclosure-body {
     display: grid !important;
+  }
+
+  /* The rule above was never enough. A closed <details> keeps its contents off
+     the page with `content-visibility: hidden` on its ::details-content
+     pseudo-element (Chromium's UA stylesheet), and no `display` on a descendant
+     undoes that. So a collapsed disclosure printed as a 2px border: the figures
+     of "Show detailed numbers" on /report, and the retention text of the privacy
+     notice on /privacy. This reaches the pseudo-element itself. It is a rule of
+     its own because a browser that does not know ::details-content drops the
+     whole selector list it appears in. Measured by print-audit.mjs, whose
+     DETAILS check tests for paint (checkVisibility), not for a rect. */
+  .ui-disclosure::details-content {
+    content-visibility: visible;
   }
 }

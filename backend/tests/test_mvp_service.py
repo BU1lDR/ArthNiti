@@ -220,7 +220,10 @@ def test_infeasible_business_generates_review_action():
     assert "business plan" in result["next_step"].lower()
 
 
-def test_language_and_accessibility_context_is_preserved():
+def test_the_summary_does_not_echo_language_dialect_or_literacy():
+    # The page already holds the reader's language, dialect and literacy level,
+    # and no rule here reads them, so the summary no longer repeats them.
+    # location_type is added by run_unified_analysis, not here.
     result = build_mvp_summary(
         financial_analysis={
             "financial_status": "profitable",
@@ -234,14 +237,16 @@ def test_language_and_accessibility_context_is_preserved():
         advisory={
             "recommendations": [],
         },
-        user_language="Hindi",
-        preferred_dialect="Haryanvi",
-        literacy_level="low",
     )
 
-    assert result["language"] == "Hindi"
-    assert result["preferred_dialect"] == "Haryanvi"
-    assert result["literacy_level"] == "low"
+    assert set(result) == {
+        "status",
+        "simple_message",
+        "message_code",
+        "next_step",
+        "next_step_code",
+        "priority",
+    }
 
 
 def test_no_capital_against_a_large_plan_is_not_told_to_keep_going():

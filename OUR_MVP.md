@@ -5,19 +5,19 @@
 > **Rule:** this file describes the MVP **as it exists in the repository**. When you change the build, change this file in the same commit. Anything not yet built is labelled **PLANNED** — never write a planned thing as though it works.
 > **Engineering detail lives in [CLAUDE.md](CLAUDE.md)** — exact file paths, response keys, thresholds, known traps. This file is the product/team view; CLAUDE.md is the code view. If they disagree, CLAUDE.md is newer.
 
-**Status as of 25 September 2026.** We built this for the SIH 2026 internal college round, held on 14 September 2026 after being moved from 11 September, and we were **not selected**. The project continues on its own. The owner, Aryan Verma, decided its direction on 23 September 2026: it is a portfolio piece, and mainly a product to sell to businesses that serve real users. The project and the scheme data belong to the owner and the code is proprietary (see `LICENSE`). The hyperlocal claim stays, and since 24 September 2026 it is backed by 20 sourced rows for Lucknow and Varanasi from data.gov.in under GODL-India (see `DATA_SOURCES.md`). DPDP compliance is in scope. CLAUDE.md, "Decided by the owner", has the details and the two questions still open. The table below describes branch `fix/standalone-backlog` on 25 September 2026: an optional household-income question and the RBI 50% household check, a confirmation before Start over, input caps, and CI. That work is committed locally and nothing of it is pushed (§11). Sections 16, 17, 19 (demo risks), 20 and 25 were written for the round and are kept as history.
+**Status as of 27 September 2026.** We built this for the SIH 2026 internal college round, held on 14 September 2026 after being moved from 11 September, and we were **not selected**. The project continues on its own. The owner, Aryan Verma, decided its direction on 23 September 2026: it is a portfolio piece, and mainly a product to sell to businesses that serve real users. The project and the scheme data belong to the owner and the code is proprietary (see `LICENSE`). The hyperlocal claim stays, and since 24 September 2026 it is backed by 20 sourced rows for Lucknow and Varanasi from data.gov.in under GODL-India (see `DATA_SOURCES.md`). The DPDP Act is in scope: in a deployment the client organisation is the Data Fiduciary and we are its Data Processor. CLAUDE.md, "Decided by the owner", has the details and the two questions still open. The table below describes the working tree of branch `feature/dpdp-compliance` on 27 September 2026. That is `fix/standalone-backlog` (an optional household-income question and the RBI 50% household check, a confirmation before Start over, input caps, and CI), which is committed locally, plus the privacy and deployment work in Feature 16, which is not committed yet. Nothing of either is pushed (§11). Sections 16, 17, 19 (demo risks), 20 and 25 were written for the round and are kept as history.
 
 | | |
 |---|---|
 | Project name | **अर्थNiti** (frozen) |
 | Phase | Working prototype. The hackathon ended, so the feature freeze no longer applies. It continues as a standalone project |
-| Backend | Runs. 8 routers, 606 passing tests |
-| Frontend | Runs. 10 routes plus a catch-all, full journey works end to end |
+| Backend | Runs. 8 routers in development, 2 in production; 867 passing tests |
+| Frontend | Runs. 11 routes plus a catch-all, full journey works end to end |
 | Integration | Done — one API call carries the whole journey |
 | Datasets | 30 government schemes across 7 tiers, 20 sourced market rows (Lucknow + Varanasi, data.gov.in, GODL-India) |
 | Languages | 8 UI languages + a dialect phrase layer. **Backend prose is translated too** — see §2.6 |
 | LLM / AI model | **None. Zero model calls.** See §15 |
-| Database | **None.** Answers persist in the browser tab (`sessionStorage`) only — see §8 |
+| Database | **None.** Answers are kept in the browser tab (`sessionStorage`), sent once to work out the result, and stored nowhere — see §6 and §8 |
 | Presentation | Delivered at the 14 September round (Saad + Tripti) |
 
 ---
@@ -83,7 +83,7 @@ Of the ten questions the blueprint set out to answer, here is where the MVP actu
    - **8 languages** — English, Hindi, Tamil, Telugu, Malayalam, Kannada, Marathi, Bengali — each listed in its own script with a sample line, so a reader who cannot read English can find their own language. **Hindi is the default**, not English.
    - **The generated advice and the scheme text change with it.** Every sentence a Python service composes carries a translation code beside it, and the frontend resolves the code to the reader's language. So do not say "the labels are translated" — the *output* is. On stage this is the single strongest moment in the walkthrough, and a **result** page is a better place to show it than a form page.
    - **A dialect phrase layer** on top: 30 varieties listed, of which **9 carry curated phrase overrides** for the highest-visibility strings (the greeting, the call to action, the words for money). Anything not overridden falls through to the language, so every dialect is a fully usable UI. Say **"dialect-aware phrasing"** — not "translated into Bhojpuri".
-   - **What is still English, say this if asked:** an enum value the label maps do not recognise falls back to a title-cased English word; a scheme added to `schemes.json` without codes falls back to its English prose; digits stay Latin and money stays `en-IN`-grouped on purpose, because that is what is printed on Indian currency and on government forms; and **the non-English wording has not been reviewed by a native speaker** (693 keys × 8 languages — parity, placeholders and the figures in each sentence are script-verified, naturalness is not).
+   - **What is still English, say this if asked:** an enum value the label maps do not recognise falls back to a title-cased English word; a scheme added to `schemes.json` without codes falls back to its English prose; digits stay Latin and money stays `en-IN`-grouped on purpose, because that is what is printed on Indian currency and on government forms; and **the non-English wording has not been reviewed by a native speaker** (732 keys × 8 languages — parity, placeholders and the figures in each sentence are script-verified, naturalness is not).
 7. **Responsible — DELIVERED.** A non-positive surplus short-circuits to `high` risk. When the reader gives their household income, all household loan payments are checked against half of it, and a household over that line is told not to take the new loan, or to take a smaller one. The check never says a lender will lend. Nothing in the app recommends borrowing a specific amount. Scheme cards carry a verify-with-the-authority disclaimer, and the market section names each dataset it draws on, prints its GODL-India attribution, and says the publishers do not endorse the app and give no warranty.
 
 ---
@@ -92,26 +92,27 @@ Of the ten questions the blueprint set out to answer, here is where the MVP actu
 
 ## The journey as built
 
-Ten frontend routes, plus a catch-all for typo'd URLs:
+Eleven frontend routes, plus a catch-all for typo'd URLs:
 
 ```text
 /               Landing page — hero, what we offer, how it works, and the
                 instruction manual (a walkthrough of all eight screens)
     ↓
-/login          OPTIONAL — name, phone, address, email. Nothing is
-                authenticated and there is no password; it only carries the
-                name into step 1. Do not present it as auth (§4.1)
+/login          OPTIONAL — a name, nothing else. Nothing is authenticated
+                and there is no password; it only carries the name into
+                step 1. Do not present it as auth (§4.1)
     ↓
-/profile        Step 1 of 4 — name, language, dialect, literacy level
+/profile        Step 1 of 4 — name, language, dialect
     ↓
 /business       Step 2 of 4 — category (9 buttons), business name, investment,
-                monthly sales, monthly operating expenses, employees, existing debt
+                monthly sales, monthly operating expenses, existing debt
     ↓
 /location       Step 3 of 4 — village, state → district (cascading dropdowns,
                 36 states/UTs × 768 districts), location type, market type, customers
     ↓
 /finance        Step 4 of 4 — available capital, monthly expenses (incl. household), monthly EMI,
-                household monthly income (optional)
+                household monthly income (optional), and an unticked box agreeing
+                to the privacy notice: nothing is sent until it is ticked
     ↓
         ── ONE API CALL: POST /api/analysis/run ──
     ↓
@@ -124,6 +125,9 @@ Ten frontend routes, plus a catch-all for typo'd URLs:
 /report         Print/PDF-ready one-page summary of everything
     ↓
 *               NotFoundPage
+
+/privacy        The full privacy notice, outside the journey, linked from
+                the footer of every page
 ```
 
 The whole assessment is one HTTP request. That is deliberate: fewer moving parts to fail on a projector.
@@ -138,7 +142,7 @@ The one tier no Uttar Pradesh pick reaches is `regional`: UNNATI is North-East-o
 
 **Say "six of the seven tiers", not seven — no single input reaches all seven.** This paragraph used to say "if a judge asks to see all seven, use Assam", and that was wrong: Assam reaches six, swapping `regional` in for `state`. Measured over every named state × 8 categories × 3 settlement types, **six is the maximum**, because the six states with their own state scheme (Uttar Pradesh, Maharashtra, Tamil Nadu, Kerala, West Bengal, Karnataka) and the twelve reached by a regional scheme (the North-East plus Himachal Pradesh, Uttarakhand, J&K and Ladakh) **do not overlap**. The dataset does span all seven tiers — that claim is about the 30 schemes in the file and is safe to make. Reaching all seven *on one screen* would need a state scheme for a North-Eastern or border state, which is a dataset gap, not a bug. If a judge asks specifically to see a **regional** scheme, use **Assam** and expect no state tier and no market row.
 
-Also give the location step a **village name, a market type and a customer description**. All three flow into `market_context[].local_context` and are printed back to the entrepreneur — that read-back is what makes the hyperlocal claim land.
+Also give the location step a **village name, a market type and a customer description**. `/report` prints all three back, and each market card on `/analysis` prints the market type. Since 27 September 2026 they are read from the tab and never sent: the backend never used them, so they no longer leave the browser. The hyperlocal claim rests on the district market rows, not on this read-back.
 
 ## The exact demo payload, and what it returns
 
@@ -189,7 +193,7 @@ This section read **"State lives only in React memory … a page refresh wipes e
 - **A refresh no longer loses anything** within the tab. This was our single largest demo risk and it is closed.
 - **`sessionStorage`, not `localStorage`, and that is deliberate** — someone's revenue, debt and EMI must not sit on a shared demo laptop after they walk away, and a closed tab being a clean slate is exactly what we want between two judges.
 - **Language, dialect, theme and text size are in `localStorage` instead**, because a display preference is not personal financial data and *should* outlive the tab.
-- **"Start over" in the utility bar is the only way back to a blank form** without closing the tab. It appears only once there is something to lose. **Since 25 September 2026 it asks first**: a dialog says everything entered in this tab will be removed and cannot be got back, and "No" is the first button and takes the focus. `/report` also carries a line, hidden on paper, saying the answers and the report stay only in this tab and to print or save it as a PDF to keep it.
+- **"Start over" in the utility bar is the only way back to a blank form** without closing the tab. It appears only once there is something to lose. **Since 25 September 2026 it asks first**: a dialog says everything entered in this tab will be removed and cannot be got back, and "No" is the first button and takes the focus. `/report` also carries a line, hidden on paper, saying the figures were worked out from the answers the reader sent, that this tab keeps the answers and the report until Start over, and to print or save it as a PDF to keep it. Since 27 September 2026 the dialog also says Start over does not affect anything already sent.
 - **Changing an answer after seeing a result removes the result**, because the old result no longer matches the answers. Since 25 September 2026 each result page then says so ("You changed your answers") and offers a button back to the answers, instead of showing the ordinary empty state. And if the answers change while the check is still running, the late reply is not shown: `/finance` asks the reader to press the button again.
 
 **What is still true:** a result page cannot be *deep-linked from a cold tab*, because there is no URL state — open `/report` in a brand-new tab and you get its empty state. Since 25 September 2026 that empty state sends the reader to the first step whose answers are missing, not to a page that would refuse to continue. Walking the journey once, then refreshing or moving between result pages freely, is the supported rehearsal loop.
@@ -199,14 +203,14 @@ This section read **"State lives only in React memory … a page refresh wipes e
 # 4. Feature-by-Feature Status
 
 ## Feature 1 — Entrepreneur Profile · **BUILT (reduced)**
-Collects: name, preferred language (8, from a dropdown listing each in its own script), dialect (**a dropdown that cascades from the language**, 30 varieties — it was free text in the plan), literacy level.
+Collects: name, preferred language (8, from a dropdown listing each in its own script), dialect (**a dropdown that cascades from the language**, 30 varieties — it was free text in the plan). No page ever asked for a literacy level. Until 27 September 2026 the request carried a fixed "low" for it; the UI no longer sends one.
 Cut from the original plan: age range, gender, experience years, existing-vs-new. **State and district were deliberately removed from this page** — they were being asked twice, here and on `/location`, and now live only on `/location`.
 
 ## Feature 1b — Login · **BUILT, AND IT IS NOT AUTHENTICATION**
-`/login` collects name, phone, address and email. **There is no password, no account, no session and no server call** — it carries the name into step 1 and nothing else. It is skippable and the journey works without it. If a judge asks, say exactly that: it is a name-capture screen shaped like a login, and real authentication is §22 work.
+`/login` asks for a name and nothing else. Until 27 September 2026 it also asked for a phone number, an address and an email, and threw them away. **There is no password, no account, no session and no server call** — it carries the name into step 1 and nothing else. It is skippable and the journey works without it. If a judge asks, say exactly that: it is a name-capture screen shaped like a login, and real authentication is §22 work.
 
 ## Feature 2 — Business Profile · **BUILT**
-Category (9 buttons: retail, food processing, handicrafts, tailoring, agriculture, dairy, services, manufacturing, other), business name, initial investment, expected monthly sales, monthly operating expenses, employees, existing debt.
+Category (9 buttons: retail, food processing, handicrafts, tailoring, agriculture, dairy, services, manufacturing, other), business name, initial investment, expected monthly sales, monthly operating expenses, existing debt. The employees question was removed on 27 September 2026, because nothing used the answer.
 Note the hint text: this page's expense question means **business-only costs**. `/finance` asks a *different* expense question. See §9.
 Choosing "Other" needs at least two typed characters, counted after trimming spaces, and the page says so itself. Before 25 September 2026 a box of spaces passed here and came back from `/finance` as an error about a page the reader had already left. The number boxes on this page and on `/finance` stop at the same caps the backend enforces (§7).
 
@@ -294,6 +298,18 @@ The chrome is modelled on Indian e-governance portals — a masthead with the lo
 
 **The footer no longer prints a helpline number** (removed 25 September 2026). "Udyami Helpline 1800-11-6666" had never been checked against a source we could open, could not be tapped to call, and was in English on every page. The column now reads "Where to get help" and names the District Industries Centre and the block office. A number comes back only once it is verified.
 
+## Feature 16 — Privacy notice, consent and the processing log · **BUILT (for a deploying organisation)**
+Added 27 September 2026, for a deployment in which the client organisation is the Data Fiduciary and we are its Data Processor. `docs/PROCESSOR_SCHEDULE.md` is the full reference, written for that organisation.
+
+- **A short notice** sits on `/login`, `/profile` and `/finance`. The full notice is `/privacy`, linked from the footer of every page: who is responsible, what is sent, what is kept, and how to withdraw.
+- **Demo mode.** A build with no organisation configured (`VITE_FIDUCIARY_NAME` unset) says it is only a demonstration and asks for made-up figures.
+- **Consent.** `/finance` has an unticked box, and nothing is sent until it is ticked. The request then carries a consent record: the notice version, the language it was read in, the time on the reader's device, and the age answer when the age box is shown. A production backend refuses a request without one. The record is written to the log and never returned.
+- **The processing log** writes one line per request, with no answer in it. For the analysis call the line holds the consent record and a code computed from the answers: a SHA-256, or an HMAC when a key is set. The code is pseudonymous personal data. Anyone who holds the log (and, for the HMAC, the key) can test guesses against it.
+- **Less is sent.** The UI sends 12 fields plus the consent record, down from 19. The business name, village, market type and customer description stay in the tab.
+- **Production settings.** `ARTHNITI_ENV=production` mounts only `GET /health` and `POST /api/analysis/run`, serves no API docs, and will not start without a list of exact `https://` origins for CORS. `npm run build` needs an `https://` API address.
+
+Still open: no native speaker has reviewed the non-English notice, and it should not reach real users until someone has (schedule §9.1). Several points need the organisation's lawyer (§9.3). The DPDP Rules apply from May 2027. This gives the organisation the means to meet its own obligations; it does not settle whether a deployment meets them.
+
 ---
 
 # 5. What We Deliberately Did Not Build
@@ -332,7 +348,7 @@ React **19.2.8** · Vite **8.2.2** · Tailwind CSS **4.3.3** · react-router-dom
 ```text
 frontend/src/
   App.jsx                 shell (utility bar / masthead / nav / main / footer)
-                          + JourneyBar + LandingPage + NotFoundPage + 10 routes + catch-all
+                          + JourneyBar + LandingPage + NotFoundPage + 11 routes + catch-all
   context/AppContext.jsx  the entire client state, mirrored into sessionStorage
   i18n/                   languages.js (8 languages + 30 dialects), LanguageContext.jsx
                           (the t() / tBackend() provider), backendText.js (resolves the
@@ -342,9 +358,10 @@ frontend/src/
   data/indiaLocations.js  36 states/UTs × 768 districts, for the cascading dropdown
   data/limits.js          the input caps, mirroring backend/app/schemas/limits.py
   data/reviewDates.js     the dates the scheme rules were checked, for the footer
-  pages/                  9 page components
+  pages/                  10 page components
   components/             Button, BrandMark, BrandWordmark, InstructionManual,
-                          Charts (BarRow / BarGroup / UnitChart), chartData
+                          ShortNotice, Charts (BarRow / BarGroup / UnitChart), chartData
+  config/                 deployment.js (the VITE_* settings), notice.js (the notice version)
   services/api.js         the only network call in the app
   index.css               design tokens + the .ui-* design system + @media print
 ```
@@ -356,14 +373,16 @@ Python **3.14.6** · FastAPI **0.141.1** · Pydantic **2.13.5** · uvicorn **0.5
 
 ```text
 backend/app/
-  main.py                 FastAPI app + CORS + 8 include_router calls
+  main.py                 FastAPI app + CORS + the routers (8 in development, 2 in production)
   api/routes/             8 routers, one file per domain
   schemas/                Pydantic request/response models, + limits.py (the input caps)
   services/               ALL business logic — plain functions, no classes, no I/O
   core/data_loader.py     loads JSON from app/data by absolute path (cwd-independent)
+  core/settings.py        the ARTHNITI_* deployment settings, checked at startup
+  core/processing_log.py  one JSON log line per request, with no answer in it
   data/                   schemes.json (30 schemes, 7 tiers), market_data.json (20 sourced rows) + market_data.provenance.json
   gen_schemes.py          the generator schemes.json is built from — its source, not runtime
-backend/tests/            30 test files + market_fixtures.py, 606 tests
+backend/tests/            38 test files + conftest.py, market_fixtures.py, deployment_fixtures.py; 867 tests
 backend/requirements.txt  every runtime dependency pinned, transitive ones included
 backend/requirements-dev.txt  the runtime pins plus pytest and httpx2, for the tests
 ```
@@ -375,13 +394,13 @@ The planned `models/`, `calculations/` and `ai/` directories **do not exist**. C
 Style rules, if you are adding code: services are pure functions returning plain dicts, rounded to 2 decimals; services never import FastAPI; routers never do arithmetic.
 
 ## Database
-**None.** No SQLite, no PostgreSQL, no ORM, no migrations. JSON files in `backend/app/data/` are the only data store, read once per process and cached read-only. **Nothing the user enters is written to any server** — the answers live in the browser tab and are gone when it closes (§8).
+**None.** No SQLite, no PostgreSQL, no ORM, no migrations. JSON files in `backend/app/data/` are the only data store, read once per process and cached read-only. **Nothing the user enters is stored on any server.** The answers live in the browser tab and are usually gone when it closes (§8). They are sent once, when step 4 is submitted, so the backend can work the result out. The backend keeps none of them, and its log line holds no answer (`docs/PROCESSOR_SCHEDULE.md` §4).
 
 ## AI Layer
 **None.** See §15 — this needs a whole section, because it is the single most likely thing for someone to misstate on stage.
 
 ## CORS
-`allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?"` — any loopback port, so a Vite server that falls back from 5173 to 5174 still works. Replace with an explicit allow-list before any real deployment.
+In development, any `localhost` or `127.0.0.1` port, so a Vite server that falls back from 5173 to 5174 still works. In production (`ARTHNITI_ENV=production`), only the exact `https://` origins listed in `ARTHNITI_CORS_ORIGINS`. The backend refuses to start without that list, and refuses `*` in it. Neither mode allows credentials.
 
 ## Running it
 
@@ -393,21 +412,22 @@ Two processes, backend first.
 
 # Frontend — run from ./frontend
 npm run dev          # Vite dev server, port 5173
-npm run build        # production build into frontend/dist
+npm run build        # production build into frontend/dist; needs an https VITE_API_BASE_URL
+npm run build:local  # the same build, against the backend on 127.0.0.1:8000
 npm run lint         # ESLint 10
 
 # Tests — run from ./backend
-../.venv/Scripts/python.exe -m pytest tests -q      # 606 passed in about 3 seconds
+../.venv/Scripts/python.exe -m pytest tests -q      # 867 passed in a few seconds
 
 # Translation-key parity — from the repo root, no server needed
-node tools/parity4.mjs                        # 4 files × 8 languages, 8 checks
+node tools/parity4.mjs                        # 4 files × 8 languages, 9 checks
 ```
 
 A fresh environment installs the test dependencies with `python -m pip install -r backend/requirements-dev.txt`.
 
-**CI exists and has never run.** `.github/workflows/ci.yml` (added 25 September 2026) runs on every push and pull request. The backend job runs pytest on Ubuntu under Python 3.10 and 3.14. The frontend job runs `npm ci`, lint, the build, `parity4`, `keycheck` and the market-lib tests, plus `glyph-audit` for information only. The browser gates are not in it. The file is committed on a local branch that has not been pushed (§11), so it has never run on Linux or on GitHub, and a first run may fail for reasons nobody has seen yet.
+**CI exists and has never run.** `.github/workflows/ci.yml` (added 25 September 2026) runs on every push and pull request. The backend job runs pytest on Ubuntu under Python 3.10 and 3.14. The frontend job runs `npm ci`, lint, the build (against a placeholder `https://api.example.invalid`, because a production build needs an https API address), `parity4`, `keycheck` and the market-lib tests, plus `glyph-audit` for information only. The browser gates are not in it. The file is committed on a local branch that has not been pushed (§11), so it has never run on Linux or on GitHub, and a first run may fail for reasons nobody has seen yet.
 
-API docs are auto-served at `http://127.0.0.1:8000/docs` and `/redoc`.
+In development, API docs are auto-served at `http://127.0.0.1:8000/docs` and `/redoc`. A production backend serves neither.
 
 **Always kill servers you start.** A stray listener on 8000 gives `[Errno 10048] only one usage of each socket address`; a stray Vite server causes confusing CORS failures against a backend that looks fine.
 
@@ -420,7 +440,7 @@ taskkill //F //T //PID <pid>          # doubled slashes under Git Bash
 
 # 7. API (as built)
 
-Eight routers exist. **The frontend calls exactly one of them.**
+Eight routers exist. **The frontend calls exactly one of them.** A production backend (`ARTHNITI_ENV=production`) mounts only that one and `GET /health`, and serves no API docs.
 
 | Endpoint | Purpose | Used by the UI |
 |---|---|---|
@@ -433,36 +453,39 @@ Eight routers exist. **The frontend calls exactly one of them.**
 | `POST /api/advisory/recommend` | Recommendations only | No |
 | `POST /api/market/context` | Market rows only | No |
 
-The seven unused routers are thin wrappers over the same service functions and are covered by tests. They are useful in Swagger when demonstrating the architecture to a judge — but a change there does not affect the UI.
+The seven unused routers are thin wrappers over the same service functions and are covered by tests. They are useful in Swagger when demonstrating the architecture to a judge — but a change there does not affect the UI. All of them except `/health` exist in development only.
 
 `POST /api/chat` and `GET /api/report/{id}` were in the plan and **do not exist**. `/report` is a client-side print view, not a server-generated document.
 
 ## The one request
 
 `UnifiedAnalysisRequest`. **Required:** `business_category` (≥2 chars), `state` (≥2), and `available_capital`, `monthly_expenses`, `expected_monthly_revenue`, `monthly_emi`, `initial_investment`, `monthly_operating_expenses` (all ≥ 0).
-**Optional with defaults:** `employees` 0, `existing_debt` 0, `household_monthly_income` null, `district`/`village`/`market_type`/`customers` `""`, `user_language` "Hindi", `preferred_dialect` null, `literacy_level` "low", `entrepreneur_type` null, `location_type` "rural".
+**Optional with defaults:** `existing_debt` 0, `household_monthly_income` null, `district` `""`, `location_type` "rural", and `consent` null (a production backend requires it).
+**Accepted and ignored:** `employees`, `village`, `market_type`, `customers`, `user_language`, `preferred_dialect`, `literacy_level` and `entrepreneur_type` are still accepted and capped, then dropped before any engine runs. The UI has sent none of them since 27 September 2026.
 
 **`household_monthly_income` is null when the question was left blank, never 0.** A 0 is a real answer, "the household earns nothing", and it puts any loan over the limit (§9).
 
-**Every figure has a ceiling, since 25 September 2026.** Every rupee field on every request model is capped at ₹100 crore (`MAX_RUPEES` in `backend/app/schemas/limits.py`) and refuses Infinity and NaN; `employees` is capped at 10,000. Before the caps, a typed `1e308` went through the whole pipeline and came back "profitable", "low" risk and status "good". The ceilings are far above any micro enterprise, so a real answer never reaches them. `frontend/src/data/limits.js` holds the same two numbers so the form stops the reader first, and `test_input_bounds.py` fails if the two files disagree.
+**Every figure has a ceiling, since 25 September 2026.** Every rupee field on every request model is capped at ₹100 crore (`MAX_RUPEES` in `backend/app/schemas/limits.py`) and refuses Infinity and NaN; `employees` is capped at 10,000. Before the caps, a typed `1e308` went through the whole pipeline and came back "profitable", "low" risk and status "good". The ceilings are far above any micro enterprise, so a real answer never reaches them. `frontend/src/data/limits.js` holds the same numbers so the form stops the reader first, and `test_input_bounds.py` fails if the two files disagree. Since 27 September 2026 every text field has a `max_length` too, and `limits.js` also holds `MAX_CATEGORY_LENGTH` (100) for a typed-in category.
 
 Validation failures return **422**. Nothing guards the journey order — the topbar links to any step — so `/finance` can be submitted with an empty category and state. That 422 is now rendered as a readable sentence rather than `[object Object]`. **The 422 body carries only `type`, `loc` and `msg` for each error** (a handler in `main.py`, 25 September 2026). FastAPI's default body also echoed the rejected `input`, which sent the reader's own figures back in an error body that may be logged, and an Infinity or NaN there could not be written as JSON, so a bad number returned a 500 instead of a 422. `loc` stays, because the frontend names the field to fix from its last element.
 
-`entrepreneur_type` is still accepted and echoed but **no page collects it**; it is always null.
+`entrepreneur_type` is still accepted but **no page collects it**. Since 27 September 2026 the response no longer echoes it, nor `language`, `preferred_dialect` or `literacy_level`.
+
+**Consent.** A request can carry a `consent` record: `notice_version`, `language`, `given_at` and `age_confirmed`. With `ARTHNITI_REQUIRE_CONSENT` on, which is the default in production, a request without one gets a 422. The record is written to the processing log and never returned. `docs/frontend_integration.md` is the full request and response contract.
 
 ## The one response — seven top-level sections
 
-Measured against a live response on 8 September 2026. **Every `*_code` field is a translation code** — the sentence beside it is English, the code is how the frontend shows it in the reader's language (§2.6).
+Measured against a live response on 27 September 2026. **Every `*_code` field is a translation code** — the sentence beside it is English, the code is how the frontend shows it in the reader's language (§2.6).
 
 | Section | Contents |
 |---|---|
 | `financial_analysis` | `monthly_profit`, `profit_margin_percent`, `financial_status`, `available_capital`, `monthly_expenses`, `expected_monthly_revenue`, `initial_investment`, `funding_gap` |
 | `risk_analysis` | `pressure_ratio_percent`, `risk_level`, `risk_level_without_new_loan`, `reason`, **`reason_code`**, `monthly_emi`, `estimated_new_emi`, `total_monthly_emi`, `assumed_interest_rate_percent`, `assumed_tenure_months`, and since 25 September 2026 the household check: `household_monthly_income`, `household_repayment_percent`, `household_check`, `household_check_without_new_loan`, `household_limit_percent`, `household_microfinance_income_limit`, `household_in_microfinance_range`, `household_reason`, **`household_reason_code`** — 19 keys |
 | `business_analysis` | `business_type`, `initial_investment`, `expected_monthly_revenue`, `monthly_operating_expenses`, `monthly_operating_surplus`, `operating_margin_percent`, `annual_operating_surplus`, `estimated_roi_percent`, `feasibility_status`, `observations[]`, **`observation_codes[]`** |
-| `market_context` | list of rows in two shapes, told apart by `metric`. **Every row:** `{state, district, business_category, scope, metric, source, source_code, last_verified, provenance:{20 keys}, match_level, local_context:{village, market_type, customers}}`. **A `wholesale_price_per_kg` row adds** `commodity, commodity_id, unit, indicative_price, price_low, price_high, n_days, n_markets, last_reported`, and `stale` when set. **A `registered_units` row adds** `count, count_suppressed, share_percent, district_total, nic_classes`, and `note_code`/`note` when set |
+| `market_context` | list of rows in two shapes, told apart by `metric`. **Every row:** `{state, district, business_category, scope, metric, source, source_code, last_verified, provenance:{20 keys}, match_level}`. **A `wholesale_price_per_kg` row adds** `commodity, commodity_id, unit, indicative_price, price_low, price_high, n_days, n_markets, last_reported`, and `stale` when set. **A `registered_units` row adds** `count, count_suppressed, share_percent, district_total, nic_classes`, and `note_code`/`note` when set |
 | `scheme_matches` | list of `{name, `**`level`**`, `**`scheme_id`**`, description, support_type, match_score, **`fit_basis`**, match_reasons[], eligibility_rules[], documents[], last_verified, `**`description_code`**`, `**`support_type_code`**`, `**`match_reason_codes[]`**`, `**`eligibility_codes[]`**`, `**`document_codes[]`**`}` |
 | `advisory` | `recommendations[]`, **`recommendation_codes[]`** |
-| `mvp_summary` | `status`, `simple_message`, **`message_code`**, `next_step`, **`next_step_code`**, `priority`, `language`, `preferred_dialect`, `literacy_level`, `entrepreneur_type`, `location_type` |
+| `mvp_summary` | `status`, `simple_message`, **`message_code`**, `next_step`, **`next_step_code`**, `priority`, `location_type` |
 
 Enumerated values: `financial_status` ∈ profitable / break_even / loss · `risk_level` ∈ low / moderate / high · `household_check` and `household_check_without_new_loan` ∈ within_limit / over_limit / not_checked · `feasibility_status` ∈ feasible / break_even / not_feasible · `mvp_summary.status` ∈ good / attention_needed / review · `match_level` ∈ district / state · market `metric` ∈ wholesale_price_per_kg / registered_units · market `scope` ∈ district / state · scheme `level` ∈ central / state / regional / district / sub_district / block / local_body.
 
@@ -489,12 +512,12 @@ Written by `tools/fetch-market-data.mjs` on 24 September 2026, never by hand. Al
 Both datasets are used under GODL-India. The page prints each dataset's attribution once, in English, outside any collapsed section and never as a link, followed by a not-endorsed line and a no-warranty line. `DATA_SOURCES.md` is the full record, including what is still unresolved. To add a district, extend `tools/market-crosswalk.json` and re-run the fetch.
 
 ## Client state — `frontend/src/context/AppContext.jsx`
-Four form sections plus the API result, **mirrored into `sessionStorage['sih-application']` on every change**:
+Four form sections plus the API result, **mirrored into `sessionStorage['sih-application']` as `{v: 4, data}` on every change**:
 
 ```text
-profile   { name, language, dialect, literacyLevel }
+profile   { name, language, dialect }
 business  { category, categoryOther, businessName, initialInvestment, monthlyRevenue,
-            monthlyOperatingExpenses, employees, existingDebt }
+            monthlyOperatingExpenses, existingDebt }
 location  { village, district, state, locationType, marketType[], customers }
 finance   { availableCapital, monthlyExpenses, monthlyEmi, householdIncome }
 result    the full 7-section API response
@@ -502,6 +525,8 @@ resultCleared  true when an edit threw a result away; the result pages say so
 ```
 
 State and district live **only** on `location` — they used to be duplicated on `profile` and asked for twice. `location.marketType` is an **array** (multi-select), not a string.
+
+**Four answers never leave the tab** (`LOCAL_ONLY`, since 27 September 2026): the business name, the village, the market type and the customer description. The backend never used them. Editing one of them does not clear a result.
 
 Three things about the persistence are load-bearing:
 
@@ -608,17 +633,18 @@ Nobody works in isolation. Every day: a 15-minute stand-up, one shared task boar
 
 **Repo:** `https://github.com/BU1lDR/SIH_2026` (private).
 
-The planned `develop` + `frontend/<name>` scheme was not adopted. Neither, any more, is the flat per-person scheme that replaced it. **The remote has exactly two branches** (true on 9 September 2026 and still true in the remote-tracking refs on 25 September 2026):
+The planned `develop` + `frontend/<name>` scheme was not adopted. Neither, any more, is the flat per-person scheme that replaced it. **The remote has exactly two branches** (true on 9 September 2026 and still true in the remote-tracking refs on 27 September 2026):
 
 ```text
 main            before-main
 ```
 
-**`origin/before-main` is the newest build anyone else can check out, and it is not the newest build.** It carries the government-style chrome, the 8-language layer, the charts, the cascading location data, `sessionStorage` and the accessibility switches. Everything from 23 September 2026 onwards exists only on the owner's laptop (measured 25 September 2026):
+**`origin/before-main` is the newest build anyone else can check out, and it is not the newest build.** It carries the government-style chrome, the 8-language layer, the charts, the cascading location data, `sessionStorage` and the accessibility switches. Everything from 23 September 2026 onwards exists only on the owner's laptop (measured 27 September 2026):
 
 - **Six local commits sit on top of `origin/before-main`, none pushed**: the owner's decisions with the licence and provenance files, the funding-gap fix, the scheme-fit fix, a docs correction, the sourced market data, and the standalone backlog. `git rev-list --left-right --count origin/before-main...HEAD` reports `0 / 6`. Local `before-main` holds only the first of the six, so it is 1 ahead of its remote.
 - **The work this document describes as of 25 September 2026 is the sixth of those commits**, on `fix/standalone-backlog`: the household check, the Start-over confirmation, the input caps, the tidier 422, the footer dates, the scheme-text corrections and CI.
-- **17 more local branches are placeholders, not work** — `feature/ai-advisory`, `feature/dpdp-compliance`, `feature/auth` and fourteen others, all at the first of the six commits with no commits of their own, none pushed. They name planned work; none of it has started.
+- **The privacy and deployment work (Feature 16) is not committed at all.** It sits in the working tree of `feature/dpdp-compliance`, which points at the same sixth commit, `4a2307e`, as `fix/standalone-backlog`.
+- **16 more local branches are placeholders, not work** — `feature/ai-advisory`, `feature/auth` and fourteen others, all at the first of the six commits with no commits of their own, none pushed. They name planned work; none of it has started.
 
 So a teammate who clones the repo today gets `before-main` as it was before any of this, and none of the figures in this document from 23 September on.
 
@@ -652,7 +678,7 @@ Kept as a record, because the day numbers appear in earlier notes and stand-ups.
 | Day 5 — **AI integration**, full happy path end-to-end | **Half done.** The end-to-end path works. The LLM was never connected |
 | Day 6 — hyperlocal + personalization | **Done**, then found to be broken: `market_context` was computed and silently discarded by the UI. Fixed 7 Sept |
 | Day 7 — UX, explainability, responsible framing | **Done.** Disclosures, source labels, disclaimers, plain-language copy |
-| Day 8 — testing + demo scenarios | **Partial.** 606 backend tests as of 25 September 2026; no frontend *unit* tests, but 14 browser gates that assert on rendered output; one polished scenario rather than three |
+| Day 8 — testing + demo scenarios | **Partial.** 867 backend tests as of 27 September 2026; no frontend *unit* tests, but 14 browser gates that assert on rendered output; one polished scenario rather than three |
 | Day 9 — polish + presentation | **In progress.** 7 Sept: a full defect sweep — 10 numbered defects plus 7 more, all fixed. 8 Sept: the government-style redesign, the translation layer, and a second audit closing 46 findings |
 | Day 10 — rehearsal + final build | **Pending.** §25 |
 
@@ -679,12 +705,12 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 - [x] At least 2–3 business categories work — 8 do
 - [x] One polished demo persona works (§3)
 - [x] Sources recorded with verification dates
-- [x] 606 backend tests pass; lint and production build are clean; translation-key parity clean across 693 keys × 8 languages
+- [x] 867 backend tests pass; lint and production build are clean; translation-key parity clean across 732 keys × 8 languages
 - [ ] CI passes on GitHub — `.github/workflows/ci.yml` exists (§6) and has never run, because it has not been pushed
 - [x] No API keys in the running app. The one key, for the market-data fetch, is read from `.env`, which is gitignored; `.env.example` names it (§11)
 - [x] **State survives a page refresh** — closed 8 Sept via `sessionStorage` (§8)
 - [x] **Output is in the reader's own language**, including the generated advice (§2.6)
-- [x] **Phone widths verified** — all 10 routes measured clean at 360 / 390 / 412 px
+- [x] **Phone widths verified** — all 11 routes measured clean at 360 / 390 / 412 px, plus a 360 px pass in the dark theme at the large text size in Hindi
 - [x] **Print output verified** — the `/report` PDF, from a light laptop and from a dark one
 - [ ] Three demo scenarios — we have one
 - [ ] Presentation complete
@@ -692,14 +718,14 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 
 ## How the frontend is verified — there are no unit tests, and that is not the same as unverified
 
-`npm run lint`, `npm run build` and `pytest` cannot see a leaked translation key, a `null%`, a page that scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, or a logo that prints invisible. **Sixteen zero-dependency scripts** in `tools/verify/` drive Edge over the DevTools protocol, and fourteen of them are gates that assert on what actually rendered; `hero-vibrance.mjs` (a tuning instrument) and `hero-geom.mjs` (it reports measurements and always exits 0) are not. (This read "seventeen" until it was recounted on 25 September 2026 with `grep -l remote-debugging-port tools/verify/*.mjs`.) Each owns a *different* failure class — that is the point, and it is why there are many rather than one big one. The main ones:
+`npm run lint`, `npm run build` and `pytest` cannot see a leaked translation key, a `null%`, a page that scrolls sideways under a thumb, a `₹30,000` that wrapped as `₹30,00 / 0`, or a logo that prints invisible. **Seventeen zero-dependency scripts** in `tools/verify/` drive Edge over the DevTools protocol, and fifteen of them are gates that assert on what actually rendered; `hero-vibrance.mjs` (a tuning instrument) and `hero-geom.mjs` (it reports measurements, and exits 0 when it measured and 2 when it could not) are not. (Recounted on 29 September 2026, after `figure-audit.mjs` was added, with `grep -l remote-debugging-port tools/verify/*.mjs`.) Each owns a *different* failure class — that is the point, and it is why there are many rather than one big one. The main ones:
 
 | Driver | The one question it asks |
 |---|---|
-| `drive.mjs` | Did the right text render, and does every scheme card show its fit label and never its score as a percentage? 40 page loads across 8 passes, including a `cleared` pass that checks each result page says the answers changed; exits 1 on a finding |
-| `mobile-audit.mjs` | Can a thumb use it? 10 routes × 3 phone widths, overflow / tap size / clipping |
+| `drive.mjs` | Did the right text render, and does every scheme card show its fit label and never its score as a percentage? 41 page loads across 8 passes, including a `cleared` pass that checks each result page says the answers changed; exits 1 on a finding |
+| `mobile-audit.mjs` | Can a thumb use it? 11 routes plus a blocked `/finance`, at 4 phone widths (360, 390 and 412 px, and 360 px dark, large-text, in Hindi): 48 loads, overflow / tap size / clipping |
 | `print-audit.mjs` | Does the PDF read correctly whichever theme the laptop was in? |
-| `lang-layout.mjs` | Does switching language change the *layout*, not just the words? 8 languages × 6 routes × 2 widths |
+| `lang-layout.mjs` | Does switching language change the *layout*, not just the words? 8 languages × 7 routes × 2 widths |
 | `field-align.mjs` | Do two form controls sharing a row start on the same line? |
 | `hero-art.mjs` | Is the landing backdrop visible *and* the text on it still legible? |
 | `hero-geom.mjs` | Where does the backdrop's edge sit relative to the content on it? |
@@ -707,21 +733,22 @@ The honest lesson, and a good answer to "what did you learn?": **the determinist
 | `manual-audit.mjs` | Do the wordmark, the manual strip and the dialog work in 3 modes? |
 | `error-banner.mjs` | Does the `/finance` error read as a sentence in all 8 languages? |
 | `glyph-audit.mjs` | Is any decorative emoji going to be read aloud by a screen reader? |
-| `scroll-audit.mjs` | Does every page open at the top after an in-app navigation? 33 hops, the back button and a same-page anchor. Its Start-over hop goes through the confirmation dialog |
+| `scroll-audit.mjs` | Does every page open at the top after an in-app navigation? 38 hops, the back button and a same-page anchor. Its Start-over hop goes through the confirmation dialog |
 | `motion-audit.mjs` | Do the transitions actually run, and does reduced motion switch them off? |
 | `text-align.mjs` | Do sibling cells, such as the footer's three columns, start their text on the same line? |
 | `market-ui.mjs` | Does every market-row branch render, with each dataset's attribution printed exactly once, outside any collapsed section and never as a link? Starts its own Vite on 5179 |
+| `figure-audit.mjs` | At the ₹100 crore cap, does every amount and percentage on `/analysis` and `/report` stay on one line, inside its box and at 12px or more? 4 cases from the real backend × 4 looks × 11 widths on both pages: 352 measurements. Needs the backend |
 | `hero-vibrance.mjs` | Not a gate — which backdrop filter is *more colourful* without costing legibility? |
 
 Plus `parity4.mjs` (no browser needed) for translation-key parity and, since 25 September 2026, for the figures in each sentence: every translation must carry the same numbers as its English, in Latin digits, and every English scheme sentence the same numbers as `schemes.json`. And `refresh-cases.mjs` to regenerate the captured API responses the drivers seed — **run that one after any backend change**, because stale fixtures make the drivers pass while telling you nothing.
 
-The scripts are tracked in `tools/`; `screenshots/` stays gitignored and holds only the PNGs and JSON they write. **The browser drivers run only on the owner's Windows laptop**: the Edge path is hardcoded, and none of them is in CI. CI runs the server-free checks only (§6). **They are not a substitute for clicking through once on the presentation laptop, in the presentation browser.**
+The scripts are tracked in `tools/`; `screenshots/` stays gitignored and holds only the PNGs and JSON they write. **The browser drivers run only on the owner's Windows laptop**: the Edge path is hardcoded, and none of them is in CI. CI runs the server-free checks only (§6). A gate exits 1 on a finding and 2 when it could not measure (a server down, the wrong directory, a crash), so a 2 is never a pass; [tools/README.md](tools/README.md#exit-codes) lists every cause. **They are not a substitute for clicking through once on the presentation laptop, in the presentation browser.**
 
 ## Still not verified
 - **Phone landscape orientation, real touch scrolling on physical hardware, and the on-screen keyboard covering a focused input.** Emulation cannot answer these; borrow a phone.
 - **The `api.js` 20-second timeout path** — stop the backend mid-request and confirm the message reads as a sentence.
 - **CI on Linux and on GitHub.** The workflow has never run (§6).
-- **Non-English wording quality.** Parity, placeholders, the figures in each sentence and "no string left identical to English" are all script-verified across 693 keys × 8 languages. **Naturalness is not** — no native speaker has reviewed it, and two real errors have already been found by eye, which is evidence there are more. Say this if asked; do not claim professional translation.
+- **Non-English wording quality.** Parity, placeholders, the figures in each sentence and "no string left identical to English" are all script-verified across 732 keys × 8 languages. **Naturalness is not** — no native speaker has reviewed it, and two real errors have already been found by eye, which is evidence there are more. Say this if asked; do not claim professional translation. The privacy notice is in that set, and its non-English versions should not reach real users until someone has reviewed them (`docs/PROCESSOR_SCHEDULE.md` §9.1).
 
 ---
 
@@ -735,9 +762,9 @@ SIH_2026/
 │   │   ├── api/routes/       8 routers
 │   │   ├── schemas/          Pydantic models, + limits.py (the input caps)
 │   │   ├── services/         all business logic
-│   │   ├── core/             data_loader.py
+│   │   ├── core/             data_loader.py, settings.py, processing_log.py
 │   │   └── data/             schemes.json (30), market_data.json (20), market_data.provenance.json
-│   ├── tests/                30 files + market_fixtures.py, 606 tests
+│   ├── tests/                38 files + conftest.py and 2 fixture modules, 867 tests
 │   ├── gen_schemes.py        the source schemes.json is generated from, not runtime
 │   ├── requirements.txt      every runtime dependency pinned
 │   └── requirements-dev.txt  + pytest and httpx2, for the tests
@@ -746,9 +773,10 @@ SIH_2026/
 │   ├── public/               favicon.svg, hero-backdrop.jpeg
 │   ├── src/
 │   │   ├── App.jsx
-│   │   ├── pages/            9 pages
+│   │   ├── pages/            10 pages
 │   │   ├── components/       Button, BrandMark, BrandWordmark,
-│   │   │                     InstructionManual, Charts, chartData
+│   │   │                     InstructionManual, ShortNotice, Charts, chartData
+│   │   ├── config/           deployment.js (the VITE_* settings), notice.js
 │   │   ├── i18n/             8 languages, 4 dictionary files, brand.js
 │   │   ├── data/             indiaLocations.js (36 states × 768 districts),
 │   │   │                     limits.js (the input caps), reviewDates.js
@@ -756,11 +784,14 @@ SIH_2026/
 │   │   ├── services/         api.js
 │   │   └── index.css
 │   ├── index.html
+│   ├── .env.example          the VITE_* build settings, documented
 │   └── package.json
 │
-├── docs/                     frontend_integration.md, requirements.txt
+├── docs/                     frontend_integration.md (the API contract),
+│                             PROCESSOR_SCHEDULE.md (for a deploying organisation),
+│                             requirements.txt
 ├── presentation/             empty — Saad + Tripti
-├── tools/                    tracked — 27 scripts, nearly all verifiers, 20 of them in verify/
+├── tools/                    tracked — 28 scripts, nearly all verifiers, 21 of them in verify/
 ├── screenshots/              gitignored, 8.1 GB — their output only: PNGs, report.json,
 │                             Edge profiles, plus 27 stale PNGs (do not circulate)
 ├── .github/workflows/ci.yml  CI — exists, has never run (§6)
@@ -768,12 +799,13 @@ SIH_2026/
 ├── .env.example              names the one key, for the market fetch; .env is gitignored
 ├── LICENSE                   proprietary
 ├── DATA_SOURCES.md           where the market figures come from
-├── CLAUDE.md                 engineering context
+├── CLAUDE.md                 engineering context, current rules only
+├── docs/ENGINEERING_HISTORY.md  the archive: the full dated reasoning, read by section
 ├── OUR_MVP.md                this file
 └── README.md
 ```
 
-Differences from the plan worth knowing: no `docs/architecture.md` / `api.md` / `sources.md` / `demo-script.md`, no `hooks/` or `utils/` on the frontend. `docs/frontend_integration.md` exists but is **stale** — it claims CORS allows only two fixed origins (it is a loopback regex) and claims five response sections (there are seven). `docs/requirements.txt` is unrelated to `backend/requirements.txt`.
+Differences from the plan worth knowing: no `docs/architecture.md` / `api.md` / `sources.md` / `demo-script.md`, no `hooks/` or `utils/` on the frontend. `docs/frontend_integration.md` was stale until 27 September 2026, when it was rewritten as the measured API contract. `docs/PROCESSOR_SCHEDULE.md` is the schedule for a deploying organisation. `docs/requirements.txt` is unrelated to `backend/requirements.txt`.
 
 ---
 
@@ -785,7 +817,7 @@ Differences from the plan worth knowing: no `docs/architecture.md` / `api.md` / 
 
 ## What to say instead
 
-> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested — 606 tests. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. The AI-driven part of the problem statement is where this goes next: natural-language input, dialect-level paraphrasing, and a conversational 'why?' layer on top of the same engine — with the arithmetic staying in code."
+> "The advisory logic is a deterministic rules engine. That is a design decision, not a shortfall: for financial guidance to a first-time borrower, a wrong number that sounds confident is worse than no number. Every figure we show is traceable to a formula you can read, and it is unit-tested — 867 tests. The output already reaches the entrepreneur in eight languages, including the generated advice, and that is done by translation rather than by generation, so it cannot drift. The AI-driven part of the problem statement is where this goes next: natural-language input, dialect-level paraphrasing, and a conversational 'why?' layer on top of the same engine — with the arithmetic staying in code."
 
 This is a strong position, honestly held. Do not weaken it by overclaiming.
 
@@ -927,7 +959,7 @@ Answer it straight: no chat, no EMI scenarios or break-even units, no suggested 
 
 # 18. Product Success Metrics
 
-For the prototype: time to generate an advisory plan (currently one request, sub-second) · journey completion · correctness of financial calculations (606 tests) · correctness of scheme matching (8 of the 9 category buttons match, 11–16 schemes each; only a typed-in *Other* is correctly empty) · translation coverage (693 keys × 8 languages at full parity, script-verified) · explanation quality · number of actionable recommendations · demo reliability.
+For the prototype: time to generate an advisory plan (currently one request, sub-second) · journey completion · correctness of financial calculations (867 tests) · correctness of scheme matching (8 of the 9 category buttons match, 11–16 schemes each; only a typed-in *Other* is correctly empty) · translation coverage (732 keys × 8 languages at full parity, script-verified) · explanation quality · number of actionable recommendations · demo reliability.
 
 For future production: entrepreneurs assisted · plans generated · financial-literacy improvement · successful formal-finance connections · business survival and growth · **reduction in inappropriate borrowing** — the metric that matters most and the reason the risk indicator exists.
 
@@ -1129,7 +1161,7 @@ Ordered by demo impact. **Fixes and rehearsal only — no new features.** Three 
 - [x] ~~Two or three more market rows so Retail, Services and Manufacturing are not empty in the market section~~ — done 24 September 2026 for Lucknow and Varanasi, through the fetch rather than by hand
 - [ ] A native speaker's eye over one language's wording, even just the landing page and `/analysis` (§13)
 - [ ] Phone landscape and a real device — emulation cannot answer either (§13)
-- [ ] Refresh `docs/frontend_integration.md` (stale on CORS and on the number of response sections) or delete it
+- [x] ~~Refresh `docs/frontend_integration.md` (stale on CORS and on the number of response sections) or delete it~~ — rewritten 27 September 2026 as the measured API contract
 
 ### Explicitly not doing before the 11th
 LLM integration · a database · real authentication · read-aloud output · EMI scenarios · break-even units · frontend unit tests · more languages.
@@ -1158,7 +1190,7 @@ Any AI assistant reading this file should:
 
 # 27. Status Snapshot — 9 September 2026 (before the round)
 
-> Kept as a dated snapshot. The build figures in it are still accurate (figures updated 25 September 2026, and they describe branch `fix/standalone-backlog`, §11). The phase and countdown lines are history, and the outbound scheme URLs it mentions were removed on 10 September.
+> Kept as a dated snapshot. The build figures in it are still accurate (figures updated 27 September 2026, and they describe the working tree of `feature/dpdp-compliance`, §11). The phase and countdown lines are history, and the outbound scheme URLs it mentions were removed on 10 September.
 
 **Phase (then):** working prototype, feature-frozen except polish
 **Time to presentation (then):** the round was then scheduled for 11 September 2026; it was later moved to the 14th
@@ -1166,16 +1198,16 @@ Any AI assistant reading this file should:
 
 | | |
 |---|---|
-| **MVP status** | **Working end to end.** 10 routes plus a catch-all, one API call, 7 populated result sections |
-| **Backend** | 8 routers · 606 tests passing in about 3 s |
-| **Frontend** | Lint clean · production build clean · translation parity clean (693 keys × 8 languages) |
+| **MVP status** | **Working end to end.** 11 routes plus a catch-all, one API call, 7 populated result sections |
+| **Backend** | 8 routers in development, 2 in production · 867 tests passing in a few seconds |
+| **Frontend** | Lint clean · production build clean · translation parity clean (732 keys × 8 languages) |
 | **Data** | 30 schemes across 7 tiers (official sources, 29 of 30 URLs verified 7 Sept) · 20 sourced market rows (Lucknow + Varanasi, GODL-India) |
 | **AI integration** | **None, by decision.** Deterministic rules engine (§15) |
-| **Database** | **None.** The journey persists in the browser tab (`sessionStorage`) and nowhere else |
+| **Database** | **None.** The journey persists in the browser tab (`sessionStorage`); the answers are sent once to work out the result and stored nowhere |
 | **Language output** | **8 languages, Hindi by default, including the generated advice** (§2.6) |
 | **Interface** | Government-style chrome, 2 accessibility switches (dark theme, 3-step text scale), hand-rolled charts, an instruction manual, a light motion layer that honours `prefers-reduced-motion` |
-| **Verification** | 606 backend tests · 27 zero-dependency scripts in `tools/`, 18 of them driving a browser over CDP, on the owner's Windows laptop only · phone widths, print output, motion and scroll-on-navigation all measured clean · CI written and never run (§6) |
-| **Known defects** | 17 found and fixed 7 Sept (10 numbered + 7 more); **46 findings closed in the 8 Sept audit**. See CLAUDE.md |
+| **Verification** | 867 backend tests · 28 zero-dependency scripts in `tools/`, 19 of them driving a browser over CDP, on the owner's Windows laptop only · phone widths, print output, motion and scroll-on-navigation all measured clean · CI written and never run (§6) |
+| **Known defects** | 17 found and fixed 7 Sept (10 numbered + 7 more); **46 findings closed in the 8 Sept audit**. See docs/ENGINEERING_HISTORY.md |
 | **Still open** | Translations unreviewed by a native speaker · dialect phrases on 9 of 30 varieties · phone landscape and physical touch untested |
 | **Presentation** | In progress — Saad + Tripti. `presentation/` is still empty |
 

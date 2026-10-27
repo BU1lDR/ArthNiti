@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from 'react'
 import { districtsForState } from '../data/indiaLocations'
-import { MAX_EMPLOYEES, MAX_RUPEES } from '../data/limits'
+import { MAX_RUPEES } from '../data/limits'
 
 const AppContext = createContext(null)
 
@@ -10,14 +10,16 @@ const STORAGE_KEY = 'sih-application'
 // version is in READABLE_VERSIONS; any other version is discarded rather than
 // half-restored into fields that moved.
 //
-// 2 added `resultCleared`. 3 added `finance.householdIncome`. Neither moved or
-// renamed anything, so versions 1 and 2 are still read: each is version 3 with
-// the later fields missing, and hydrate() fills them in from EMPTY (the flag as
-// false, the income as ''). A later bump that renames or moves a field must
-// drop the older versions from this set rather than let hydrate() half-restore
-// them.
-const STORAGE_VERSION = 3
-const READABLE_VERSIONS = new Set([1, 2, 3])
+// 2 added `resultCleared`. 3 added `finance.householdIncome`. 4 removed
+// `profile.literacyLevel` and `business.employees`: no page asked for the first,
+// and nothing used the second, yet both were sent with every check. None of the
+// bumps moved or renamed anything, so versions 1 to 3 are still read: hydrate()
+// fills a missing field in from EMPTY (the flag as false, the income as '') and
+// drops a field EMPTY no longer has. A later bump that renames or moves a field
+// must drop the older versions from this set rather than let hydrate()
+// half-restore them.
+const STORAGE_VERSION = 4
+const READABLE_VERSIONS = new Set([1, 2, 3, 4])
 
 const EMPTY = {
   // State and district belong to the location step, which is the single place
@@ -26,7 +28,6 @@ const EMPTY = {
     name: '',
     language: 'Hindi',
     dialect: '',
-    literacyLevel: 'low',
   },
 
   business: {
@@ -37,7 +38,6 @@ const EMPTY = {
     initialInvestment: '',
     monthlyRevenue: '',
     monthlyOperatingExpenses: '',
-    employees: 0,
     existingDebt: 0,
   },
 
@@ -81,8 +81,8 @@ const EMPTY = {
 // device next, and that is the whole reason the storage is per-session.
 //
 // Note the defaults that are not blank: locationType 'rural', language 'Hindi',
-// literacyLevel 'low', employees 0. That is why this is a difference from EMPTY
-// and not a truthiness test — half these fields are truthy before anyone types.
+// existingDebt 0. That is why this is a difference from EMPTY and not a
+// truthiness test — several of these fields are set before anyone types.
 export function isStarted(data) {
   if (!data) return false
   if (data.result) return true
@@ -108,12 +108,38 @@ export function isStarted(data) {
 // card is internally consistent, which is exactly why nothing on the page gives
 // it away.
 //
-// `profile` is deliberately absent. Name, language, dialect and literacy level
-// are echoed back by the backend rather than computed from, so changing one
-// cannot make a number wrong — and clearing on them would mean that switching
-// language on /profile silently threw the results away, when switching language
-// is something a reader must be able to do at any point.
+// `profile` is deliberately absent. The name, language and dialect are never
+// sent, so changing one cannot make a number wrong — and clearing on them would
+// mean that switching language on /profile silently threw the results away,
+// when switching language is something a reader must be able to do at any
+// point.
 const ANSWER_SECTIONS = new Set(['business', 'location', 'finance'])
+
+// The answers inside those sections that never leave this tab. The report
+// prints them, but the request does not carry them, so editing one cannot make
+// a result wrong. Clearing on them would throw away a valid result and then
+// tell the reader that an answer changed the check, which is untrue.
+const LOCAL_ONLY = {
+  business: new Set(['businessName']),
+  location: new Set(['village', 'marketType', 'customers']),
+}
+
+function changesResult(section, keys) {
+  if (!ANSWER_SECTIONS.has(section)) return false
+  const local = LOCAL_ONLY[section]
+  return keys.some((key) => !local || !local.has(key))
+}
+
+// EMPTY's own fields, each taken from the stored section when it has one.
+// Only EMPTY's keys come through, so a field a later version removed (a stored
+// literacyLevel or employees) is dropped here rather than carried along in
+// storage for the rest of the session.
+function pick(base, stored) {
+  const source = stored && typeof stored === 'object' ? stored : {}
+  return Object.fromEntries(
+    Object.keys(base).map((key) => [key, Object.hasOwn(source, key) ? source[key] : base[key]]),
+  )
+}
 
 // Merge over the defaults section by section rather than trusting the stored
 // object wholesale. A field added after a payload was written would otherwise
@@ -124,16 +150,18 @@ function hydrate(data) {
   if (!data || typeof data !== 'object') return EMPTY
 
   return {
-    profile: { ...EMPTY.profile, ...(data.profile || {}) },
-    business: { ...EMPTY.business, ...(data.business || {}) },
+    profile: pick(EMPTY.profile, data.profile),
+    business: pick(EMPTY.business, data.business),
     location: {
-      ...EMPTY.location,
-      ...(data.location || {}),
+      ...pick(EMPTY.location, data.location),
       // marketType is a list. A scalar left over from an older payload must
       // never reach .includes() or .join() as a bare string.
       marketType: Array.isArray(data.location?.marketType) ? data.location.marketType : [],
     },
-    finance: { ...EMPTY.finance, ...(data.finance || {}) },
+    finance: pick(EMPTY.finance, data.finance),
+    // Passed through as stored. A result saved by an older version may still
+    // carry fields the backend no longer sends, such as local_context on the
+    // market rows; nothing reads them any more, so they are left alone.
     result: data.result ?? null,
     // Only a real `true` counts, and never beside a result: the flag says a
     // result was thrown away, which cannot be so while one is present.
@@ -185,8 +213,10 @@ export function AppProvider({ children }) {
       // and the sessionStorage write, and — the reason this check is here rather
       // than being an optimisation — it stops an idempotent call from discarding
       // a result that is still perfectly valid.
-      const changed = Object.keys(data).some((key) => current[section][key] !== data[key])
-      if (!changed) return current
+      const changedKeys = Object.keys(data).filter((key) => current[section][key] !== data[key])
+      if (changedKeys.length === 0) return current
+
+      const clears = changesResult(section, changedKeys)
 
       return {
         ...current,
@@ -194,11 +224,11 @@ export function AppProvider({ children }) {
           ...current[section],
           ...data,
         },
-        result: ANSWER_SECTIONS.has(section) ? null : current.result,
+        result: clears ? null : current.result,
         // Set only when this change is the one that threw a result away. Once
         // set it stays set through later edits, which have no result left to
         // clear, until a new result arrives or the reader starts over.
-        resultCleared: ANSWER_SECTIONS.has(section) && current.result ? true : current.resultCleared,
+        resultCleared: clears && current.result ? true : current.resultCleared,
       }
     })
   }
@@ -290,7 +320,6 @@ export function firstUnansweredStep(data) {
     !isWholeAmount(business.initialInvestment, MAX_RUPEES) ||
     !isWholeAmount(business.monthlyRevenue, MAX_RUPEES) ||
     !isWholeAmount(business.monthlyOperatingExpenses, MAX_RUPEES) ||
-    !isOptionalAmount(business.employees, MAX_EMPLOYEES) ||
     !isOptionalAmount(business.existingDebt, MAX_RUPEES)
   ) {
     return '/business'

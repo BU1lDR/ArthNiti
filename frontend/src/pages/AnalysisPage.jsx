@@ -3,6 +3,7 @@ import { firstUnansweredStep, isStarted, useApp } from '../context/AppContext'
 import Button from '../components/Button'
 import { BarGroup, BarRow, UnitChart } from '../components/Charts'
 import { schemeFitItems } from '../components/chartData'
+import Figure from '../components/Figure'
 import { useI18n } from '../i18n/LanguageContext'
 import { useBackendText } from '../i18n/backendText'
 import { APP_NAME } from '../i18n/brand'
@@ -227,13 +228,18 @@ function AnalysisPage() {
               favourable misreading the BarGroup forty lines below refuses to
               draw a bar for. Three cues now agree: the label names a shortfall,
               the figure is red, and the sign leads (-₹10,000, not ₹-10,000).
-              Exactly ₹0 is not a shortfall and keeps the ordinary label. */}
+              Exactly ₹0 is not a shortfall and keeps the ordinary label.
+              The figure stays on one line. Below the two-column width its
+              own line is the size container it shrinks to fit. From there up
+              this box sits in a column that grows to fit the whole figure,
+              and a size container would stop that: the column would be sized
+              as if the figure were not there. */}
           <div className="rounded-2xl bg-[var(--color-surface-soft)] p-5 text-center lg:min-w-52">
             <p className="text-sm font-semibold text-[var(--color-text-muted)]">
               {isShortfall ? t('money.shortfall') : t('money.left')}
             </p>
-            <p className={`mt-1 text-3xl font-bold ${isShortfall ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}>
-              {formatCurrency(monthlyProfit, t)}
+            <p className={`mt-1 text-3xl font-bold max-lg:@container ${isShortfall ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'}`}>
+              {hasNumber(monthlyProfit) ? <Figure text={formatCurrency(monthlyProfit, t)} /> : formatCurrency(monthlyProfit, t)}
             </p>
             {/* monthly_profit is expected_monthly_revenue − monthly_expenses and
                 nothing else: the EMI is a separate input, and risk_service
@@ -250,8 +256,8 @@ function AnalysisPage() {
       </section>
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard icon="💰" title={t('money.needed')} value={formatCurrency(fundingGap, t)} description={gapDescription} />
-        <MetricCard icon="📈" title={t('money.margin')} value={formatPercent(margin, t)} description={t('an.marginDesc')} />
+        <MetricCard icon="💰" title={t('money.needed')} value={formatCurrency(fundingGap, t)} figure={hasNumber(fundingGap)} description={gapDescription} />
+        <MetricCard icon="📈" title={t('money.margin')} value={formatPercent(margin, t)} figure={hasNumber(margin)} description={t('an.marginDesc')} />
         <MetricCard icon="🛡️" title={t('money.risk')} value={riskText(risk.risk_level, t)} description={riskReason || t('an.riskDesc')} />
         <MetricCard icon="🏪" title={t('an.health')} value={statusText(business.feasibility_status, t)} description={roiDescription} />
       </section>
@@ -369,7 +375,7 @@ function AnalysisPage() {
         {market.length > 0 ? (
           <>
             <div className="mt-5 grid gap-4">
-              {market.map((row, index) => <MarketCard key={index} row={row} t={t} bt={bt} />)}
+              {market.map((row, index) => <MarketCard key={index} row={row} marketType={applicationData.location?.marketType} t={t} bt={bt} />)}
             </div>
             <MarketSources rows={market} t={t} />
           </>
@@ -485,16 +491,24 @@ function AnalysisPage() {
   )
 }
 
-function MetricCard({ icon, title, value, description }) {
+// `figure` says the value is a formatted amount or percentage, which stays on
+// one line and shrinks to fit the tile; a risk or status word, or the text for
+// a missing figure, wraps like any other words.
+function MetricCard({ icon, title, value, figure, description }) {
   return (
     <div className="ui-card flex min-h-40 min-w-0 flex-col justify-between p-5">
-      <div className="flex min-w-0 items-center gap-3">
+      {/* Top-aligned, not centred: four of these share a row, and a centred
+          icon moved down with a title that wrapped, so in Tamil one card's icon
+          sat 14px below the other three. The icon's line is 2rem tall and the
+          title's 1.25rem, and the 0.375rem of top padding centres the title's
+          first line on the icon, where centring put a one-line title. */}
+      <div className="flex min-w-0 items-start gap-3">
         <span className="shrink-0 text-2xl" aria-hidden="true">{icon}</span>
-        <p className="min-w-0 break-words text-sm font-semibold text-[var(--color-text-muted)]">{title}</p>
+        <p className="min-w-0 break-words pt-1.5 text-sm font-semibold text-[var(--color-text-muted)]">{title}</p>
       </div>
 
       <div className="mt-4 min-w-0">
-        <p className="break-words text-2xl font-bold text-[var(--color-text)]">{value}</p>
+        <p className="@container break-words text-2xl font-bold text-[var(--color-text)]">{figure ? <Figure text={value} /> : value}</p>
         <p className="mt-2 break-words text-xs leading-5 text-[var(--color-text-muted)]">{description}</p>
       </div>
     </div>
@@ -591,8 +605,10 @@ function HouseholdCheck({ risk, t, bt, termsShownAbove }) {
   )
 }
 
-function MarketCard({ row, t, bt }) {
-  const context = row.local_context || {}
+// `marketType` is the reader's own answer on /location, read from this tab.
+// It is never sent, so the backend cannot echo it back on the row.
+function MarketCard({ row, marketType, t, bt }) {
+  const whereSell = choiceListText(marketType, t)
   // Say plainly whose figures these are. A state-level figure presented as
   // local data would be the wrong kind of confident.
   const provenance = row.match_level === 'district'
@@ -681,10 +697,10 @@ function MarketCard({ row, t, bt }) {
         </div>
       )}
 
-      {context.market_type && (
+      {whereSell && (
         <div className="mt-4">
           <p className="text-xs font-semibold text-[var(--color-text-muted)]">{t('mk.whereSell')}</p>
-          <p className="mt-1 text-sm font-bold text-[var(--color-text)]">{choiceListText(context.market_type, t)}</p>
+          <p className="mt-1 text-sm font-bold text-[var(--color-text)]">{whereSell}</p>
         </div>
       )}
 
@@ -698,7 +714,7 @@ function MarketCard({ row, t, bt }) {
 
 // Printed once under the cards, not per card. GODL-India makes the attribution
 // mandatory, so it is shown wherever the figures are, and never inside a
-// <details>, which prints collapsed. The attribution is the licence's own form
+// <details>, which hides its body on screen until opened. The attribution is the licence's own form
 // of words naming the dataset as published, so it stays English and is marked
 // lang="en". Plain text with no link: the outbound government links were removed
 // on 10 Sept 2026 and the URLs inside the sentence are part of the citation.
@@ -903,15 +919,13 @@ function choiceText(value, t) {
   return key ? t(key) : formatText(value, t)
 }
 
-// market_type reaches the backend as the comma-joined list FinancePage builds
-// from the multi-select on /location, so each part is translated on its own
-// before being joined back together.
+// The list of English codes the multi-select on /location stores, each
+// translated on its own and joined. Anything that is not a non-empty list gives
+// '', so the card prints no "where you sell" line rather than an empty one.
 function choiceListText(value, t) {
-  const parts = String(value === undefined || value === null ? '' : value)
-    .split(',')
-    .map((part) => part.trim())
-    .filter(Boolean)
-  if (parts.length === 0) return formatText(value, t)
+  const parts = Array.isArray(value)
+    ? value.map((part) => String(part ?? '').trim()).filter(Boolean)
+    : []
   return parts.map((part) => choiceText(part, t)).join(', ')
 }
 

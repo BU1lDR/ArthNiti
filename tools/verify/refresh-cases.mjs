@@ -8,14 +8,32 @@
 //
 // Run the backend first, then:  node tools/verify/refresh-cases.mjs
 // It builds the same payload FinancePage.jsx builds, so the fixture matches what
-// a real submit would have stored.
+// a real submit would have stored: the twelve answers the page sends, and
+// nothing it keeps in the tab (the village, market type and customers, the
+// names), plus the consent record the page attaches once its box is ticked. The
+// consent is sent every time, so the script also works against a backend that
+// requires it, and every refresh passes through the consent schema.
 
 import { mkdirSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const API = 'http://127.0.0.1:8000/api/analysis/run'
 
+// The notice version the page sends is the one in the app's own module, not a
+// copy, so a bumped version reaches the fixtures the next time this runs.
+const { NOTICE_VERSION } = await import(pathToFileURL(resolve('frontend/src/config/notice.js')).href)
+
+// The mvp_summary keys the backend returns now. Anything else in a response,
+// or a local_context on a market row, is an echo of a field the page no longer
+// sends: the running backend is older than the code, and every verifier that
+// seeds from these fixtures would read the old shape.
+const MVP_SUMMARY_KEYS = new Set(['status', 'simple_message', 'message_code', 'next_step', 'next_step_code', 'priority', 'location_type'])
+
 // Mirrors FORMS in drive.mjs. Kept as the form sections rather than as a request
-// body so the mapping below stays the one FinancePage.jsx performs.
+// body so the mapping below stays the one FinancePage.jsx performs. The village,
+// market type and customers stay in the sections because the page holds them,
+// but none of them is sent.
 //
 // The household income question is optional, and the three cases between them
 // reach all three answers to it, so a verifier seeding from any one of them sees
@@ -28,14 +46,14 @@ const API = 'http://127.0.0.1:8000/api/analysis/run'
 //   empty  over_limit, see that case.
 const CASES = {
   good: {
-    profile: { language: 'Tamil', literacyLevel: 'low' },
-    business: { category: 'tailoring', initialInvestment: '200000', monthlyRevenue: '30000', monthlyOperatingExpenses: '18000', employees: 2, existingDebt: 0 },
+    profile: { language: 'Tamil' },
+    business: { category: 'tailoring', initialInvestment: '200000', monthlyRevenue: '30000', monthlyOperatingExpenses: '18000', existingDebt: 0 },
     location: { village: 'Khera', district: 'Lucknow', state: 'Uttar Pradesh', locationType: 'rural', marketType: ['village', 'weekly'], customers: 'Local families' },
     finance: { availableCapital: '150000', monthlyExpenses: '15000', monthlyEmi: '3000', householdIncome: '20000' },
   },
   nulls: {
-    profile: { language: 'Hindi', literacyLevel: 'low' },
-    business: { category: 'tailoring', initialInvestment: '0', monthlyRevenue: '10000', monthlyOperatingExpenses: '12000', employees: 0, existingDebt: 40000 },
+    profile: { language: 'Hindi' },
+    business: { category: 'tailoring', initialInvestment: '0', monthlyRevenue: '10000', monthlyOperatingExpenses: '12000', existingDebt: 40000 },
     location: { village: 'Khera', district: 'Lucknow', state: 'Uttar Pradesh', locationType: 'rural', marketType: ['village'], customers: 'Local families' },
     finance: { availableCapital: '5000', monthlyExpenses: '20000', monthlyEmi: '5000', householdIncome: '' },
   },
@@ -52,8 +70,8 @@ const CASES = {
   // Without the new loan it is 2000 of 5000 = 40%, within, so it is the loan
   // for the gap that takes the household over, and the next step says so.
   empty: {
-    profile: { language: 'Kannada', literacyLevel: 'low' },
-    business: { category: 'other', categoryOther: 'Photography', initialInvestment: '80000', monthlyRevenue: '25000', monthlyOperatingExpenses: '9000', employees: 1, existingDebt: 0 },
+    profile: { language: 'Kannada' },
+    business: { category: 'other', categoryOther: 'Photography', initialInvestment: '80000', monthlyRevenue: '25000', monthlyOperatingExpenses: '9000', existingDebt: 0 },
     location: { village: '', district: 'New Delhi', state: 'Delhi', locationType: 'rural', marketType: ['town'], customers: '' },
     finance: { availableCapital: '50000', monthlyExpenses: '10000', monthlyEmi: '2000', householdIncome: '5000' },
   },
@@ -71,9 +89,6 @@ for (const [name, form] of Object.entries(CASES)) {
     business_category: business.category === 'other' ? String(business.categoryOther || '').trim() : business.category,
     state: location.state,
     district: location.district || '',
-    village: location.village || '',
-    market_type: (location.marketType || []).join(', '),
-    customers: location.customers || '',
     available_capital: Number(finance.availableCapital) || 0,
     monthly_expenses: Number(finance.monthlyExpenses) || 0,
     expected_monthly_revenue: Number(business.monthlyRevenue) || 0,
@@ -83,12 +98,18 @@ for (const [name, form] of Object.entries(CASES)) {
     household_monthly_income: householdIncome === '' ? null : Number(householdIncome),
     initial_investment: Number(business.initialInvestment) || 0,
     monthly_operating_expenses: Number(business.monthlyOperatingExpenses) || 0,
-    employees: Number(business.employees) || 0,
     existing_debt: Number(business.existingDebt) || 0,
-    user_language: profile.language,
-    preferred_dialect: null,
-    literacy_level: profile.literacyLevel,
     location_type: location.locationType,
+    // What the page attaches after its consent box is ticked. The language is
+    // the UI language code; the page reads it from the language switch, and
+    // here it is the case's language. No age box is shown unless a deployment
+    // turns it on, so there is no answer to record.
+    consent: {
+      notice_version: NOTICE_VERSION,
+      language: LANG_CODE[profile.language],
+      given_at: new Date().toISOString(),
+      age_confirmed: null,
+    },
   }
 
   const res = await fetch(API, {
@@ -101,6 +122,14 @@ for (const [name, form] of Object.entries(CASES)) {
     process.exit(1)
   }
   const result = await res.json()
+  const echoed = [
+    ...Object.keys(result.mvp_summary || {}).filter((key) => !MVP_SUMMARY_KEYS.has(key)).map((key) => `mvp_summary.${key}`),
+    ...((result.market_context || []).some((row) => 'local_context' in row) ? ['market_context[].local_context'] : []),
+  ]
+  if (echoed.length) {
+    console.log(`${name}: backend still echoes ${echoed.join(', ')}; restart it on the current code`)
+    process.exit(1)
+  }
   // screenshots/ is gitignored and holds nothing tracked, so on a FRESH CLONE
   // this directory does not exist and writeFileSync throws ENOENT. That made
   // this the one script a new teammate must run first and the one that could

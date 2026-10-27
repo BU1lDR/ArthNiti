@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
 import { useI18n } from '../i18n/LanguageContext'
-import { MAX_EMPLOYEES, MAX_RUPEES } from '../data/limits'
+import { MAX_CATEGORY_LENGTH, MAX_RUPEES } from '../data/limits'
 
 const fieldClass = 'mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-base text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary-strong)]'
 
@@ -105,7 +105,10 @@ function BusinessPage() {
               <label className="text-base font-extrabold" htmlFor="business-name">
                 {t('business.nameLabel')}<span className="ui-required" aria-hidden="true">*</span>
               </label>
-              <input id="business-name" name="businessName" value={business.businessName} onChange={handleChange} type="text" placeholder="e.g. Rahul General Store" className={fieldClass} required />
+              <input id="business-name" name="businessName" value={business.businessName} onChange={handleChange} type="text" placeholder="e.g. Rahul General Store" className={fieldClass} autoComplete="off" aria-describedby="business-name-local" required />
+              {/* The name is never sent. Saying so where it is asked is what lets
+                  someone who would rather not give it type any name at all. */}
+              <p id="business-name-local" className="mt-2 text-sm text-[var(--color-text-muted)]">{t('form.localOnly')}</p>
             </div>
 
             <fieldset ref={categoryRef} aria-describedby={categoryError ? 'category-error' : undefined}>
@@ -138,7 +141,7 @@ function BusinessPage() {
                 <label className="mt-4 block">
                   <span className="font-bold">{t('business.otherLabel')}</span>
                   <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{t('business.otherHint')}</span>
-                  <input ref={otherRef} name="categoryOther" value={business.categoryOther} onChange={handleChange} type="text" minLength={2} placeholder={t('business.otherPh')} className={fieldClass} required aria-invalid={otherError || undefined} aria-describedby={otherError ? 'category-other-error' : undefined} />
+                  <input ref={otherRef} name="categoryOther" value={business.categoryOther} onChange={handleChange} type="text" minLength={2} maxLength={MAX_CATEGORY_LENGTH} autoComplete="off" placeholder={t('business.otherPh')} className={fieldClass} required aria-invalid={otherError || undefined} aria-describedby={otherError ? 'category-other-error' : undefined} />
                 </label>
               )}
 
@@ -187,10 +190,6 @@ function BusinessPage() {
             <details className="ui-disclosure mt-6">
               <summary><span aria-hidden="true">⚙️</span> {t('business.moreDetails')}</summary>
               <div className="ui-disclosure-body grid gap-5 sm:grid-cols-2">
-                <label className="ui-field">
-                  <span className="font-bold">{t('business.employees')}</span>
-                  <input name="employees" value={business.employees} onChange={handleChange} type="number" min="0" max={MAX_EMPLOYEES} placeholder="e.g. 2" className={fieldClass} />
-                </label>
                 <label className="ui-field">
                   <span className="font-bold">{t('business.debt')}</span>
                   <MoneyField name="existingDebt" value={business.existingDebt} onChange={handleChange} placeholder="0" />

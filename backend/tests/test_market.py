@@ -25,11 +25,9 @@ client = TestClient(app)
 
 UP_TAILORING, LUCKNOW_WHEAT, LUCKNOW_POTATO, LUCKNOW_HANDICRAFTS, LUCKNOW_TAILORING, VARANASI_SERVICES = range(6)
 
-NO_LOCAL_CONTEXT = {"village": "", "market_type": "", "customers": ""}
 
-
-def expected(rows, index, match_level, local_context=NO_LOCAL_CONTEXT):
-    return {**rows[index], "match_level": match_level, "local_context": local_context}
+def expected(rows, index, match_level):
+    return {**rows[index], "match_level": match_level}
 
 
 # ---------------------------------------------------------------- the lookup
@@ -105,24 +103,14 @@ def test_market_context_returns_empty_for_unknown_state_or_category(synthetic_ma
     assert get_market_context("Uttar Pradesh", "Lucknow", "space tourism") == []
 
 
-def test_market_context_includes_local_context(synthetic_market):
-    result = get_market_context(
-        "Uttar Pradesh",
-        "Lucknow",
-        "tailoring",
-        village="  Khera ",
-        market_type="weekly",
-        customers="Local families",
-    )
+def test_market_rows_carry_no_local_context(synthetic_market):
+    # The rows used to echo the reader's village, market type and customers
+    # back as local_context. Nothing on the server needs them, so they are no
+    # longer taken in or returned.
+    result = get_market_context("Uttar Pradesh", "Lucknow", "tailoring")
 
-    assert result == [
-        expected(
-            synthetic_market,
-            LUCKNOW_TAILORING,
-            "district",
-            {"village": "Khera", "market_type": "weekly", "customers": "Local families"},
-        )
-    ]
+    assert result == [expected(synthetic_market, LUCKNOW_TAILORING, "district")]
+    assert all("local_context" not in row for row in result)
 
 
 def test_a_row_with_no_scope_counts_as_a_district_row(synthetic_market):
@@ -273,11 +261,10 @@ def test_the_unified_analysis_passes_market_rows_through_unchanged(synthetic_mar
         "Uttar Pradesh",
         "Lucknow",
         "tailoring",
-        village="Khera",
-        market_type="weekly",
-        customers="Local families",
     )
     assert response.json()["market_context"][0]["match_level"] == "district"
+    # The village, market type and customers are accepted and ignored.
+    assert all("local_context" not in row for row in response.json()["market_context"])
 
 
 # ---------------------------------------------------------------- the shared cache
@@ -286,7 +273,7 @@ def test_the_unified_analysis_passes_market_rows_through_unchanged(synthetic_mar
 def test_a_response_cannot_poison_the_cached_market_rows(synthetic_market_file):
     """market_data.json is parsed once per process, so the rows are shared
     across every request. get_market_context copies each row, nested provenance
-    and lists included, before adding match_level and local_context; without
+    and lists included, before adding match_level; without
     that, a consumer editing a returned row would rewrite the dataset for the
     rest of the process.
     """
@@ -305,7 +292,6 @@ def test_a_response_cannot_poison_the_cached_market_rows(synthetic_market_file):
     first[0]["provenance"]["licence"] = "POISON"
     first[0]["provenance"]["rows_dropped"]["unparseable"] = -1
     first[0]["nic_classes"].append("9999")
-    first[0]["local_context"]["village"] = "POISON"
 
     second = get_market_context("Uttar Pradesh", "Lucknow", "tailoring")
 

@@ -1,5 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List
+
+from app.schemas.limits import MAX_CATEGORY_LENGTH, MAX_ENUM_LENGTH, MAX_PLACE_LENGTH
 
 
 class Scheme(BaseModel):
@@ -27,9 +29,10 @@ class Scheme(BaseModel):
 
 
 class SchemeMatchRequest(BaseModel):
-    business_category: str
-    state: str
+    # Capped like every text field; see limits.py.
+    business_category: str = Field(max_length=MAX_CATEGORY_LENGTH)
+    state: str = Field(max_length=MAX_PLACE_LENGTH)
     # Optional, and empty means "do not filter on it" rather than "nowhere" — a
     # caller that does not know whether the entrepreneur is rural or urban must
     # still be shown the schemes that are open to both.
-    location_type: str = ""
+    location_type: str = Field(default="", max_length=MAX_ENUM_LENGTH)

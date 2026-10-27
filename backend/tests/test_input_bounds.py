@@ -20,7 +20,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.schemas.limits import MAX_EMPLOYEES, MAX_RUPEES
+from app.schemas.limits import MAX_CATEGORY_LENGTH, MAX_EMPLOYEES, MAX_RUPEES
 
 
 client = TestClient(app)
@@ -366,5 +366,8 @@ def test_the_frontend_limits_match_the_backend():
 
     assert MAX_RUPEES == 1_000_000_000
     assert MAX_EMPLOYEES == 10_000
+    assert MAX_CATEGORY_LENGTH == 100
     assert _frontend_constant(source, "MAX_RUPEES") == MAX_RUPEES
     assert _frontend_constant(source, "MAX_EMPLOYEES") == MAX_EMPLOYEES
+    # The business-category box on /business caps what is typed at this.
+    assert _frontend_constant(source, "MAX_CATEGORY_LENGTH") == MAX_CATEGORY_LENGTH

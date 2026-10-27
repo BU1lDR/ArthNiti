@@ -51,19 +51,13 @@ def get_market_context(
     state: str,
     district: str,
     business_category: str,
-    village: str = "",
-    market_type: str = "",
-    customers: str = "",
 ) -> list[dict]:
+    # Rows used to carry a `local_context` echoing the village, market type and
+    # customers from the request. Nothing here computed from them, so the echo
+    # and those parameters are gone; the frontend keeps those answers in the tab.
     state = state.strip().lower()
     district = district.strip().lower()
     business_category = business_category.strip().lower()
-
-    local_context = {
-        "village": village.strip(),
-        "market_type": market_type.strip(),
-        "customers": customers.strip(),
-    }
 
     # One pass, two buckets. The entrepreneur's own district is the most useful
     # answer: a row with scope "district" for exactly that district. Failing
@@ -99,7 +93,6 @@ def get_market_context(
             {
                 **_detached(row),
                 "match_level": match_level,
-                "local_context": local_context,
             }
         )
 

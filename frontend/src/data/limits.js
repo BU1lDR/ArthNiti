@@ -13,3 +13,7 @@
 export const MAX_RUPEES = 1_000_000_000
 
 export const MAX_EMPLOYEES = 10_000
+
+// The longest business category the backend accepts. The fixed choices are far
+// shorter; this caps the typed "Other" category, which is sent as the category.
+export const MAX_CATEGORY_LENGTH = 100

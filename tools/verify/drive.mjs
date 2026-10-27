@@ -15,8 +15,24 @@
 // which on a signed-in profile is a sync-confirmation dialog.
 //
 // Run from the repo root:  node tools/verify/drive.mjs
+// Exit 0: nothing found. 1: a finding, a page whose #main never filled (BLANK)
+// and a scheme whose heading is not on the page included. 2: the run could not
+// measure: the working directory is wrong, a fixture is missing, AppContext no
+// longer reads the seed version, the dictionaries define no dotted key to take
+// prefixes from, FIT_KEYS is gone from backendText.js or has no entry this can
+// read, a key the checks need (a cleared, not-ready or fit label) is not in
+// resultStrings.js, the page cannot import deployment.js or it no longer
+// exports what is read from it, the dev server is down or went away mid-run (a
+// navigation failed, or a page that never filled is Edge's own error page or
+// answered other than 2xx), a scheme heading sits in no card or in a box that
+// holds other schemes' headings too, Edge's DevTools socket closed, the run
+// ended without reaching its verdict, or the driver crashed. A run that exits 2
+// writes no report.json, and once the working directory checks out, the last
+// run's is gone too. report.json carries the same code as `exit`; `demoMode`
+// says which notice the run read, and `neutralised` which of the deployer's
+// values the text checks left out.
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -62,14 +78,66 @@ function killOwnEdge() {
   for (const pid of ownEdgePids()) kill(pid)
 }
 
+// --- exit codes ------------------------------------------------------------------
+// 0 means the run measured and found nothing, 1 a finding, and 2 that the run
+// could not measure. Node's own exit on an uncaught error is 1, which reads as a
+// finding, so anything thrown or rejected that nothing catches exits 2 instead.
+process.on('uncaughtException', (err) => {
+  console.error(err)
+  killOwnEdge()
+  crashExit()
+})
+// A crash exits 2 through this rather than process.exit(2) at once. For up to
+// about 100 ms after fetch() reads a response, V8 can still be recompiling
+// undici's WASM HTTP parser on a worker thread, and exiting in that window kills
+// node with 0xC0000409 (Git Bash shows 127): neither 0, 1 nor 2. The wait
+// blocks this thread, so nothing else of the run happens meanwhile.
+// tools/README.md, Exit codes, has the measurements.
+function crashExit() {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000)
+  process.exit(2)
+}
+// A run that ends without reaching its verdict exits 2, and the verdict at the
+// end of main() overrides it. Before this, a CDP socket that closed under a
+// pending send left that send unsettled, the event loop drained, and node
+// exited 0 with no report.
+process.exitCode = 2
+// Every path in this file resolves against the working directory.
+if (!existsSync(resolve('tools/verify/drive.mjs'))) {
+  console.error(`drive: ${process.cwd()} is not the repo root. Run this from the repo root: node tools/verify/drive.mjs`)
+  process.exit(2)
+}
+// A report.json on disk is always from a run that finished. The last run's
+// goes once the working directory has been checked, so a run that stops early
+// leaves none.
+rmSync(resolve(OUT, 'report.json'), { force: true })
+
+// A server that is down used to surface as a crash inside the page (Edge's own
+// error page refuses storage access), which exited 1 and read as a finding.
+// It returns false with exitCode 2 set, and main() returns before Edge starts,
+// so node exits on its own: process.exit() this soon after a fetch can abort
+// it (see crashExit).
+async function requireServer(url, start) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    await res.body?.cancel()
+    if (res.ok) return true
+    console.error(`drive: ${url} answered HTTP ${res.status}. ${start}`)
+  } catch (err) {
+    console.error(`drive: nothing answered at ${url} (${err.cause?.code || err.name}). ${start}`)
+  }
+  process.exitCode = 2
+  return false
+}
+
 // --- the form answers that go with each captured backend response -------------
 const FORMS = {
   good: {
-    profile: { name: 'Lakshmi Devi', language: 'Tamil', dialect: '', literacyLevel: 'low' },
+    profile: { name: 'Lakshmi Devi', language: 'Tamil', dialect: '' },
     business: {
       businessName: 'Lakshmi Tailors', category: 'tailoring', categoryOther: '',
       initialInvestment: '200000', monthlyRevenue: '30000',
-      monthlyOperatingExpenses: '18000', employees: 2, existingDebt: 0,
+      monthlyOperatingExpenses: '18000', existingDebt: 0,
     },
     location: {
       village: 'Khera', district: 'Lucknow', state: 'Uttar Pradesh',
@@ -78,11 +146,11 @@ const FORMS = {
     finance: { availableCapital: '150000', monthlyExpenses: '15000', monthlyEmi: '3000' },
   },
   nulls: {
-    profile: { name: 'Ram Prasad', language: 'Hindi', dialect: '', literacyLevel: 'low' },
+    profile: { name: 'Ram Prasad', language: 'Hindi', dialect: '' },
     business: {
       businessName: 'Ram Tailor Shop', category: 'tailoring', categoryOther: '',
       initialInvestment: '0', monthlyRevenue: '10000',
-      monthlyOperatingExpenses: '12000', employees: 0, existingDebt: 40000,
+      monthlyOperatingExpenses: '12000', existingDebt: 40000,
     },
     location: {
       village: 'Khera', district: 'Lucknow', state: 'Uttar Pradesh',
@@ -95,11 +163,11 @@ const FORMS = {
   // empty state. A typed-in Other is now the only input that reaches it — see
   // refresh-cases.mjs, which regenerates the response beside this.
   empty: {
-    profile: { name: 'Suresh Kumar', language: 'Kannada', dialect: '', literacyLevel: 'low' },
+    profile: { name: 'Suresh Kumar', language: 'Kannada', dialect: '' },
     business: {
       businessName: 'Suresh Studio', category: 'other', categoryOther: 'Photography',
       initialInvestment: '80000', monthlyRevenue: '25000',
-      monthlyOperatingExpenses: '9000', employees: 1, existingDebt: 0,
+      monthlyOperatingExpenses: '9000', existingDebt: 0,
     },
     location: {
       village: '', district: 'New Delhi', state: 'Delhi',
@@ -116,11 +184,11 @@ const FORMS = {
   // class as known defect 4, and it only shows up with the fields genuinely
   // blank, which is why an all-zeros case is not a substitute.
   blank: {
-    profile: { name: '', language: 'Hindi', dialect: '', literacyLevel: 'low' },
+    profile: { name: '', language: 'Hindi', dialect: '' },
     business: {
       businessName: '', category: '', categoryOther: '',
       initialInvestment: '', monthlyRevenue: '',
-      monthlyOperatingExpenses: '', employees: 0, existingDebt: 0,
+      monthlyOperatingExpenses: '', existingDebt: 0,
     },
     location: {
       village: '', district: '', state: '',
@@ -156,24 +224,45 @@ const SEED_EXTRA = {
 
 // --- the sessionStorage envelope ---------------------------------------------
 // AppContext reads {v, data} and discards a payload whose v is not in its
-// READABLE_VERSIONS, silently, by returning the blank form. FORMS above are
-// written in the version 2 shape (version 1 plus `resultCleared`), so the seed
-// says 2, and the script refuses to start if AppContext no longer reads that
-// version: every result page would fall to its empty state, and the findings
-// would point everywhere except at the seed.
+// READABLE_VERSIONS, silently, by returning the blank form. The seed says
+// version 2 (version 1 plus `resultCleared`), and the script refuses to start if
+// AppContext no longer reads that version: every result page would fall to its
+// empty state, and the findings would point everywhere except at the seed.
+// FORMS carry neither `literacyLevel` nor `employees`, which version 4 removed,
+// nor `householdIncome`, which version 3 added: hydrate() keeps only EMPTY's
+// keys and fills a missing one from EMPTY, so the seed reads the same either way.
+// The refusal exits 2, as it does in the other seeding scripts: 1 is a finding,
+// and a run that measured nothing has none.
 const SEED_VERSION = 2
 const APP_CONTEXT = 'frontend/src/context/AppContext.jsx'
+const APP_CONTEXT_TEXT = readFileSync(APP_CONTEXT, 'utf8')
 {
-  const m = readFileSync(APP_CONTEXT, 'utf8').match(/^const READABLE_VERSIONS = new Set\(\[([\d,\s]*)\]\)/m)
-  if (!m) throw new Error(`READABLE_VERSIONS not found in ${APP_CONTEXT}; update the parse in drive.mjs`)
+  const m = APP_CONTEXT_TEXT.match(/^const READABLE_VERSIONS = new Set\(\[([\d,\s]*)\]\)/m)
+  if (!m) {
+    console.error(`READABLE_VERSIONS not found in ${APP_CONTEXT}; update the parse in drive.mjs`)
+    process.exit(2)
+  }
   const readable = m[1].split(',').map((s) => s.trim()).filter(Boolean).map(Number)
   if (!readable.includes(SEED_VERSION)) {
-    throw new Error(
+    console.error(
       `${APP_CONTEXT} no longer reads version ${SEED_VERSION} payloads (READABLE_VERSIONS is ` +
         `${readable.join(', ')}). Rewrite FORMS in drive.mjs to the new shape and raise SEED_VERSION.`,
     )
+    process.exit(2)
   }
 }
+// What the app writes back after it hydrates, for the hydrate check below.
+const STORAGE_VERSION = Number(APP_CONTEXT_TEXT.match(/^const STORAGE_VERSION = (\d+)/m)?.[1])
+if (!Number.isInteger(STORAGE_VERSION)) throw new Error(`STORAGE_VERSION not found in ${APP_CONTEXT}; update the parse in drive.mjs`)
+
+// --- the hydrate check ----------------------------------------------------------
+// Run once, before the passes. An old payload that still carries the two fields
+// version 4 removed must come back, once the app has written its state on mount,
+// at the current version without them, and with the result byte-for-byte as it
+// went in: hydrate() passes `result` through untouched, so an old seed stays
+// readable. Seeding FORMS alone could not show this, because they no longer
+// carry the removed fields at all.
+const REMOVED_FIELDS = [['profile', 'literacyLevel', 'low'], ['business', 'employees', 2]]
 
 const RESULT_ROUTES = ['/analysis', '/schemes', '/advisory', '/report']
 
@@ -188,7 +277,40 @@ const RESULT_ROUTES = ['/analysis', '/schemes', '/advisory', '/report']
 // which skips the body of a closed <details>, so a percentage re-added inside
 // a disclosure would pass everything else in this script.
 const CARD_ROUTES = ['/analysis', '/schemes', '/report']
-const FIT_KEYS = { state: 'sc.fitState', region: 'sc.fitRegion', national: 'sc.fitNational' }
+// fit_basis -> key, read from the app's own map in backendText.js rather than
+// copied here. A copy goes stale without a sound when the app renames a key:
+// every card of that basis reads as FIT LABEL MISSING, a finding against a
+// correct app, and the WRONG FIT LABEL arm for it looks for the word
+// "undefined" (see the check under CLEARED_KEYS). backendText.js cannot be
+// imported here, because it imports './LanguageContext' without an extension,
+// so its source is read line by line with keycheck.mjs's MAP_ENTRY pattern. A
+// map that is gone, has no entry, or has a line the pattern cannot read (a
+// double-quoted key, a template literal) exits 2: skipping that line would
+// leave its basis out of FIT_KEYS, and a correct app would then be reported as
+// FIT LABEL MISSING. A basis the backend sends that the map lacks stays a
+// finding, FIT LABEL MISSING: fitLabel() title-cases it, so the reader sees a
+// bare English word.
+const BACKEND_TEXT = 'frontend/src/i18n/backendText.js'
+const FIT_KEYS = {}
+{
+  const source = readFileSync(BACKEND_TEXT, 'utf8')
+  const opener = 'const FIT_KEYS = {'
+  const open = source.indexOf(opener)
+  const close = open < 0 ? -1 : source.indexOf('\n}', open)
+  if (close < 0) throw new Error(`FIT_KEYS not found in ${BACKEND_TEXT}; update the parse in drive.mjs`)
+  const firstLine = source.slice(0, open).split('\n').length
+  source.slice(open + opener.length, close).split('\n').forEach((raw, i) => {
+    const line = raw.trimEnd()
+    if (/^\s*(?:\/\/.*)?$/.test(line)) return
+    const m = line.match(/^\s*(?:'([^'\\]+)'|([\w$]+))\s*:\s*'([\w.]+)',?\s*(?:\/\/.*)?$/)
+    if (!m) {
+      throw new Error(`${BACKEND_TEXT}:${firstLine + i}: drive.mjs cannot read this FIT_KEYS line, so its basis would ` +
+        `be reported as FIT LABEL MISSING on a correct app: ${JSON.stringify(raw)}; update the parse in drive.mjs`)
+    }
+    FIT_KEYS[m[1] ?? m[2]] = m[3]
+  })
+  if (!Object.keys(FIT_KEYS).length) throw new Error(`FIT_KEYS in ${BACKEND_TEXT} has no entry drive.mjs can read; update the parse`)
+}
 const { RESULT_STRINGS } = await import(pathToFileURL(resolve('frontend/src/i18n/resultStrings.js')).href)
 // Same per-key English fallback as t(), so a key missing in one language is
 // judged against the English the page would really print.
@@ -208,8 +330,9 @@ const NOT_READY_KEYS = {
 const CLEARED_KEYS = ['res.changedTitle', 'res.changedButton']
 // Checked here rather than at use: resultText() of a key missing from `en` is
 // undefined, and text.includes(undefined) looks for the word "undefined", so a
-// renamed key would turn the "must not appear" half of the check into a pass.
-for (const key of [...CLEARED_KEYS, ...Object.values(NOT_READY_KEYS)]) {
+// renamed key would turn the "must not appear" half of a check (WRONG EMPTY
+// STATE, WRONG FIT LABEL) into a pass.
+for (const key of [...CLEARED_KEYS, ...Object.values(NOT_READY_KEYS), ...Object.values(FIT_KEYS)]) {
   if (typeof RESULT_STRINGS.en[key] !== 'string') throw new Error(`${key} is not defined in resultStrings.js en`)
 }
 // The result the edit threw away. Its scheme names render in English in every
@@ -222,19 +345,111 @@ const SCORE_PCT = /(?<![\d.,-])(90|100)\s*%/
 
 // Runs in the page. For each scheme name, finds its heading, walks up to the
 // card that holds it, and returns that card's text with every <details> open.
+// The walk stops at the first CARD_SELECTOR box, and /analysis's card matches
+// only by its Tailwind utilities, so a cosmetic class edit moves where it
+// stops. Two wrong stops come back marked `card: false`, for the caller to
+// throw on, since neither measured a card: no box at all, or a box holding
+// more than one scheme's heading. That second one is the section around all
+// the cards, whose text carries every card's fit label and the fit chart's
+// too. A heading that is not on the page at all is a scheme missing from it,
+// and stays a finding.
+const CARD_SELECTOR = 'section.ui-card, .ui-card-soft, div.rounded-2xl.border'
 const cardProbe = (names) => `(() => {
   document.querySelectorAll('details').forEach((d) => { d.open = true })
   const names = ${JSON.stringify(names)}
+  const wanted = new Set(names)
   const heads = [...document.querySelectorAll('h2, h3')]
   return names.map((name) => {
     const h = heads.find((el) => el.textContent.trim() === name)
-    const card = h && h.closest('section.ui-card, .ui-card-soft, div.rounded-2xl.border')
-    return card ? { found: true, text: card.innerText } : { found: false }
+    if (!h) return { found: false }
+    const card = h.closest(${JSON.stringify(CARD_SELECTOR)})
+    if (!card) return { found: true, card: false, held: 0 }
+    const held = new Set([...card.querySelectorAll('h2, h3')].map((el) => el.textContent.trim()).filter((text) => wanted.has(text))).size
+    return held > 1 ? { found: true, card: false, held } : { found: true, card: true, text: card.innerText }
   })
 })()`
-const ALL_ROUTES = ['/', '/login', '/profile', '/business', '/location', '/finance', ...RESULT_ROUTES, '/no-such-page']
+const ALL_ROUTES = ['/', '/login', '/profile', '/business', '/location', '/finance', ...RESULT_ROUTES, '/privacy', '/no-such-page']
 
-// case, language, routes. 8 passes, 40 page loads: 11 + 4 + 4 + 4 + 4 + 1 + 8 + 4.
+// --- the privacy notice -----------------------------------------------------------
+// /privacy keeps its detail (what is kept, the host logs, the age condition, the
+// notice version) inside <details>, which innerText skips while closed. On these
+// routes every <details> is opened after the dump and the screenshot, and the
+// opened text is checked again. A page with nothing to open is itself a finding,
+// because then the second read proves nothing.
+const OPEN_DETAILS_ROUTES = ['/privacy']
+
+// Words the copy must never use about this software or its logs. Checked on
+// every page, in English only, since that is the language they would be in.
+const FORBIDDEN_CLAIM = /\b(compliant|secure|anonymous|untraceable)\b/i
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+// --- the leaked-key check ---------------------------------------------------------
+// A t() key that no dictionary defines renders as its own dotted name. Such a
+// name can start with the prefix of any key the dictionaries do define, so the
+// prefixes come from the app's own merged table, not from a list kept here: a
+// hand-kept list had fallen behind, and missed lvl, lvlnote, man, err and scat,
+// which all render through t(). strings.js imports its three siblings without
+// an extension, which Vite resolves and Node does not, so the specifiers are
+// rewritten to file URLs and the module is loaded from a data: URL, as
+// market-ui.mjs loads it. No prefix at all would leave a check that matches
+// nothing, a pass that never looked, so that exits 2.
+const I18N = resolve('frontend/src/i18n')
+const stringsSource = readFileSync(resolve(I18N, 'strings.js'), 'utf8').replace(
+  /from '\.\/(\w+)'/g,
+  (_, name) => `from '${pathToFileURL(resolve(I18N, name + '.js')).href}'`,
+)
+const { STRINGS } = await import('data:text/javascript;base64,' + Buffer.from(stringsSource).toString('base64'))
+const KEY_PREFIXES = [...new Set(
+  Object.keys(STRINGS?.en || {}).filter((key) => key.indexOf('.') > 0).map((key) => key.slice(0, key.indexOf('.'))),
+)]
+if (!KEY_PREFIXES.length) throw new Error(`no dotted key in the en dictionary of ${I18N}: the leaked-key check would match nothing`)
+const RAW_KEY = new RegExp(`\\b(?:${KEY_PREFIXES.map(escapeRegExp).join('|')})\\.[a-zA-Z_][a-zA-Z0-9_]*`, 'g')
+
+// --- the deployer's own words -----------------------------------------------------
+// A client deployment prints its Fiduciary's name and its privacy contact,
+// which come from VITE_* variables through frontend/src/config/deployment.js.
+// They are the client's text, not the app's copy, and the text checks misread
+// them: a contact of privacy.officer@nbfc.in is the leaked key privacy.officer,
+// a Fiduciary called Secure Credit Finance Ltd a forbidden claim, and one called
+// Infinity Microfin the bad token Infinity. So each one that is set is replaced
+// by a neutral token before textProblems(), and only there: the dumps keep the
+// page as it is. main() reads them in the page, from the module the app itself
+// imports, since they come from Vite's env and no file here holds them.
+// Whitespace and case match loosely: innerText collapses a run of spaces and
+// applies any text-transform.
+const DEPLOYER_FIELDS = ['fiduciaryName', 'privacyContact']
+const neutralise = (text, patterns) => patterns.reduce((out, pattern) => out.replace(pattern, '[deployer value]'), text)
+
+// The checks every page's text gets, closed or with its <details> opened.
+function textProblems(text, lang) {
+  const problems = []
+
+  // A t() key that exists in no dictionary falls through to the key
+  // itself, so an invented key shows up in the rendered text verbatim.
+  const rawKeys = [...new Set(text.match(RAW_KEY) || [])]
+  if (rawKeys.length) problems.push('UNTRANSLATED KEY LEAKED: ' + rawKeys.join(', '))
+
+  for (const bad of ['null%', 'NaN', 'undefined', '[object Object]', 'Infinity', '₹null', '₹NaN', '₹undefined']) {
+    if (text.includes(bad)) problems.push(`BAD TOKEN: "${bad}"`)
+  }
+  // Lowercase enum values and backend field names must never reach screen.
+  for (const raw of [
+    'attention_needed', 'break_even', 'not_feasible', 'profit_margin', 'match_level', 'pressure_ratio',
+    'fit_basis', 'wholesale_price_per_kg', 'registered_units', 'count_suppressed',
+    // The household repayment check: its enum values and field names.
+    'household_check', 'within_limit', 'over_limit', 'not_checked',
+    'household_repayment_percent', 'household_in_microfinance_range',
+  ]) {
+    if (text.includes(raw)) problems.push(`RAW ENUM/FIELD ON SCREEN: "${raw}"`)
+  }
+
+  const claim = lang === 'en' && FORBIDDEN_CLAIM.exec(text)
+  if (claim) problems.push(`FORBIDDEN CLAIM: "${claim[0]}"`)
+  return problems
+}
+
+// case, language, routes. 8 passes, 41 page loads: 12 + 4 + 4 + 4 + 4 + 1 + 8 + 4.
 const PASSES = [
   ['good', 'en', ALL_ROUTES],
   ['good', 'ta', RESULT_ROUTES],
@@ -260,10 +475,21 @@ class CDP {
     this.consoleErrors = []
     this.pageErrors = []
     this.sessionId = null
+    this.closed = false
 
     this.ready = new Promise((resolve, reject) => {
       this.ws.addEventListener('open', () => resolve())
       this.ws.addEventListener('error', () => reject(new Error('CDP socket error')))
+      this.ws.addEventListener('close', () => reject(new Error('CDP socket closed')))
+    })
+
+    // Edge gone: every send still waiting for a reply fails. A send settles
+    // only from a reply, and a pending promise does not keep node alive, so
+    // without this the run drained away short of its verdict.
+    this.ws.addEventListener('close', () => {
+      this.closed = true
+      for (const slot of this.pending.values()) slot.reject(new Error(slot.method + ': CDP socket closed'))
+      this.pending.clear()
     })
 
     this.ws.addEventListener('message', (event) => {
@@ -285,6 +511,9 @@ class CDP {
   }
 
   send(method, params = {}, useSession = true) {
+    // ws.send() on a closed socket drops the frame without an error, and the
+    // reply it waits for would never come.
+    if (this.ws.readyState !== WebSocket.OPEN) return Promise.reject(new Error(method + ': CDP socket closed'))
     const id = this.next++
     const envelope = { id, method, params }
     if (useSession && this.sessionId) envelope.sessionId = this.sessionId
@@ -306,7 +535,9 @@ class CDP {
 async function browserWsUrl() {
   for (let i = 0; i < 80; i++) {
     try {
-      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`)).json()
+      // Bounded: a listener that accepts and never answers would otherwise hold
+      // this for undici's five-minute header timeout.
+      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`, { signal: AbortSignal.timeout(2000) })).json()
       if (info.webSocketDebuggerUrl) return info.webSocketDebuggerUrl
     } catch {
       // Edge is not listening yet.
@@ -318,17 +549,43 @@ async function browserWsUrl() {
 
 // Wait until React has actually painted into the main landmark. A bare
 // readyState check passes on an empty shell, which is the failure mode we most
-// want to catch.
+// want to catch. An evaluate that fails while the page is still navigating is
+// worth another try; one on a closed socket is not, and goes to the crash path.
 async function waitForRender(cdp) {
   for (let i = 0; i < 75; i++) {
-    const len = await cdp.evaluate(`document.querySelector('#main')?.innerText?.trim().length || 0`).catch(() => 0)
+    const len = await cdp
+      .evaluate(`document.querySelector('#main')?.innerText?.trim().length || 0`)
+      .catch((err) => { if (cdp.closed) throw err; return 0 })
     if (len > 40) return true
     await sleep(200)
   }
   return false
 }
 
+// Navigates to an app URL and waits for it to fill. Page.navigate answers with
+// errorText when the load itself failed, as it does with the connection refused
+// once the dev server has gone. A page that never filled is BLANK, a finding,
+// unless it is not the app at all: Edge's own error page, or a response other
+// than 2xx (0 means the status is unknown). Vite answers every route with
+// index.html and a 200, so each of those means the server failed, not the app.
+// All three throw: a fault, never a finding. A probe that fails on a live
+// socket leaves the page BLANK.
+async function loadPage(cdp, url) {
+  const { errorText } = await cdp.send('Page.navigate', { url })
+  if (errorText) throw new Error(`${url} did not load (${errorText}). Is the dev server still up?`)
+  const rendered = await waitForRender(cdp)
+  if (!rendered) {
+    const page = await cdp
+      .evaluate(`({ protocol: location.protocol, status: performance.getEntriesByType('navigation')[0]?.responseStatus || 0 })`)
+      .catch((err) => { if (cdp.closed) throw err; return null })
+    if (page?.protocol === 'chrome-error:') throw new Error(`${url} never rendered: it is Edge's own error page. Is the dev server still up?`)
+    if (page?.status && (page.status < 200 || page.status > 299)) throw new Error(`${url} never rendered: it answered HTTP ${page.status}`)
+  }
+  return rendered
+}
+
 async function main() {
+  if (!(await requireServer(APP + '/', 'Start the Vite dev server first: npm run dev in ./frontend.'))) return
   rmSync(OUT, { recursive: true, force: true })
   mkdirSync(OUT, { recursive: true })
   mkdirSync(PROFILE_DIR, { recursive: true })
@@ -350,6 +607,7 @@ async function main() {
 
   const findings = []
   const report = []
+  let hydrateCheck = null
 
   try {
     const cdp = new CDP(await browserWsUrl())
@@ -362,10 +620,63 @@ async function main() {
     await cdp.send('Page.enable')
     await cdp.send('Runtime.enable')
 
+    // The hydrate check (see REMOVED_FIELDS). Land same-origin, seed, then load
+    // again so the app hydrates from the seed and writes its state back.
+    {
+      const old = structuredClone(FORMS.good)
+      for (const [section, field, value] of REMOVED_FIELDS) old[section][field] = value
+      const seed = JSON.stringify({ v: SEED_VERSION, data: { ...old, result: RESULTS.good } })
+      await loadPage(cdp, APP + '/')
+      await cdp.evaluate(`sessionStorage.setItem('sih-application', ${JSON.stringify(seed)}); true`)
+      await loadPage(cdp, APP + '/')
+      await sleep(450)
+      const stored = JSON.parse(await cdp.evaluate(`sessionStorage.getItem('sih-application') || 'null'`))
+      const problems = []
+      if (!stored) {
+        problems.push('HYDRATE: nothing was written back to sessionStorage')
+      } else {
+        if (stored.v !== STORAGE_VERSION) problems.push(`HYDRATE: written back at v${stored.v}, not v${STORAGE_VERSION}`)
+        for (const [section, field] of REMOVED_FIELDS) {
+          if (stored.data?.[section] && Object.hasOwn(stored.data[section], field)) {
+            problems.push(`HYDRATE: ${section}.${field} survived hydrate()`)
+          }
+        }
+        if (JSON.stringify(stored.data?.result) !== JSON.stringify(RESULTS.good)) {
+          problems.push('HYDRATE: the result did not pass through hydrate() unchanged')
+        }
+      }
+      hydrateCheck = { seededAt: SEED_VERSION, writtenAt: stored?.v ?? null, problems }
+      if (problems.length) findings.push({ tag: 'hydrate', problems })
+      console.log(
+        `${problems.length ? 'FAIL' : 'ok  '}  ${'hydrate'.padEnd(32)} v${SEED_VERSION} seed carrying ` +
+          REMOVED_FIELDS.map(([s, f]) => `${s}.${f}`).join(' and ') + ` -> v${stored?.v}` +
+          (problems.length ? '  ' + problems.join(' | ') : ', both dropped, result unchanged'),
+      )
+    }
+
+    // The deployer's values (see DEPLOYER_FIELDS), read once. The hydrate check
+    // leaves the page on the app's origin, so this is the module the app itself
+    // imported. A shape other than the one read here exits 2: which text is
+    // the deployer's could not be told.
+    const deployment = await cdp.evaluate(`import('/src/config/deployment.js').then((m) => ({
+      demoMode: m.DEMO_MODE,
+      values: ${JSON.stringify(DEPLOYER_FIELDS)}.map((field) => m.DEPLOYMENT?.[field]),
+    }))`)
+    if (typeof deployment?.demoMode !== 'boolean' || !deployment.values.every((value) => typeof value === 'string')) {
+      throw new Error(`/src/config/deployment.js no longer exports DEMO_MODE and DEPLOYMENT.${DEPLOYER_FIELDS.join(', ')} as drive.mjs reads them`)
+    }
+    const neutralised = DEPLOYER_FIELDS.filter((_, i) => deployment.values[i].trim())
+    const deployerPatterns = deployment.values
+      .filter((value) => value.trim())
+      .map((value) => new RegExp(escapeRegExp(value.trim()).replace(/\s+/g, '\\s+'), 'gi'))
+    console.log(
+      `deployment: ${deployment.demoMode ? 'demo mode' : 'a Fiduciary is set'}` +
+        (neutralised.length ? `; ${neutralised.join(' and ')} left out of the text checks` : ''),
+    )
+
     for (const [caseName, lang, routes] of PASSES) {
       // Establish the origin before writing storage, then seed and navigate.
-      await cdp.send('Page.navigate', { url: APP + '/' })
-      await waitForRender(cdp)
+      await loadPage(cdp, APP + '/')
 
       const payload = JSON.stringify({
         v: SEED_VERSION,
@@ -384,8 +695,7 @@ async function main() {
         cdp.consoleErrors.length = 0
         cdp.pageErrors.length = 0
 
-        await cdp.send('Page.navigate', { url: APP + route })
-        const rendered = await waitForRender(cdp)
+        const rendered = await loadPage(cdp, APP + route)
         await sleep(450)
 
         const text = await cdp.evaluate('document.body.innerText')
@@ -408,25 +718,7 @@ async function main() {
         const problems = []
         if (!rendered) problems.push('BLANK: #main never filled')
         if (cdp.pageErrors.length) problems.push('PAGE EXCEPTION: ' + cdp.pageErrors[0].split('\n')[0])
-
-        // A t() key that exists in no dictionary falls through to the key
-        // itself, so an invented key shows up in the rendered text verbatim.
-        const rawKeys = [...new Set(text.match(/\b(?:common|nav|res|st|risk|f|an|ch|mk|sc|sch|ad|rp|login|nf|landing|profile|business|location|finance|money|cat|market|area|greeting|cmd|mknote|src)\.[a-zA-Z_][a-zA-Z0-9_]*/g) || [])]
-        if (rawKeys.length) problems.push('UNTRANSLATED KEY LEAKED: ' + rawKeys.join(', '))
-
-        for (const bad of ['null%', 'NaN', 'undefined', '[object Object]', 'Infinity', '₹null', '₹NaN', '₹undefined']) {
-          if (text.includes(bad)) problems.push(`BAD TOKEN: "${bad}"`)
-        }
-        // Lowercase enum values and backend field names must never reach screen.
-        for (const raw of [
-          'attention_needed', 'break_even', 'not_feasible', 'profit_margin', 'match_level', 'pressure_ratio',
-          'fit_basis', 'wholesale_price_per_kg', 'registered_units', 'count_suppressed',
-          // The household repayment check: its enum values and field names.
-          'household_check', 'within_limit', 'over_limit', 'not_checked',
-          'household_repayment_percent', 'household_in_microfinance_range',
-        ]) {
-          if (text.includes(raw)) problems.push(`RAW ENUM/FIELD ON SCREEN: "${raw}"`)
-        }
+        problems.push(...textProblems(neutralise(text, deployerPatterns), lang))
 
         // With nothing entered, every derived figure must say so. `Number('')`
         // is 0, so the failure mode is not a crash — it is a confident ₹0 and a
@@ -461,6 +753,24 @@ async function main() {
           if (shown.length) problems.push(`OLD RESULT SHOWN: ${shown.length} scheme name(s), e.g. ${shown[0]}`)
         }
 
+        // After the text dump and the screenshot, for the reason the card check
+        // below gives. The opened text is dumped beside the closed one, and only
+        // what it adds is reported, so a finding is not listed twice.
+        let detailsOpened = null
+        if (OPEN_DETAILS_ROUTES.includes(route)) {
+          const opened = await cdp.evaluate(`(() => {
+            const all = [...document.querySelectorAll('details')]
+            all.forEach((d) => { d.open = true })
+            return { n: all.length, text: document.body.innerText }
+          })()`)
+          detailsOpened = opened.n
+          writeFileSync(`${OUT}/${tag}.open.txt`, `route=${route}\ndetails opened=${opened.n}\n\n${opened.text}`)
+          if (!opened.n) problems.push(`NO DISCLOSURE: ${route} has no <details> to open, so its hidden detail was never read`)
+          for (const p of textProblems(neutralise(opened.text, deployerPatterns), lang)) {
+            if (!problems.includes(p)) problems.push(p + ' (inside a <details>)')
+          }
+        }
+
         // After the text dump and the screenshot, because it opens every
         // <details> and both of those should show the page as a reader lands on it.
         const schemes = RESULTS[caseName]?.scheme_matches || []
@@ -470,6 +780,16 @@ async function main() {
           cards.forEach((card, i) => {
             const scheme = schemes[i]
             if (!card.found) { problems.push(`SCHEME CARD NOT FOUND: ${scheme.name}`); return }
+            // Not a finding: which box is the card could not be told (see cardProbe).
+            if (!card.card) {
+              throw new Error(
+                `${route}: ` +
+                  (card.held
+                    ? `the box around the heading "${scheme.name}" holds ${card.held} schemes' headings, so it is not one card`
+                    : `the heading "${scheme.name}" is in no ${CARD_SELECTOR}`) +
+                  '. Update CARD_SELECTOR in drive.mjs to the card markup.',
+              )
+            }
             cardsChecked++
             const pct = SCORE_PCT.exec(card.text)
             if (pct) problems.push(`SCORE AS PERCENT on ${scheme.name}: "${pct[0]}"`)
@@ -483,7 +803,7 @@ async function main() {
           })
         }
 
-        report.push({ tag, route, caseName, lang, rendered, chars: text.length, bars: barCount, unitCharts: unitCount, cardsChecked, problems })
+        report.push({ tag, route, caseName, lang, rendered, chars: text.length, bars: barCount, unitCharts: unitCount, cardsChecked, detailsOpened, problems })
         if (problems.length) findings.push({ tag, problems })
 
         console.log(
@@ -495,12 +815,17 @@ async function main() {
       }
     }
 
-    writeFileSync(`${OUT}/report.json`, JSON.stringify({ report, findings }, null, 2))
-    console.log(`\n${report.length} page loads, ${findings.length} with problems.`)
-    console.log(`Text dumps and PNGs in ${OUT}`)
     // Exit 1 on any finding, so a caller that checks the status sees it. It
-    // used to exit 0 either way, and only report.json said otherwise.
-    process.exitCode = findings.length ? 1 : 0
+    // used to exit 0 either way, and only report.json said otherwise. The
+    // report carries the same code.
+    const exit = findings.length ? 1 : 0
+    writeFileSync(
+      `${OUT}/report.json`,
+      JSON.stringify({ exit, demoMode: deployment.demoMode, neutralised, hydrate: hydrateCheck, report, findings }, null, 2),
+    )
+    console.log(`\n${report.length} page loads plus the hydrate check, ${findings.length} with problems.`)
+    console.log(`Text dumps and PNGs in ${OUT}`)
+    process.exitCode = exit
   } finally {
     killOwnEdge()
   }
@@ -509,5 +834,5 @@ async function main() {
 main().catch((err) => {
   console.error('DRIVER ERROR:', err.message)
   killOwnEdge()
-  process.exit(1)
+  crashExit()
 })

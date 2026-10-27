@@ -44,8 +44,10 @@ jobs:
       - name: Install the pinned runtime and test dependencies
         run: python -m pip install -r backend/requirements-dev.txt
 
-      # From backend/, so that `import app` resolves: there is no conftest.py
-      # or pyproject.toml putting backend/ on the path.
+      # From backend/ and through `python -m`, which puts the working directory
+      # on the path, so that `import app` resolves. Nothing else does:
+      # tests/conftest.py only pins the ARTHNITI_* environment, and there is
+      # no pyproject.toml.
       - name: pytest
         working-directory: backend
         run: python -m pytest tests -q
@@ -75,6 +77,11 @@ jobs:
 
       - name: npm run build
         working-directory: frontend
+        # vite.config.js refuses a production build whose API URL is not https.
+        # This build is never deployed, so it gets a placeholder that cannot
+        # resolve (.invalid is reserved by RFC 2606).
+        env:
+          VITE_API_BASE_URL: https://api.example.invalid
         run: npm run build
 
       - name: i18n key parity (tools/parity4.mjs)
@@ -86,8 +93,9 @@ jobs:
       - name: market fetch maths and guards (no network)
         run: node --test tools/verify/market-lib-test.mjs
 
-      # Informational: glyph-audit prints its hits and always exits 0. It
-      # finds frontend/src from its own location (fileURLToPath), so it runs
-      # from the repo root like the steps above.
+      # Informational: glyph-audit prints its hits and exits 0 whenever it
+      # ran, so only a crash (exit 2) fails this step. It finds frontend/src
+      # from its own location (fileURLToPath), so it runs from the repo root
+      # like the steps above.
       - name: decorative glyph audit (informational)
         run: node tools/verify/glyph-audit.mjs

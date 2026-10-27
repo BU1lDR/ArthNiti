@@ -13,6 +13,8 @@ const locationTypes = [
 
 // No "more than one" tile: the grid is multi-select, so choosing two tiles
 // already says that, and a "mixed" value alongside them would be redundant.
+// These are never sent. They stay as English codes in this tab's storage, and
+// the report and the market cards turn them into labels.
 const marketTypes = [
   ['village', '🏪', 'market.village'],
   ['weekly', '🧺', 'market.weekly'],
@@ -162,11 +164,18 @@ function LocationPage() {
               </label>
             </div>
 
-            <label className="block sm:max-w-xl">
-              <span className="font-extrabold">{t('location.village')}</span>
-              <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{t('location.villageHint')}</span>
-              <input name="village" value={location.village} onChange={handleChange} type="text" placeholder="e.g. Khera" className={fieldClass} />
-            </label>
+            {/* The village, where you sell and the customers are printed on the
+                report and never sent, and each says so. The note sits outside
+                the label, tied on with aria-describedby, so it is read as a
+                description of the box rather than as part of its name. */}
+            <div className="sm:max-w-xl">
+              <label className="block">
+                <span className="font-extrabold">{t('location.village')}</span>
+                <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{t('location.villageHint')}</span>
+                <input name="village" value={location.village} onChange={handleChange} type="text" placeholder="e.g. Khera" className={fieldClass} autoComplete="off" aria-describedby="village-local" />
+              </label>
+              <p id="village-local" className="mt-2 text-sm text-[var(--color-text-muted)]">{t('form.localOnly')}</p>
+            </div>
           </div>
         </div>
 
@@ -182,9 +191,10 @@ function LocationPage() {
               <ChoiceGrid value={location.locationType} options={locationTypes} onChange={(value) => setValue('locationType', value)} label={t} />
             </fieldset>
 
-            <fieldset>
+            <fieldset aria-describedby="market-local">
               <legend className="text-base font-extrabold">{t('location.market')}</legend>
               <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('location.marketHint')}</p>
+              <p id="market-local" className="mt-1 text-sm text-[var(--color-text-muted)]">{t('form.localOnly')}</p>
               <MultiChoiceGrid values={location.marketType} options={marketTypes} onToggle={toggleMarketType} label={t} columns="sm:grid-cols-2 lg:grid-cols-4" />
             </fieldset>
 
@@ -194,8 +204,9 @@ function LocationPage() {
                 <label className="block">
                   <span className="font-bold">{t('location.customersQ')}</span>
                   <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('location.customersHint')}</p>
-                  <input name="customers" value={location.customers} onChange={handleChange} type="text" placeholder="e.g. Local families" className={fieldClass} />
+                  <input name="customers" value={location.customers} onChange={handleChange} type="text" placeholder="e.g. Local families" className={fieldClass} autoComplete="off" aria-describedby="customers-local" />
                 </label>
+                <p id="customers-local" className="mt-2 text-sm text-[var(--color-text-muted)]">{t('form.localOnly')}</p>
               </div>
             </details>
           </div>

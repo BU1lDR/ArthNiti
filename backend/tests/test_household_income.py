@@ -594,6 +594,17 @@ def test_every_household_branch_is_reachable_through_the_real_pipeline():
 
         assert HOUSEHOLD_KEYS <= set(risk)
         assert len(advisory["recommendations"]) == len(advisory["recommendation_codes"])
+        # Nothing the reader told us about themselves is echoed on any branch.
+        assert set(summary) == {
+            "status",
+            "simple_message",
+            "message_code",
+            "next_step",
+            "next_step_code",
+            "priority",
+            "location_type",
+        }
+        assert all("local_context" not in row for row in result["market_context"])
 
         if income is None:
             # No income given changes nothing anywhere in the response.

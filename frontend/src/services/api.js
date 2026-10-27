@@ -1,5 +1,12 @@
+// Where the answers are sent. A production build must be given an https://
+// address: vite.config.js refuses to build in production mode without one, so
+// a deployed copy never falls back to sending financial answers in plain HTTP
+// to whatever is listening on the reader's own machine. The loopback default
+// is for `npm run dev` and `npm run build:local` only. MODE, not PROD: PROD is
+// true for every build, the loopback preview included.
+const CONFIGURED_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || '').trim()
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+  CONFIGURED_BASE_URL || (import.meta.env.MODE === 'production' ? '' : 'http://127.0.0.1:8000')
 
 const REQUEST_TIMEOUT_MS = 20000
 
@@ -30,9 +37,15 @@ const ERROR_CODES = {
 // field, because the reader's next action is to walk back through the steps and
 // find it. "the money you already have" is findable on /finance; "available
 // capital" is not on the page at all.
+//
+// One entry for every field FinancePage sends, since any of them can be the
+// one a 422 names, and one for the consent record, which the reader answers
+// with the box above the button.
 const FIELD_LABELS = {
   business_category: { key: 'errf.category', en: 'the kind of work you do' },
   state: { key: 'errf.state', en: 'your state' },
+  district: { key: 'errf.district', en: 'your district' },
+  location_type: { key: 'errf.areaType', en: 'whether your business is in a village or city' },
   available_capital: { key: 'errf.capital', en: 'the money you already have' },
   monthly_expenses: { key: 'errf.expenses', en: 'how much you spend each month' },
   expected_monthly_revenue: {
@@ -49,10 +62,10 @@ const FIELD_LABELS = {
     key: 'errf.opExpenses',
     en: 'how much the business itself will cost each month',
   },
-  // Both are optional on /business, but each has an upper bound the backend
-  // enforces, so each can be the field a 422 names.
-  employees: { key: 'errf.employees', en: 'how many people work here' },
+  // Optional on /business, but it has an upper bound the backend enforces, so
+  // it can be the field a 422 names.
   existing_debt: { key: 'errf.debt', en: 'your existing business debt' },
+  consent: { key: 'errf.consent', en: 'your agreement to how your answers are used' },
 }
 
 // One place that builds the thrown Error, so no call site can forget the code.
@@ -177,7 +190,11 @@ function readError(data) {
 
     for (const item of detail) {
       const path = Array.isArray(item && item.loc) ? item.loc : []
-      const field = path[path.length - 1]
+      // A problem anywhere inside the consent record, ["body","consent"] or
+      // ["body","consent","given_at"], is named as the consent itself: its
+      // parts are not questions the reader was asked, and "given at" is not
+      // something they can go back and fix.
+      const field = path[1] === 'consent' ? 'consent' : path[path.length - 1]
 
       if (field === undefined || field === null) continue
 

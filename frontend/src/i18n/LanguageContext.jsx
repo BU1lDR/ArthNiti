@@ -117,10 +117,11 @@ export function LanguageProvider({ children }) {
       t,
       tBackend,
       tBackendEach,
-      // What the backend should be told. The API contract already carries both
-      // fields; it just does not act on them yet.
-      apiLanguage: meta ? meta.name : 'English',
-      apiDialect: dialect || null,
+      // The language's English name, which ReportPage prints when a language
+      // has no endonym. Neither the language nor the dialect is sent as an
+      // answer: the request carries only the language code, inside the consent
+      // record, to say which translation of the notice was agreed to.
+      languageName: meta ? meta.name : 'English',
       dialects: dialectsFor(language),
     }
   }, [language, dialect])

@@ -31,10 +31,19 @@
 // so it scales the channel SPREAD as well as the level. brightness(0.5) is
 // already costing half the chroma before saturate() sees the pixel.
 //
-// Run the Vite dev server first, then:
+// Run the Vite dev server first, then, from the repo root:
 //   node tools/verify/hero-vibrance.mjs
+// Its verdict column rates candidates and is not a finding, so it never exits
+// 1. It exits 0 when it ran to the end, and 2 when it could not: the working
+// directory is wrong, the dev server is down or does not answer 2xx within 5 s
+// (checked before Edge starts), the dev server went away (a navigation fails,
+// or the page it left throws), Edge never opened its DevTools port or the socket
+// closed, the page has no hero, backdrop, subtitle or chip row to measure or a
+// colour it cannot parse, the run ended short, or the script crashed.
+// report.json, starting with exit 0, is written once the screenshots are taken,
+// and the last run's is deleted at the start, so a run that exits 2 leaves none.
 import { spawn } from 'node:child_process'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
@@ -45,6 +54,57 @@ const DEBUG_PORT = 9361
 const APP = 'http://localhost:5173'
 const OUT = resolve('screenshots/verify/hero-vibrance')
 const PROFILE_DIR = resolve('screenshots/verify/edge-profile-vibrance')
+
+// Node's own exit on an uncaught error is 1, which elsewhere in tools/verify
+// means a finding, so anything thrown or rejected that nothing catches exits 2
+// instead. main() has no catch, so this is also its crash path.
+process.on('uncaughtException', (err) => {
+  console.error(err)
+  crashExit()
+})
+// A crash exits 2 through this rather than process.exit(2) at once. For up to
+// about 100 ms after fetch() reads a response, V8 can still be recompiling
+// undici's WASM HTTP parser on a worker thread, and exiting in that window kills
+// node with 0xC0000409 (Git Bash shows 127): neither 0, 1 nor 2. The wait
+// blocks this thread, so nothing else of the run happens meanwhile.
+// tools/README.md, Exit codes, has the measurements.
+function crashExit() {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000)
+  process.exit(2)
+}
+// A run that stops before the end of main() exits 2. Before this, a CDP socket
+// that closed under a pending send left that send unsettled, the event loop
+// drained, and node exited 0 as though it had finished. The exit at the end of
+// main() overrides it.
+process.exitCode = 2
+// OUT and PROFILE_DIR resolve against the working directory.
+if (!existsSync(resolve('tools/verify/hero-vibrance.mjs'))) {
+  console.error(`hero-vibrance: ${process.cwd()} is not the repo root. Run this from the repo root: node tools/verify/hero-vibrance.mjs`)
+  process.exit(2)
+}
+// A report.json on disk is always from a run that finished. The last run's
+// goes once the working directory has been checked, so a run that stops early
+// leaves none.
+rmSync(resolve(OUT, 'report.json'), { force: true })
+
+// The dev server is checked before Edge starts. Without this, a listener that
+// accepted and never answered held Page.navigate, which has no time limit, and
+// the run hung: 903 s until a harness killed it (30 Sept 2026).
+// It returns false with exitCode 2 set, and main() returns before Edge starts,
+// so node exits on its own: process.exit() this soon after a fetch can abort
+// it (see crashExit).
+async function requireServer(url, start) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    await res.body?.cancel()
+    if (res.ok) return true
+    console.error(`hero-vibrance: ${url} answered HTTP ${res.status}. ${start}`)
+  } catch (err) {
+    console.error(`hero-vibrance: nothing answered at ${url} (${err.cause?.code || err.name}). ${start}`)
+  }
+  process.exitCode = 2
+  return false
+}
 
 // opacity + filter pairs. `null` means "read the shipped value off the page",
 // which is what makes the first row a baseline rather than a transcription of
@@ -104,9 +164,11 @@ class CDP {
     this.next = 1
     this.pending = new Map()
     this.sessionId = null
+    this.closed = false
     this.ready = new Promise((res, rej) => {
       this.ws.addEventListener('open', () => res())
       this.ws.addEventListener('error', () => rej(new Error('CDP socket error')))
+      this.ws.addEventListener('close', () => rej(new Error('CDP socket closed before it opened')))
     })
     this.ws.addEventListener('message', (event) => {
       const msg = JSON.parse(event.data)
@@ -116,9 +178,20 @@ class CDP {
       if (msg.error) slot.reject(new Error(slot.method + ': ' + msg.error.message))
       else slot.resolve(msg.result)
     })
+    // Edge gone closes the socket, and a reply still pending will never come. It
+    // has to fail: a pending promise does not keep node alive, so the run would
+    // stop short of its output without a word.
+    this.ws.addEventListener('close', () => {
+      this.closed = true
+      for (const slot of this.pending.values()) slot.reject(new Error(slot.method + ': CDP socket closed'))
+      this.pending.clear()
+    })
   }
 
   send(method, params = {}, useSession = true) {
+    // A frame sent on a socket that is not open is dropped without an error, so
+    // its reply would never come.
+    if (this.ws.readyState !== WebSocket.OPEN) return Promise.reject(new Error(method + ': CDP socket closed'))
     const id = this.next++
     const envelope = { id, method, params }
     if (useSession && this.sessionId) envelope.sessionId = this.sessionId
@@ -140,12 +213,22 @@ class CDP {
 async function browserWsUrl() {
   for (let i = 0; i < 80; i++) {
     try {
-      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`)).json()
+      // Bounded: a listener that accepts and never answers would otherwise hold
+      // this for undici's five-minute header timeout.
+      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`, { signal: AbortSignal.timeout(2000) })).json()
       if (info.webSocketDebuggerUrl) return info.webSocketDebuggerUrl
     } catch { /* not listening yet */ }
     await sleep(250)
   }
   throw new Error('Edge never opened the DevTools endpoint on port ' + DEBUG_PORT)
+}
+
+// Page.navigate answers with errorText when the load itself failed, as it does
+// with the connection refused once the dev server has gone. Edge then keeps the
+// page it had, which the probe would measure, so it throws: the crash path, 2.
+async function navigate(cdp, url) {
+  const { errorText } = await cdp.send('Page.navigate', { url })
+  if (errorText) throw new Error(`${url} did not load (${errorText}). Is the dev server still up?`)
 }
 
 // A plain string, not a template literal: the probe is full of regex and
@@ -176,6 +259,9 @@ const PROBE = [
   '  if (!hero) throw new Error("no .ui-hero on this page")',
   '  const rect = hero.getBoundingClientRect()',
   '  const token = getComputedStyle(document.documentElement).getPropertyValue("--color-bg").trim()',
+  // Anything but #rrggbb parses to NaN here, and the figures built on it come
+  // out as NaN or a confident 0, so it throws like parse() does.
+  '  if (!/^#[0-9a-f]{6}$/i.test(token)) throw new Error("--color-bg is not a #rrggbb colour: " + token)',
   '  const pageBg = [1, 3, 5].map(i => parseInt(token.slice(i, i + 2), 16))',
   '',
   '  const cs = getComputedStyle(hero, "::before")',
@@ -300,6 +386,7 @@ function lpad(v, n) {
 }
 
 async function main() {
+  if (!(await requireServer(APP + '/', 'Start the Vite dev server first: npm run dev in ./frontend.'))) return
   mkdirSync(OUT, { recursive: true })
   mkdirSync(PROFILE_DIR, { recursive: true })
 
@@ -326,7 +413,7 @@ async function main() {
     // Light mode only, and on purpose: dark mode replaces the filter wholesale
     // and is documented as deliberately left alone, high contrast has the
     // artwork off entirely. The request is about light mode.
-    await cdp.send('Page.navigate', { url: APP + '/' })
+    await navigate(cdp, APP + '/')
     await sleep(1100)
     await cdp.evaluate([
       "localStorage.setItem('sih-theme', 'light');",
@@ -335,7 +422,7 @@ async function main() {
       "localStorage.removeItem('sih-dialect');",
       'true',
     ].join(''))
-    await cdp.send('Page.navigate', { url: APP + '/' })
+    await navigate(cdp, APP + '/')
     await sleep(1400)
 
     const probe = PROBE.replace('CANDIDATES_JSON', JSON.stringify(CANDIDATES))
@@ -365,7 +452,6 @@ async function main() {
       )
     }
 
-    writeFileSync(`${OUT}/report.json`, JSON.stringify(r, null, 2))
     console.log(`\nColumns: meanC* mean chroma over the composite (the vibrance figure), dC* its`)
     console.log('gain over the shipped row, col% pixels more colourful than the paper, clip%')
     console.log('pixels with a channel clamped pre-blend (posterisation), dL* lightness')
@@ -399,10 +485,15 @@ async function main() {
       writeFileSync(file, Buffer.from(shot.data, 'base64'))
       console.log(`shot  ${file}`)
     }
+    writeFileSync(`${OUT}/report.json`, JSON.stringify({ exit: 0, ...r }, null, 2))
     console.log(`\nreport ${OUT}/report.json`)
   } finally {
     edge.kill()
   }
+  // Explicit, or node waits: edge.kill() misses the browser Edge relaunches
+  // itself as, and that browser's open DevTools socket keeps the loop alive. The
+  // last fetch() was long before this, so exiting here is safe (see crashExit).
+  process.exit(0)
 }
 
 main()

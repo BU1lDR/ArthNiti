@@ -21,11 +21,22 @@
 // of six declarations each of which fails differently when wrong (a delay survives
 // a collapsed duration; `animation: none` drops fill-mode with it and leaves an
 // element permanently at opacity 0; 0.01ms does not stop `infinite`, it strobes),
-// and it has to out-specify Tailwind's utilities layer to apply at all.
+// and against a Tailwind `!` utility it holds only from a layer declared before
+// utilities, which is why it sits in @layer base (see TAILWIND_TARGET).
 //
 // Run the Vite dev server first, then: node tools/verify/motion-audit.mjs
 //   --broken   puts every defect back at runtime and MUST exit 1; exit 2 means a
 //              planted defect went unreported
+// Without it, 0 is clean and 1 a finding. In either mode, 2 also means the run
+// could not measure: the dev server is down or went away mid-run (a navigation
+// failed, or landed on Edge's error page or an error status), the working
+// directory is wrong, the seed is a shape AppContext no longer reads, the first
+// load never filled #main with index.css applied, so TOKENS went unread
+// (NOT-RENDERED), /analysis lost its seed (UNSEEDED), a selector matched nothing
+// (ABSENT), Edge never opened its DevTools port or the socket closed, the run
+// ended short of its verdict, or the audit crashed. report.json carries the same
+// code as `exit`. NOT-RENDERED, UNSEEDED, ABSENT and a missed refuter still write
+// one; any other 2 leaves none.
 //
 // That flag is not a convenience. A check that has only ever reported zero has not
 // been shown to work — this repo has been bitten by that twice (the SPLIT-FIGURE
@@ -37,10 +48,13 @@
 // covers ten more: TOKENS, PROPS, INERT, NORUN, DELAY, FORBIDDEN, ONLOAD,
 // REDUCED, REDUCED-ZERO, REDUCED-DELAY.
 //
-// Three arms have no refuter, listed rather than left to look covered:
+// Four arms have no refuter, listed rather than left to look covered:
 //   REDUCED-ITER   — nothing in this app declares a keyframe animation, so
 //                    animation-name is `none` everywhere and the arm is currently
 //                    unreachable by construction. It guards a future addition.
+//   REDUCED-SCROLL — nothing in this app sets `scroll-behavior: smooth`, so html
+//                    computes `auto` with or without the guard, and the arm is
+//                    unreachable the same way. It guards a future addition too.
 //   ALWAYS-REDUCED — needs the guard moved OUTSIDE its @media query, which is a
 //                    different injection from every other one here.
 //   UNREACHABLE    — needs a target with no painted box.
@@ -51,7 +65,7 @@
 // listener reported it as working, because moving the pointer across the bar
 // animates the links it passes over.
 import { spawn } from 'node:child_process'
-import { mkdirSync, writeFileSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
@@ -62,6 +76,56 @@ const PROFILE_DIR = resolve('screenshots/verify/edge-profile-motion')
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const BROKEN = process.argv.includes('--broken')
+
+// 0 means the run measured and found nothing, 1 a finding (under --broken, every
+// planted kind reported), and 2 that the run could not measure. Node's own exit
+// on an uncaught error is 1, which reads as a finding and under --broken as the
+// pass, so anything thrown or rejected that nothing catches exits 2 instead.
+process.on('uncaughtException', (err) => {
+  console.error(err)
+  crashExit()
+})
+// A crash exits 2 through this rather than process.exit(2) at once. For up to
+// about 100 ms after fetch() reads a response, V8 can still be recompiling
+// undici's WASM HTTP parser on a worker thread, and exiting in that window kills
+// node with 0xC0000409 (Git Bash shows 127): neither 0, 1 nor 2. The wait
+// blocks this thread, so nothing else of the run happens meanwhile.
+// tools/README.md, Exit codes, has the measurements.
+function crashExit() {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000)
+  process.exit(2)
+}
+// A run that ends without reaching its verdict exits 2. Before this, a CDP
+// socket that closed under a pending send left that send unsettled, the event
+// loop drained, and node exited 0 with no report. The verdict overrides it.
+process.exitCode = 2
+// Every path in this file resolves against the working directory.
+if (!existsSync(resolve('tools/verify/motion-audit.mjs'))) {
+  console.error(`motion-audit: ${process.cwd()} is not the repo root. Run this from the repo root: node tools/verify/motion-audit.mjs`)
+  process.exit(2)
+}
+// A report.json on disk is always from a run that finished. The last run's
+// goes once the working directory has been checked, so a run that stops early
+// leaves none.
+rmSync(resolve(OUT, 'report.json'), { force: true })
+
+// A server that is down used to surface as a crash inside the page (Edge's own
+// error page refuses storage access), which read as a finding.
+// It returns false with exitCode 2 set, and main() returns before Edge starts,
+// so node exits on its own: process.exit() this soon after a fetch can abort
+// it (see crashExit).
+async function requireServer(url, start) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    await res.body?.cancel()
+    if (res.ok) return true
+    console.error(`motion-audit: ${url} answered HTTP ${res.status}. ${start}`)
+  } catch (err) {
+    console.error(`motion-audit: nothing answered at ${url} (${err.cause?.code || err.name}). ${start}`)
+  }
+  process.exitCode = 2
+  return false
+}
 
 // Each block reintroduces one real failure mode, so a run with --broken has to
 // report at least one finding of each kind below. The comments say which.
@@ -173,17 +237,24 @@ const FORBIDDEN = [
 // unlayered `!important` is the WEAKEST author important and Tailwind's `!`
 // modifier would win over it. The guard therefore lives in @layer base. Measured
 // in this browser: utilities-important 300ms vs unlayered-important 0.01ms gives
-// 300ms; the same rule in @layer base gives 0.01ms. This target is here so that
-// if the guard is ever moved back out of a layer, this script fails rather than
-// the promise quietly breaking for the users who asked for it.
+// 300ms; the same rule in @layer base gives 0.01ms. This target reports REDUCED
+// when a transition utility on a hero button survives the guard. That takes two
+// things at once, a `!` modifier on the utility and a guard in no layer (or in one
+// declared after utilities), and Button.jsx has no `!`. Its bare `transition` is a
+// normal declaration, which an !important guard beats from any layer or from
+// none, so a guard moved back out of @layer base still measures 0.01ms here and
+// the plain run exits 0. Only --broken notices the move, and as a refuter fault,
+// not a finding: inject() finds no guard inside @layer base to take out, so
+// guardMoved stays 0 and the run exits 2. Measured on 1 Oct 2026 with the guard
+// moved out at runtime on every load: plain 0, --broken 2.
 const TAILWIND_TARGET = { sel: '.ui-hero a[class*="rounded-xl"], .ui-hero button[class*="rounded-xl"]', page: 'landing' }
 
 const FORMS_GOOD = {
-  profile: { name: 'Lakshmi Devi', language: 'Tamil', dialect: '', literacyLevel: 'low' },
+  profile: { name: 'Lakshmi Devi', language: 'Tamil', dialect: '' },
   business: {
     businessName: 'Lakshmi Tailors', category: 'tailoring', categoryOther: '',
     initialInvestment: '200000', monthlyRevenue: '30000',
-    monthlyOperatingExpenses: '18000', employees: 2, existingDebt: 0,
+    monthlyOperatingExpenses: '18000', existingDebt: 0,
   },
   location: {
     village: 'Khera', district: 'Lucknow', state: 'Uttar Pradesh',
@@ -192,15 +263,39 @@ const FORMS_GOOD = {
   finance: { availableCapital: '150000', monthlyExpenses: '15000', monthlyEmi: '3000' },
 }
 
+// AppContext silently discards a payload whose v is not in its
+// READABLE_VERSIONS, and /analysis then shows its empty state. Every field
+// FORMS_GOOD carries is a version 4 field, so the seed says 4, and this refuses
+// to start once AppContext stops reading 4.
+const SEED_VERSION = 4
+{
+  const file = 'frontend/src/context/AppContext.jsx'
+  const m = readFileSync(resolve(file), 'utf8').match(/^const READABLE_VERSIONS = new Set\(\[([\d,\s]*)\]\)/m)
+  if (!m?.[1].split(',').map(Number).includes(SEED_VERSION)) {
+    console.error(m
+      ? `motion-audit: ${file} no longer reads version ${SEED_VERSION} payloads (READABLE_VERSIONS is ${m[1].trim()}). Rewrite FORMS_GOOD in the current shape and raise SEED_VERSION.`
+      : `motion-audit: READABLE_VERSIONS not found in ${file}; update the parse in motion-audit.mjs.`)
+    process.exit(2)
+  }
+}
+
+// The app writes its state back to sessionStorage once it has mounted, so a
+// seed it discarded reads back with no result.
+const SEEDED = `(() => {
+  try { return !!JSON.parse(sessionStorage.getItem('sih-application')).data.result } catch { return false }
+})()`
+
 class CDP {
   constructor(url) {
     this.ws = new WebSocket(url)
     this.next = 1
     this.pending = new Map()
     this.sessionId = null
+    this.closed = false
     this.ready = new Promise((res, rej) => {
       this.ws.addEventListener('open', () => res())
       this.ws.addEventListener('error', () => rej(new Error('CDP socket error')))
+      this.ws.addEventListener('close', () => rej(new Error('CDP socket closed before it opened')))
     })
     this.ws.addEventListener('message', (event) => {
       const msg = JSON.parse(event.data)
@@ -210,9 +305,20 @@ class CDP {
       if (msg.error) slot.reject(new Error(slot.method + ': ' + msg.error.message))
       else slot.resolve(msg.result)
     })
+    // Edge gone closes the socket, and a reply still pending will never come. It
+    // has to fail: a pending promise does not keep node alive, so the run would
+    // stop short of its verdict without a word.
+    this.ws.addEventListener('close', () => {
+      this.closed = true
+      for (const slot of this.pending.values()) slot.reject(new Error(slot.method + ': CDP socket closed'))
+      this.pending.clear()
+    })
   }
 
   send(method, params = {}, useSession = true) {
+    // A frame sent on a socket that is not open is dropped without an error, so
+    // its reply would never come.
+    if (this.ws.readyState !== WebSocket.OPEN) return Promise.reject(new Error(method + ': CDP socket closed'))
     const id = this.next++
     const envelope = { id, method, params }
     if (useSession && this.sessionId) envelope.sessionId = this.sessionId
@@ -234,12 +340,61 @@ class CDP {
 async function browserWsUrl() {
   for (let i = 0; i < 80; i++) {
     try {
-      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`)).json()
+      // Bounded: a listener that accepts and never answers would otherwise hold
+      // this for undici's five-minute header timeout.
+      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`, { signal: AbortSignal.timeout(2000) })).json()
       if (info.webSocketDebuggerUrl) return info.webSocketDebuggerUrl
     } catch { /* not listening yet */ }
     await sleep(250)
   }
   throw new Error('Edge never opened the DevTools endpoint on port ' + DEBUG_PORT)
+}
+
+// Page.navigate answers with errorText when the load failed outright, for
+// example with the connection refused because the dev server has gone. That is
+// a run that cannot measure, never a finding, so it throws to main's catch.
+async function navigate(cdp, url) {
+  const { errorText } = await cdp.send('Page.navigate', { url })
+  if (errorText) throw new Error(`navigating to ${url} failed: ${errorText}`)
+}
+
+// Read once the page has had time to load. Edge's own error page, or a
+// navigation entry with a non-2xx status, is a page that did not render the app,
+// so it throws as well. A status of 0 means the browser does not know it.
+const NOT_RENDERED = `(() => {
+  if (location.protocol === 'chrome-error:') return 'Edge showed its own error page'
+  const status = performance.getEntriesByType('navigation')[0]?.responseStatus
+  return status && (status < 200 || status > 299) ? 'the server answered HTTP ' + status : ''
+})()`
+
+async function requireRendered(cdp, url) {
+  const why = await cdp.evaluate(NOT_RENDERED)
+  if (why) throw new Error(`${url} did not render: ${why}`)
+}
+
+// How far the app has got: the text in #main, and a token index.css defines. It
+// is a --color-* token and never a --motion-* one, or a deleted motion token would
+// read as a page that never loaded instead of as TOKENS.
+const APP_STATE = `(() => ({
+  main: document.querySelector('#main')?.innerText?.trim().length || 0,
+  colorText: getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim(),
+}))()`
+
+// Vite injects index.css as a <style> from a JS module, once the whole module
+// graph has loaded, so a slow first load (a cold dep cache, a machine busy with
+// other gates) can still be unstyled when the sleep ends. Polls for up to 15 s and
+// returns the last state it saw.
+async function waitForApp(cdp) {
+  let state = { main: 0, colorText: '' }
+  for (let i = 0; i < 75; i++) {
+    // A page still loading can fail an evaluate, which only means not yet. A
+    // closed socket means never, and stops the run.
+    const got = await cdp.evaluate(APP_STATE).catch((err) => { if (cdp.closed) throw err; return null })
+    if (got) state = got
+    if (state.main > 40 && state.colorText) return { ready: true, ...state }
+    await sleep(200)
+  }
+  return { ready: false, ...state }
 }
 
 // Reading a custom property back with getPropertyValue returns the raw token TEXT
@@ -366,6 +521,7 @@ const num = (v) => {
 }
 
 async function main() {
+  if (!(await requireServer(APP + '/', 'Start the Vite dev server first: npm run dev in ./frontend.'))) return
   mkdirSync(OUT, { recursive: true })
   mkdirSync(PROFILE_DIR, { recursive: true })
 
@@ -433,11 +589,27 @@ async function main() {
     }
 
     // Seed once. The origin has to exist before storage can be written to it.
-    await cdp.send('Page.navigate', { url: APP + '/' })
+    await navigate(cdp, APP + '/')
     await sleep(1200)
+    await requireRendered(cdp, APP + '/')
+    // TOKENS is read on this document, and it is the one arm that needs no element:
+    // on a page index.css has not reached yet, the others find no element and read
+    // ABSENT, but TOKENS reads both duration tokens as 0s, a finding. So it waits
+    // for the app and its stylesheet, and does so before inject(): BROKEN_CSS's
+    // :root rule and index.css's are both unlayered, so the later <style> wins, and
+    // a refuter appended ahead of index.css would vanish. Refuted on 1 Oct 2026 by
+    // holding the /src/index.css request on this load through CDP Fetch: without
+    // the wait the run exited 1 with two TOKENS findings, with it 2.
+    const first = await waitForApp(cdp)
+    if (!first.ready) {
+      findings.push({
+        kind: 'NOT-RENDERED', sel: '#main', page: 'landing', main: first.main, colorText: first.colorText,
+        note: `after 15 s #main held ${first.main} characters and --color-text read '${first.colorText}': the first load never showed the app with index.css applied, so the tokens were not measured`,
+      })
+    }
     await inject()
     const payload = JSON.stringify({
-      v: 1,
+      v: SEED_VERSION,
       data: { ...FORMS_GOOD, result: JSON.parse(readFileSync('screenshots/verify/case_good.json', 'utf8')) },
     })
     await cdp.evaluate(`
@@ -455,9 +627,16 @@ async function main() {
     // about whether a reader can actually reach the button.
     const gotoPage = async (page) => {
       const route = page === 'analysis' ? '/analysis' : '/'
-      await cdp.send('Page.navigate', { url: APP + route })
+      await navigate(cdp, APP + route)
       await sleep(1300)
+      await requireRendered(cdp, APP + route)
       await inject()
+      if (route === '/analysis' && !(await cdp.evaluate(SEEDED))) {
+        findings.push({
+          kind: 'UNSEEDED', page,
+          note: 'no result in the app\'s state: the seed was not read, so /analysis is its empty state',
+        })
+      }
       if (page === 'manual') {
         const ok = await cdp.evaluate(`(() => {
           const b = document.querySelector('.ui-manual-open')
@@ -471,29 +650,34 @@ async function main() {
     }
 
     // ---- 1. TOKENS -------------------------------------------------------
-    const tokens = await cdp.evaluate(TOKEN_PROBE(TOKENS))
-    report.tokens = tokens
     console.log('\n=== motion tokens (resolved the way the browser uses them) ===')
-    for (const t of TOKENS) {
-      const raw = tokens[t.name]
-      console.log(`    ${t.name.padEnd(15)} -> ${raw}`)
-      if (t.kind === 'time') {
-        const s = num(raw)
-        if (s <= 0) {
-          findings.push({
-            kind: 'TOKENS', token: t.name, resolved: raw,
-            note: 'resolves to zero, so every `transition: <prop> var(' + t.name + ')` in'
-              + ' index.css is invalid at computed-value time and DROPPED ENTIRELY. The'
-              + ' var() still sits in the built stylesheet and every other gate passes.',
-          })
-        } else if (s < t.min || s > t.max) {
-          findings.push({
-            kind: 'TOKENS', token: t.name, resolved: raw,
-            note: `outside the ${t.min}s..${t.max}s window this UI was tuned in`,
-          })
+    if (!first.ready) {
+      // Without index.css both duration tokens read 0s, which would be a finding.
+      console.log('    not measured: the first load never showed the app with index.css applied')
+    } else {
+      const tokens = await cdp.evaluate(TOKEN_PROBE(TOKENS))
+      report.tokens = tokens
+      for (const t of TOKENS) {
+        const raw = tokens[t.name]
+        console.log(`    ${t.name.padEnd(15)} -> ${raw}`)
+        if (t.kind === 'time') {
+          const s = num(raw)
+          if (s <= 0) {
+            findings.push({
+              kind: 'TOKENS', token: t.name, resolved: raw,
+              note: 'resolves to zero, so every `transition: <prop> var(' + t.name + ')` in'
+                + ' index.css is invalid at computed-value time and DROPPED ENTIRELY. The'
+                + ' var() still sits in the built stylesheet and every other gate passes.',
+            })
+          } else if (s < t.min || s > t.max) {
+            findings.push({
+              kind: 'TOKENS', token: t.name, resolved: raw,
+              note: `outside the ${t.min}s..${t.max}s window this UI was tuned in`,
+            })
+          }
+        } else if (!/cubic-bezier|ease|linear|steps/.test(String(raw))) {
+          findings.push({ kind: 'TOKENS', token: t.name, resolved: raw, note: 'not a resolvable easing function' })
         }
-      } else if (!/cubic-bezier|ease|linear|steps/.test(String(raw))) {
-        findings.push({ kind: 'TOKENS', token: t.name, resolved: raw, note: 'not a resolvable easing function' })
       }
     }
 
@@ -603,6 +787,9 @@ async function main() {
     })
     await cdp.send('Page.reload')
     await sleep(1600)
+    // Page.reload has no errorText, so a reload nothing answered shows only as
+    // Edge's error page.
+    await requireRendered(cdp, APP + '/analysis')
     await inject()
     const onLoad = await cdp.evaluate('window.__motion || {run:[],start:[],end:[]}')
     await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier })
@@ -695,22 +882,49 @@ async function main() {
     await cdp.send('Emulation.setEmulatedMedia', { media: '', features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] })
     await gotoPage('landing')
     const back = await cdp.evaluate(READ_PROBE('.ui-utility-button'))
-    const backDur = back.missing ? 0 : Math.max(...back.entries.map((e) => num(e.dur)), 0)
-    console.log(`\n    back at no-preference, .ui-utility-button worst duration: ${backDur * 1000}ms`)
-    if (backDur <= 0.001) {
-      findings.push({
-        kind: 'ALWAYS-REDUCED', worstDur: backDur,
-        note: 'the reduced-motion guard is applying with no preference set, so the motion'
-          + ' is off for everyone. Check the @media query, not the declarations.',
-      })
+    if (back.missing) {
+      // A control that is not there measured nothing. It used to read as a 0ms
+      // duration and report a guard that is always on.
+      findings.push({ kind: 'ABSENT', sel: '.ui-utility-button', page: 'landing', note: 'not found back at no-preference, so ALWAYS-REDUCED measured nothing' })
+    } else {
+      const backDur = Math.max(...back.entries.map((e) => num(e.dur)), 0)
+      console.log(`\n    back at no-preference, .ui-utility-button worst duration: ${backDur * 1000}ms`)
+      if (backDur <= 0.001) {
+        findings.push({
+          kind: 'ALWAYS-REDUCED', worstDur: backDur,
+          note: 'the reduced-motion guard is applying with no preference set, so the motion'
+            + ' is off for everyone. Check the @media query, not the declarations.',
+        })
+      }
     }
 
     const shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
     writeFileSync(resolve(OUT, 'landing.png'), Buffer.from(shot.data, 'base64'))
   } finally {
-    writeFileSync(resolve(OUT, 'report.json'), JSON.stringify({ findings, report }, null, 2))
     edge.kill()
   }
+
+  // The /analysis targets were measured on the empty state, so the run is
+  // incomplete in either mode, and 1 would read as a pass under --broken.
+  const unseeded = findings.some((f) => f.kind === 'UNSEEDED')
+  // A selector that matched nothing makes it incomplete too: that row measured
+  // nothing, so its ABSENT is not a motion finding, and the others passing is not
+  // a pass.
+  const absent = findings.some((f) => f.kind === 'ABSENT')
+  // So does a first load that never showed the app with its stylesheet: TOKENS was
+  // not measured.
+  const notRendered = findings.some((f) => f.kind === 'NOT-RENDERED')
+  // Exit 1 alone does not prove the refuter works: from 9 to 25 Sept 2026 it exited
+  // 1 while three of its ten planted kinds went unreported. So every planted kind
+  // must appear, and exit 2 means one did not.
+  const planted = ['TOKENS', 'PROPS', 'INERT', 'NORUN', 'DELAY', 'FORBIDDEN', 'ONLOAD', 'REDUCED', 'REDUCED-ZERO', 'REDUCED-DELAY']
+  const seen = new Set(findings.map((f) => f.kind))
+  const missed = BROKEN ? planted.filter((k) => !seen.has(k)) : []
+  const refuterFailed = BROKEN && (missed.length > 0 || !guardMoved)
+  const exit = unseeded || absent || notRendered || refuterFailed ? 2 : findings.length ? 1 : 0
+  // After the finally, not in it: a crash used to write the findings so far,
+  // and a report cut short by a crash read as a clean run.
+  writeFileSync(resolve(OUT, 'report.json'), JSON.stringify({ exit, findings, report }, null, 2))
 
   console.log(`\n=== ${findings.length} finding(s) ===`)
   for (const f of findings) {
@@ -718,22 +932,18 @@ async function main() {
     console.log(`      ${f.note}`)
   }
   console.log(`\nreport.json in ${OUT}`)
-  // Exit 1 alone does not prove the refuter works: from 9 to 25 Sept 2026 it exited
-  // 1 while three of its ten planted kinds went unreported. So every planted kind
-  // must appear, and exit 2 means one did not.
+  if (unseeded) console.log('\nThe seed was not read, so /analysis was measured on its empty state. The run is incomplete.')
+  if (absent) console.log('\nA selector matched nothing (ABSENT), so its row measured nothing. The run is incomplete.')
+  if (notRendered) console.log('\nThe first load never showed the app with index.css applied (NOT-RENDERED), so TOKENS was not measured. The run is incomplete.')
   if (BROKEN) {
-    const planted = ['TOKENS', 'PROPS', 'INERT', 'NORUN', 'DELAY', 'FORBIDDEN', 'ONLOAD', 'REDUCED', 'REDUCED-ZERO', 'REDUCED-DELAY']
-    const seen = new Set(findings.map((f) => f.kind))
-    const missed = planted.filter((k) => !seen.has(k))
     if (!guardMoved) console.log('\n--broken found no reduced-motion guard inside @layer base to move out, so the REDUCED arms were not refuted.')
     if (missed.length) console.log(`\n--broken: planted kinds not reported: ${missed.join(', ')}`)
-    if (missed.length || !guardMoved) process.exit(2)
-    console.log(`\n--broken: all ${planted.length} planted kinds reported.`)
+    if (!refuterFailed) console.log(`\n--broken: all ${planted.length} planted kinds reported.`)
   }
-  process.exit(findings.length ? 1 : 0)
+  process.exit(exit)
 }
 
 main().catch((err) => {
   console.error('motion-audit failed:', err.message)
-  process.exit(2)
+  crashExit()
 })

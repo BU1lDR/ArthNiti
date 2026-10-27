@@ -42,6 +42,13 @@
 // with nothing on the page misplaced. The anchor is therefore part of the group
 // key, and each group is compared on the edge its anchor makes meaningful.
 //
+// Both arms took one more half on 29 Sept 2026, the first run with the result
+// pages seeded, and again from real false positives. A grid's justify-items
+// anchors its items as justify-self does (the flag glyph on /schemes, 5px). And
+// a row whose cells each centre their own text is compared on the text's centre,
+// not its first line (the /analysis buttons, 11px). See anchorOf() and
+// centresOwnText().
+//
 // Findings:
 //   RAGGED-ROW  two cells in the same row lead with the same kind of element,
 //               and its first LINE BOX sits at a different top. The footer bug.
@@ -49,9 +56,24 @@
 //               the same way, and their anchored edges disagree. A heading
 //               indented away from the heading below it, i.e. the same defect
 //               rotated.
-//   INERT       a route where no same-signature pair existed to compare. Proves
-//               nothing, so it is reported rather than counted as a pass — same
-//               instrument check as field-align's unevenRows.
+//   INERT       a load where no same-signature pair existed to compare. Every
+//               route renders the footer's three titles in one row at all three
+//               widths (it stacks only at 800px and under), so this means the
+//               probe saw nothing, and the run exits 2.
+//   NOT-MOUNTED a route where the app did not render, and
+//   UNSEEDED    a result route with no result in the app's state, i.e. showing
+//               its empty state. Either way the load did not measure the page it
+//               names. Neither is an alignment finding, and the run exits 2.
+//
+// Exit codes: 0 clean, 1 a RAGGED-ROW or RAGGED-COL (a PANEL-INSET is reported,
+// never failed on), 2 the instrument failed: the dev server is down, the working
+// directory is wrong, an INERT, NOT-MOUNTED or UNSEEDED load, a navigation that
+// failed, a CDP socket that closed, a missing fixture, a seed version AppContext
+// no longer reads, a crash, or --broken missing its planted defect on any load.
+// A run that stops before its verdict exits 2 as well. Under --broken, 1 is the
+// expected result, so nothing else may exit with it. report.json carries the
+// same code as `exit`; anything thrown (a crash, a failed navigation, a closed
+// socket), or a run that never started, leaves none.
 //
 // Usage (from the repo root):
 //   node tools/verify/text-align.mjs
@@ -60,8 +82,10 @@
 // --broken restores the stacked footer at runtime (.ui-footer-brandblock back to
 // display: block, mark back to a 12px bottom margin). It must fail; a check that
 // has never fired is indistinguishable from a check that has nothing to find.
+// It passes only if that footer is reported on every load: other findings on a
+// --broken run are real ones the plain run also reports, and do not count.
 import { spawn } from 'node:child_process'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
@@ -71,15 +95,120 @@ const PROFILE_DIR = resolve('screenshots/verify/edge-profile-textalign')
 const OUT_DIR = resolve('screenshots/verify/textalign')
 const BROKEN = process.argv.includes('--broken')
 
+// 0 means the run measured and found nothing, 1 a finding (under --broken, the
+// planted footer fired on every load), and 2 that the run could not measure.
+// Node's own exit on an uncaught error is 1, which reads as a finding and under
+// --broken as the pass, so anything thrown or rejected that nothing catches
+// exits 2 instead.
+process.on('uncaughtException', (err) => {
+  console.error(err)
+  crashExit()
+})
+// A crash exits 2 through this rather than process.exit(2) at once. For up to
+// about 100 ms after fetch() reads a response, V8 can still be recompiling
+// undici's WASM HTTP parser on a worker thread, and exiting in that window kills
+// node with 0xC0000409 (Git Bash shows 127): neither 0, 1 nor 2. The wait
+// blocks this thread, so nothing else of the run happens meanwhile.
+// tools/README.md, Exit codes, has the measurements.
+function crashExit() {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000)
+  process.exit(2)
+}
+// A run that ends without reaching its verdict exits 2. Before this, a CDP
+// socket that closed under a pending send left the send unsettled, the event
+// loop drained, and node exited 0 with no report. The verdict overrides it.
+process.exitCode = 2
+// Every path in this file resolves against the working directory.
+if (!existsSync(resolve('tools/verify/text-align.mjs'))) {
+  console.error(`text-align: ${process.cwd()} is not the repo root. Run this from the repo root: node tools/verify/text-align.mjs`)
+  process.exit(2)
+}
+// A report.json on disk is always from a run that finished. The last run's goes
+// once the working directory has been checked, so a run that stops early
+// leaves none.
+rmSync(resolve(OUT_DIR, 'report.json'), { force: true })
+
+// A server that is down used to surface as a crash inside the page (Edge's own
+// error page refuses storage access), which exited 1 and read as a finding.
+// It returns false with exitCode 2 set, and main() returns before Edge starts,
+// so node exits on its own: process.exit() this soon after a fetch can abort
+// it (see crashExit).
+async function requireServer(url, start) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    await res.body?.cancel()
+    if (res.ok) return true
+    console.error(`text-align: ${url} answered HTTP ${res.status}. ${start}`)
+  } catch (err) {
+    console.error(`text-align: nothing answered at ${url} (${err.cause?.code || err.name}). ${start}`)
+  }
+  process.exitCode = 2
+  return false
+}
+
 // Tolerances. 2px on the vertical because a grid track's used height can land on
 // a sub-pixel and the defect being watched for is measured in tens of px; 1px on
 // the horizontal because nothing legitimately shifts a left edge by a fraction.
 const ROW_TOL = 2
 const COL_TOL = 1
 
+// What the app is seeded with. The first version of this file wrote
+// case_good.json, the bare backend response, as the sessionStorage value.
+// AppContext reads {v, data}, found no v and discarded it, so every load ran on
+// a blank application: the result routes were measured on their empty states
+// and the form routes with no answers. Nothing failed, because --broken breaks
+// the footer and the empty states have one too. These are the answers the other
+// drivers seed, and the result beside them is the driver's real response.
+const SEED_FORMS = {
+  profile: { name: 'Lakshmi Devi', language: 'Tamil', dialect: '' },
+  business: {
+    businessName: 'Lakshmi Tailors', category: 'tailoring', categoryOther: '',
+    initialInvestment: '200000', monthlyRevenue: '30000',
+    monthlyOperatingExpenses: '18000', existingDebt: 0,
+  },
+  location: {
+    village: 'Khera', district: 'Lucknow', state: 'Uttar Pradesh',
+    locationType: 'rural', marketType: ['village', 'weekly'], customers: 'Local families',
+  },
+  finance: { availableCapital: '150000', monthlyExpenses: '15000', monthlyEmi: '3000' },
+}
+
+// AppContext discards just as silently a payload whose v is not in its
+// READABLE_VERSIONS. Every field SEED_FORMS carries is a version 4 field, so the
+// seed says 4, and this refuses to start once AppContext stops reading 4.
+const SEED_VERSION = 4
+{
+  const file = 'frontend/src/context/AppContext.jsx'
+  const m = readFileSync(resolve(file), 'utf8').match(/^const READABLE_VERSIONS = new Set\(\[([\d,\s]*)\]\)/m)
+  if (!m?.[1].split(',').map(Number).includes(SEED_VERSION)) {
+    console.error(m
+      ? `text-align: ${file} no longer reads version ${SEED_VERSION} payloads (READABLE_VERSIONS is ${m[1].trim()}). Rewrite SEED_FORMS in the current shape and raise SEED_VERSION.`
+      : `text-align: READABLE_VERSIONS not found in ${file}; update the parse in text-align.mjs.`)
+    process.exit(2)
+  }
+}
+
+// A result route has to show the seeded result, or the load measures its empty
+// state. The app writes its state back to sessionStorage once it has mounted,
+// so a seed it discarded reads back with no result.
+const RESULT_ROUTES = ['/analysis', '/schemes', '/advisory', '/report']
+const SEEDED = `(() => {
+  try { return !!JSON.parse(sessionStorage.getItem('sih-application')).data.result } catch { return false }
+})()`
+
+// Why a load did not mount, when the page can say: Edge's own error page, or a
+// document the server answered with an error status (0 means unknown, not a
+// failure). Asked only of a load that did not mount, so it names the fault and
+// cannot fail a page that rendered.
+const NOT_LOADED = `(() => {
+  if (location.protocol === 'chrome-error:') return 'Edge showed its own error page'
+  const status = performance.getEntriesByType('navigation')[0]?.responseStatus
+  return status && (status < 200 || status > 299) ? 'HTTP ' + status : ''
+})()`
+
 const ROUTES = [
   '/', '/login', '/profile', '/business', '/location',
-  '/finance', '/analysis', '/schemes', '/advisory', '/report',
+  '/finance', '/analysis', '/schemes', '/advisory', '/report', '/privacy',
 ]
 
 // Three passes, not one. The footer defect is language-independent, but a
@@ -100,9 +229,11 @@ class CDP {
     this.next = 1
     this.pending = new Map()
     this.sessionId = null
+    this.closed = false
     this.ready = new Promise((res, rej) => {
       this.ws.addEventListener('open', () => res())
       this.ws.addEventListener('error', () => rej(new Error('socket')))
+      this.ws.addEventListener('close', () => rej(new Error('CDP socket closed')))
     })
     this.ws.addEventListener('message', (e) => {
       const m = JSON.parse(e.data)
@@ -111,9 +242,21 @@ class CDP {
       this.pending.delete(m.id)
       m.error ? s.reject(new Error(s.method + ': ' + m.error.message)) : s.resolve(m.result)
     })
+    // An Edge that dies mid-run closes this socket, and the send waiting on it
+    // never settled. A pending promise does not keep node alive, so the loop
+    // drained and the run ended with no verdict. Failing every one sends the
+    // run to main()'s catch, which exits 2.
+    this.ws.addEventListener('close', () => {
+      this.closed = true
+      for (const s of this.pending.values()) s.reject(new Error(s.method + ': CDP socket closed'))
+      this.pending.clear()
+    })
   }
 
   send(method, params = {}, useSession = true) {
+    // A frame sent on a closed socket is dropped without an error, so its reply
+    // could never come. Nothing sends before `ready`, so not OPEN means closed.
+    if (this.ws.readyState !== WebSocket.OPEN) return Promise.reject(new Error(method + ': CDP socket closed'))
     const id = this.next++
     const env = { id, method, params }
     if (useSession && this.sessionId) env.sessionId = this.sessionId
@@ -253,10 +396,21 @@ const PROBE = `(() => {
   // blind spot: margin-left: auto is the other way to push a flex item rightward
   // and getComputedStyle resolves it to a used px value, so it cannot be seen
   // here. Nothing in this app uses it that way.
+  //
+  // A grid also places its items with justify-items, which the walk did not read
+  // until the result pages were first measured with a result in them (29 Sept
+  // 2026). .ui-feature-icon is a 48px grid with place-items: center, and the
+  // /schemes tier icons all sat in boxes at one x. But Windows has no flag emoji,
+  // so the central tier's flag draws as the letters IN, 19.6px wide against
+  // 29.6px, and its centred left edge landed 5px right of the others on every
+  // pass. The item's own justify-self overrides the container's justify-items, so
+  // a container's is read only for its own text (child is null) or for a child
+  // that left justify-self at auto.
   const ENDISH = new Set(['flex-end', 'end', 'right'])
   const MIDISH = new Set(['center'])
   const anchorOf = (cellNode, el) => {
     let n = el
+    let child = null
     while (n) {
       const cs = getComputedStyle(n)
       if (ENDISH.has(cs.textAlign) || ENDISH.has(cs.justifySelf)) return 'end'
@@ -265,10 +419,39 @@ const PROBE = `(() => {
         if (ENDISH.has(cs.justifyContent)) return 'end'
         if (MIDISH.has(cs.justifyContent)) return 'mid'
       }
+      if (/grid/.test(cs.display) && (!child || /^(auto|normal)$/.test(getComputedStyle(child).justifySelf))) {
+        const items = cs.justifyItems.split(' ').pop()
+        if (ENDISH.has(items)) return 'end'
+        if (MIDISH.has(items)) return 'mid'
+      }
       if (n === cellNode) break
+      child = n
       n = n.parentElement
     }
     return 'start'
+  }
+
+  // The same question on the vertical axis, asked only of the text's own box.
+  // The row arm compares first line boxes, which assumes a cell's text starts at
+  // its top. A button does not do that: it centres its label, so a label that
+  // wraps starts higher in the same box. The three buttons at the foot of
+  // /analysis are one height in one grid row, and in Tamil at 1024px the back
+  // button's label takes two lines, so its first line sat 11px above its
+  // neighbour's while the centres agreed to 0.5px. A row group whose cells all
+  // centre their own text is compared on the centre of that text instead.
+  //
+  // Only the element's own box, not its ancestors'. .ui-footer-brandblock
+  // centres the footer's first title against the brand mark, and a sibling's
+  // height is how a real offset gets in, so an ancestor's centring keeps the
+  // first-line comparison. That footer is the defect this file was written for.
+  const centresOwnText = (el) => {
+    const cs = getComputedStyle(el)
+    const last = (v) => v.split(' ').pop()
+    if (/flex/.test(cs.display)) {
+      return last(/column/.test(cs.flexDirection) ? cs.justifyContent : cs.alignItems) === 'center'
+    }
+    if (/grid/.test(cs.display)) return last(cs.alignItems) === 'center' || last(cs.alignContent) === 'center'
+    return false
   }
 
   const describe = (el) => {
@@ -312,11 +495,14 @@ const PROBE = `(() => {
       if (!el) continue
       const boxes = lineBoxes(el)
       if (!boxes.length) continue
+      const middle = (Math.min(...boxes.map((b) => b.top)) + Math.max(...boxes.map((b) => b.bottom))) / 2
       cells.push({
         node: k,
         el,
         sig: sig(el),
         paints: paints(k),
+        centred: centresOwnText(el),
+        middle: Math.round(middle * 10) / 10,
         top: Math.round(boxes[0].top * 10) / 10,
         left: Math.round(boxes[0].left * 10) / 10,
         right: Math.round(boxes[0].right * 10) / 10,
@@ -347,17 +533,23 @@ const PROBE = `(() => {
       for (const [signature, group] of bySig) {
         if (group.length < 2) continue
         comparedRows += 1
-        const tops = group.map((c) => c.top)
+        // Centres only when every cell centres its own text. A group of one class
+        // list where some cells centre and some do not is itself an inconsistency,
+        // and comparing first lines is what reports it. Splitting such a group by
+        // edge instead would mean the pair is never compared at all.
+        const edge = group.every((c) => c.centred) ? 'middle' : 'top'
+        const tops = group.map((c) => c[edge])
         const spread = Math.max(...tops) - Math.min(...tops)
         if (spread <= TOL_ROW) continue
         const mixed = group.some((c) => c.paints) && group.some((c) => !c.paints)
         findings.push({
           kind: mixed ? 'PANEL-INSET' : 'RAGGED-ROW',
           axis: 'row',
+          edge,
           where,
           signature,
           spread: Math.round(spread * 10) / 10,
-          cells: group.map((c) => ({ top: c.top, panel: c.paints, text: c.text })),
+          cells: group.map((c) => ({ top: c[edge], panel: c.paints, text: c.text })),
         })
       }
     }
@@ -423,16 +615,22 @@ const BREAK_CSS = `
   .ui-footer-brandblock { display: block !important; }
   .ui-footer-brandblock > svg { margin-bottom: 12px !important; }
 `
+// What that defect is reported as: the three footer titles in one row. Every
+// route has the footer, so --broken must see this on every load.
+const PLANTED_SIGNATURE = 'p.ui-footer-title'
 
 async function main() {
+  if (!(await requireServer(APP + '/', 'Start the Vite dev server first: npm run dev in ./frontend.'))) return
   mkdirSync(OUT_DIR, { recursive: true })
 
   let payload = null
   try {
-    payload = readFileSync(resolve('screenshots/verify/case_good.json'), 'utf8')
+    const result = JSON.parse(readFileSync(resolve('screenshots/verify/case_good.json'), 'utf8'))
+    payload = JSON.stringify({ v: SEED_VERSION, data: { ...SEED_FORMS, result } })
   } catch {
-    console.error('  ! screenshots/verify/case_good.json missing — run: node tools/verify/refresh-cases.mjs')
-    process.exit(1)
+    console.error('  ! screenshots/verify/case_good.json missing or unreadable — run: node tools/verify/refresh-cases.mjs')
+    process.exitCode = 2
+    return
   }
 
   const edge = spawn(EDGE, [
@@ -453,7 +651,9 @@ async function main() {
     let wsUrl
     for (let i = 0; i < 80; i++) {
       try {
-        const j = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`)).json()
+        // Bounded: a listener that accepts and never answers would otherwise hold
+        // this for undici's five-minute header timeout.
+        const j = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`, { signal: AbortSignal.timeout(2000) })).json()
         if (j.webSocketDebuggerUrl) { wsUrl = j.webSocketDebuggerUrl; break }
       } catch {}
       await sleep(250)
@@ -467,6 +667,14 @@ async function main() {
     cdp.sessionId = sessionId
     await cdp.send('Page.enable')
     await cdp.send('Runtime.enable')
+
+    // A navigation that failed still replies, with errorText set: a Vite that
+    // went down mid-run answers net::ERR_CONNECTION_REFUSED here. That is a
+    // fault, never a finding, so it throws to main()'s catch, which exits 2.
+    const navigate = async (url) => {
+      const { errorText } = await cdp.send('Page.navigate', { url })
+      if (errorText) throw new Error(`text-align: ${url} did not load (${errorText}). Is the Vite dev server still up?`)
+    }
 
     console.log(`\n  text alignment — ${ROUTES.length} routes x ${CASES.length} cases` +
       (BROKEN ? '  [--broken: MUST FAIL]' : ''))
@@ -492,13 +700,13 @@ async function main() {
       // Warm-up: Vite compiles on demand, so the first load of a session is slow
       // enough that a measurement taken on it is a measurement of a half-built
       // page.
-      await cdp.send('Page.navigate', { url: APP + '/' })
+      await navigate(APP + '/')
       await sleep(1600)
 
       console.log(`\n  ${kase.name}  (${kase.width}x${kase.height}, lang=${kase.lang})`)
 
       for (const route of ROUTES) {
-        await cdp.send('Page.navigate', { url: APP + route })
+        await navigate(APP + route)
         await sleep(900)
 
         if (BROKEN) {
@@ -514,8 +722,14 @@ async function main() {
         const mounted = await cdp.evaluate(
           `!!document.querySelector('.ui-shell') && document.body.innerText.trim().length > 200`)
         if (!mounted) {
-          report.findings.push({ kind: 'NOT-MOUNTED', case: kase.name, route })
-          console.log(`    ${route.padEnd(11)}  ! did not mount`)
+          const why = (await cdp.evaluate(NOT_LOADED)) || 'the app did not render'
+          report.findings.push({ kind: 'NOT-MOUNTED', case: kase.name, route, why })
+          console.log(`    ${route.padEnd(11)}  ! did not mount: ${why}`)
+          continue
+        }
+        if (RESULT_ROUTES.includes(route) && !(await cdp.evaluate(SEEDED))) {
+          report.findings.push({ kind: 'UNSEEDED', case: kase.name, route })
+          console.log(`    ${route.padEnd(11)}  ! no result in the app's state: the seed was not read`)
           continue
         }
 
@@ -545,7 +759,7 @@ async function main() {
         for (const f of res.findings) {
           console.log(`        ${f.kind} ${f.where} ${f.signature} spread ${f.spread}px`)
           for (const c of f.cells) {
-            const at = f.axis === 'row' ? `top ${c.top}` : `${f.edge} ${c.at}`
+            const at = f.axis === 'row' ? `${f.edge} ${c.top}` : `${f.edge} ${c.at}`
             console.log(`          ${at.padEnd(12)} ${c.panel ? '[panel]' : '[bare] '} "${c.text}"`)
           }
         }
@@ -557,13 +771,34 @@ async function main() {
     edge.kill()
   }
 
-  writeFileSync(resolve(OUT_DIR, 'report.json'), JSON.stringify(report, null, 2))
-
-  const real = report.findings.filter((f) => f.kind !== 'INERT' && f.kind !== 'PANEL-INSET')
+  // A load that did not mount, or showed an empty state in place of the result,
+  // did not measure the page it names. It is not an alignment finding either
+  // way, so it fails the run as an instrument fault, never as a finding. So
+  // does an INERT load in a plain run: the footer row is on every load at these
+  // widths, so comparing nothing means the probe saw nothing, and a plain run
+  // used to exit 0 on it. Under --broken it already fails through `missed`,
+  // because a load that compared nothing cannot carry the planted row.
+  const INSTRUMENT = ['NOT-MOUNTED', 'UNSEEDED']
+  const instrument = report.findings.filter((f) => INSTRUMENT.includes(f.kind) || (!BROKEN && f.kind === 'INERT'))
+  const real = report.findings.filter((f) => !INSTRUMENT.includes(f.kind) && f.kind !== 'INERT' && f.kind !== 'PANEL-INSET')
   const panel = report.findings.filter((f) => f.kind === 'PANEL-INSET')
   const inert = report.findings.filter((f) => f.kind === 'INERT')
   const rows = report.loads.reduce((n, l) => n + l.comparedRows, 0)
   const cols = report.loads.reduce((n, l) => n + l.comparedCols, 0)
+
+  // The refuter counts only the defect it planted, on every load. "Any finding"
+  // stopped meaning anything once the result pages were seeded: a copy of this
+  // file with BREAK_CSS switched off still exited 1 on /schemes and /analysis
+  // findings, which the stacked footer has nothing to do with.
+  const planted = (l) => report.findings.some((f) => f.case === l.case && f.route === l.route &&
+    f.kind === 'RAGGED-ROW' && f.signature === PLANTED_SIGNATURE)
+  const missed = BROKEN ? report.loads.filter((l) => !planted(l)) : []
+  const exit = instrument.length ? 2
+    : BROKEN ? (report.loads.length && !missed.length ? 1 : 2)
+      : real.length ? 1 : 0
+  // Written with its exit code, so a report on disk never reads as a pass for a
+  // run that could not measure.
+  writeFileSync(resolve(OUT_DIR, 'report.json'), JSON.stringify({ exit, ...report }, null, 2))
 
   console.log(`\n  ${report.loads.length} loads  ${rows} row groups  ${cols} column groups compared`)
   console.log(`  ${real.length} finding(s)${inert.length ? `, ${inert.length} inert route(s)` : ''}`)
@@ -578,21 +813,23 @@ async function main() {
   }
   console.log(`  report: screenshots/verify/textalign/report.json`)
 
-  if (BROKEN) {
-    if (real.length) {
-      console.log(`\n  --broken fired ${real.length} finding(s), as it must.\n`)
-      process.exit(1)
-    }
-    console.log('\n  ! --broken found NOTHING. The check is inert, not clean.\n')
-    process.exit(1)
-  }
-
-  if (real.length) { console.log('') ; process.exit(1) }
-  if (inert.length) {
-    console.log('\n  ! some routes had nothing to compare — a clean result there says nothing.\n')
+  if (instrument.length) {
+    console.log(`\n  ! ${instrument.length} load(s) measured nothing:`)
+    for (const f of instrument) console.log(`    - ${f.case} ${f.route} ${f.kind}${f.why ? `: ${f.why}` : ''}`)
+    console.log('  The run is incomplete, whatever the other loads found.\n')
+  } else if (BROKEN && exit === 1) {
+    console.log(`\n  --broken: the stacked footer fired on all ${report.loads.length} loads, as it must.\n`)
+  } else if (BROKEN) {
+    console.log(`\n  ! --broken: the stacked footer went unreported on ${missed.length} of ${report.loads.length} load(s):`)
+    for (const l of missed) console.log(`    - ${l.case} ${l.route}`)
+    console.log('  The check is inert there, not clean.\n')
+  } else if (real.length) {
+    console.log('')
   } else {
     console.log('\n  all sibling cells start their text on the same line.\n')
   }
+  process.exit(exit)
 }
 
-main().catch((e) => { console.error(e); process.exit(1) })
+// A crash is not a finding, and under --broken 1 is the pass.
+main().catch((e) => { console.error(e); crashExit() })

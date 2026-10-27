@@ -80,8 +80,8 @@ export const DIALECTS = {
 // How dialect support actually works, stated plainly because it would be easy
 // to overclaim: the whole UI is translated at the LANGUAGE level. A dialect
 // selection then overrides a small curated set of the highest-visibility
-// phrases — the greeting and the words for money — and is sent to the backend
-// in the `preferred_dialect` field that the API contract already carries.
+// phrases — the greeting and the words for money. It stays in this browser: it
+// is never sent to the backend, and it changes no figure or advice.
 //
 // Anything not listed here falls through to the language translation, so a
 // dialect with no overrides is still a completely usable UI.

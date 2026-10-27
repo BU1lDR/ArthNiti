@@ -1,10 +1,11 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.limits import MAX_EMPLOYEES, MAX_RUPEES
+from app.schemas.limits import MAX_CATEGORY_LENGTH, MAX_EMPLOYEES, MAX_RUPEES
 
 
 class BusinessAnalysisRequest(BaseModel):
-    business_type: str = Field(..., min_length=2)
+    # Capped like every text field; see limits.py.
+    business_type: str = Field(..., min_length=2, max_length=MAX_CATEGORY_LENGTH)
 
     # Capped, and no Infinity or NaN; see limits.py.
     initial_investment: float = Field(..., ge=0, le=MAX_RUPEES, allow_inf_nan=False)
@@ -13,7 +14,14 @@ class BusinessAnalysisRequest(BaseModel):
 
     monthly_operating_expenses: float = Field(..., ge=0, le=MAX_RUPEES, allow_inf_nan=False)
 
-    employees: int = Field(default=0, ge=0, le=MAX_EMPLOYEES)
+    # Still accepted and capped, for callers that send it, but the feasibility
+    # check has never read the headcount.
+    employees: int = Field(
+        default=0,
+        ge=0,
+        le=MAX_EMPLOYEES,
+        description="Accepted and ignored: nothing in the analysis reads it.",
+    )
 
     existing_debt: float = Field(default=0, ge=0, le=MAX_RUPEES, allow_inf_nan=False)
 

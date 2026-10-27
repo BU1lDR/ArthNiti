@@ -1251,6 +1251,6 @@ def test_every_synthetic_row_survives_the_market_response_model():
     from app.schemas.market import MarketContext
 
     for row in synthetic_rows():
-        body = {**row, "match_level": "district", "local_context": {}}
+        body = {**row, "match_level": "district"}
         dumped = MarketContext.model_validate(body).model_dump(exclude_unset=True)
         assert dumped["provenance"] == row["provenance"]

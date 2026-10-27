@@ -3,9 +3,13 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Button from '../components/Button'
 import { BarGroup } from '../components/Charts'
+import ShortNotice from '../components/ShortNotice'
+import { DEPLOYMENT } from '../config/deployment'
+import { NOTICE_VERSION } from '../config/notice'
 import { MAX_RUPEES } from '../data/limits'
 import { isAbortError, runAnalysis } from '../services/api'
 import { useI18n } from '../i18n/LanguageContext'
+import { useNoticeText } from '../i18n/noticeText'
 
 const fieldClass = 'mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-base text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary-strong)]'
 
@@ -32,24 +36,21 @@ function hasNumber(value) {
   return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
 }
 
-// Payload fields that are echoed back rather than computed from. Changing one
-// (the language switcher in the top bar, say) does not make a result wrong,
-// which is also why AppContext does not clear the result for them.
-const ECHOED_FIELDS = new Set(['user_language', 'preferred_dialect', 'literacy_level'])
-
 // The answers a payload carries, as one comparable string. Sorted, so the same
 // answers always give the same string whatever order the object was built in.
+// Every field in the payload is an answer the result is worked out from. The
+// consent record is not in it: it is added only as the request goes out, so
+// ticking a box is never mistaken for an answer that changed.
 function answersKey(payload) {
   return JSON.stringify(
-    Object.entries(payload)
-      .filter(([field]) => !ECHOED_FIELDS.has(field))
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+    Object.entries(payload).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
   )
 }
 
 function FinancePage() {
   const { applicationData, updateSection, setResult } = useApp()
-  const { t, apiLanguage, apiDialect } = useI18n()
+  const { t, language } = useI18n()
+  const tn = useNoticeText()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [loading, setLoading] = useState(false)
@@ -63,6 +64,27 @@ function FinancePage() {
   // out, so it was thrown away. The button is ready again at that point, and
   // with nothing said the reader sees the check end and nothing happen.
   const [stale, setStale] = useState(false)
+
+  // Consent, the age answer and the zero-income confirmation live here and
+  // nowhere else: not in AppContext and not in sessionStorage. Each is given for
+  // the submission made from this page, so leaving it (to read /privacy, say)
+  // and coming back asks again, unticked.
+  const [consentGiven, setConsentGiven] = useState(false)
+  const [ageConfirmed, setAgeConfirmed] = useState(false)
+  // The value the zero-income box was ticked for, not a boolean, so an income
+  // changed by any path no longer matches. handleChange also clears it on every
+  // edit of the income: matching alone would re-tick the box when someone
+  // confirmed 0, typed another figure and then typed 0 again, which they never
+  // confirmed.
+  const [zeroConfirmedFor, setZeroConfirmedFor] = useState(null)
+  // Which boxes were unticked at the last attempt to submit. Separate flags, so
+  // every box still missing says so at once rather than one per attempt.
+  const [consentMissing, setConsentMissing] = useState(false)
+  const [ageMissing, setAgeMissing] = useState(false)
+  const [zeroMissing, setZeroMissing] = useState(false)
+  const consentRef = useRef(null)
+  const ageRef = useRef(null)
+  const zeroRef = useRef(null)
 
   // The request in flight, so it can be cancelled when the reader leaves this
   // page. Without this a slow answer arriving after they had gone on to another
@@ -87,13 +109,29 @@ function FinancePage() {
 
   const finance = applicationData.finance
   const business = applicationData.business
-  const profile = applicationData.profile
   const location = applicationData.location
 
   const handleChange = (event) => {
     const { name, value } = event.target
+    if (name === 'householdIncome') {
+      setZeroMissing(false)
+      setZeroConfirmedFor(null)
+    }
     updateSection('finance', { [name]: value })
   }
+
+  // A household income of exactly 0, typed rather than left blank. That is a
+  // real answer, a household with no income at all, and it changes the advice a
+  // lot; it is also what someone types when they meant to skip the question. So
+  // it has to be confirmed before it is sent. Blank is sent as null and needs
+  // nothing.
+  const rawIncome = String(finance.householdIncome ?? '').trim()
+  const incomeIsZero = rawIncome !== '' && Number(rawIncome) === 0
+  const zeroConfirmed = incomeIsZero && zeroConfirmedFor === rawIncome
+
+  // Who the consent box names. In demo mode no organisation is responsible, so
+  // the sentence names the people running the demonstration instead.
+  const fiduciary = DEPLOYMENT.fiduciaryName || tn('notice.demoOperator')
 
   const availableCapital = Number(finance.availableCapital) || 0
   const monthlyExpenses = Number(finance.monthlyExpenses) || 0
@@ -140,20 +178,21 @@ function FinancePage() {
   // surplus we have actually worked out and found to be nothing.
   const surplusIcon = knowsSurplus && !surplusIsHealthy ? '⚠️' : '💚'
 
-  // 'other' is a placeholder for whatever the user typed on the business step,
-  // and the backend expects one market_type string, not the list we collect.
+  // 'other' is a placeholder for whatever the user typed on the business step.
   const businessCategory = business.category === 'other'
     ? (business.categoryOther || '').trim()
     : business.category
-  const marketTypes = Array.isArray(location.marketType) ? location.marketType : []
 
+  // Exactly what is sent: the answers the result is worked out from, and
+  // nothing else. /privacy lists these to the reader one by one
+  // (SENT_FIELD_KEYS in config/notice.js), so a field added here needs its
+  // label there and in FIELD_LABELS in api.js, and a new NOTICE_VERSION. The
+  // name, business name, village, where they sell, customers and dialect are
+  // never sent; the report prints them from this tab.
   const payload = {
     business_category: businessCategory,
     state: location.state,
     district: location.district || '',
-    village: location.village || '',
-    market_type: marketTypes.join(', '),
-    customers: location.customers || '',
     available_capital: availableCapital,
     monthly_expenses: monthlyExpenses,
     expected_monthly_revenue: monthlyRevenue,
@@ -162,16 +201,10 @@ function FinancePage() {
     // household with no income at all, and the backend would then say every
     // repayment is more than half of it. null tells it the question was not
     // answered, so it says the check was not done.
-    household_monthly_income: String(finance.householdIncome ?? '').trim() === '' ? null : Number(finance.householdIncome),
+    household_monthly_income: rawIncome === '' ? null : Number(rawIncome),
     initial_investment: investment,
     monthly_operating_expenses: Number(business.monthlyOperatingExpenses) || 0,
-    employees: Number(business.employees) || 0,
     existing_debt: Number(business.existingDebt) || 0,
-    // The language context is authoritative here, not `profile`: the header
-    // switcher can change the language without the profile form being touched.
-    user_language: apiLanguage,
-    preferred_dialect: apiDialect,
-    literacy_level: profile.literacyLevel || 'low',
     location_type: location.locationType || 'rural',
   }
 
@@ -188,6 +221,24 @@ function FinancePage() {
   const handleContinue = async (event) => {
     event.preventDefault()
 
+    // Before anything is sent, and in page order. All three are checked at
+    // once so every box still unticked says so, and focus goes to the first.
+    // Nothing native validates these boxes: `required` on a checkbox shows the
+    // browser's own bubble, in the browser's language rather than the reader's.
+    const needsZero = incomeIsZero && !zeroConfirmed
+    const needsConsent = !consentGiven
+    const needsAge = DEPLOYMENT.requireAgeCheck && !ageConfirmed
+    setZeroMissing(needsZero)
+    setConsentMissing(needsConsent)
+    setAgeMissing(needsAge)
+
+    const firstMissing = needsZero ? zeroRef : needsConsent ? consentRef : needsAge ? ageRef : null
+    if (firstMissing) {
+      firstMissing.current?.focus({ preventScroll: true })
+      firstMissing.current?.scrollIntoView({ block: 'center' })
+      return
+    }
+
     requestRef.current?.abort()
     const controller = new AbortController()
     requestRef.current = controller
@@ -199,8 +250,19 @@ function FinancePage() {
     const sent = answers
     const sentFrom = pathname
 
+    // The record of what was agreed to, sent with the answers and never
+    // stored here. `language` is the interface language code the notice was
+    // read in. The age answer is null when this copy does not ask the question,
+    // so a record can tell "not asked" from "said no".
+    const consent = {
+      notice_version: NOTICE_VERSION,
+      language,
+      given_at: new Date().toISOString(),
+      age_confirmed: DEPLOYMENT.requireAgeCheck ? ageConfirmed : null,
+    }
+
     try {
-      const result = await runAnalysis(payload, { signal: controller.signal })
+      const result = await runAnalysis({ ...payload, consent }, { signal: controller.signal })
 
       if (controller.signal.aborted || !mountedRef.current) return
 
@@ -343,7 +405,43 @@ function FinancePage() {
                 placeholder="e.g. 20000"
                 hint={t('finance.householdIncomeHint')}
                 optionalText={t('common.optional')}
+                describedBy={incomeIsZero ? 'household-zero-note' : undefined}
               />
+
+              {/* The note describes the income box, so it holds the note and
+                  nothing else: with the checkbox inside it, the box's label
+                  would be read out again as part of the income question. */}
+              {incomeIsZero && (
+                <>
+                  <div id="household-zero-note" className="ui-notice ui-notice-warn mt-3">
+                    <p>{t('finance.zeroIncomeNote')}</p>
+                  </div>
+                  <label className="ui-check mt-3">
+                    <input
+                      ref={zeroRef}
+                      type="checkbox"
+                      id="household-zero-confirm"
+                      name="household-zero-confirm"
+                      data-household-zero
+                      checked={zeroConfirmed}
+                      onChange={(event) => {
+                        setZeroConfirmedFor(event.target.checked ? rawIncome : null)
+                        setZeroMissing(false)
+                      }}
+                      aria-required="true"
+                      aria-invalid={zeroMissing || undefined}
+                      aria-describedby={zeroMissing ? 'household-zero-error' : undefined}
+                    />
+                    <span>{t('finance.zeroIncomeConfirm')}</span>
+                  </label>
+                </>
+              )}
+
+              {incomeIsZero && zeroMissing && (
+                <p id="household-zero-error" role="alert" className="ui-notice ui-notice-danger mt-3 font-bold text-[var(--color-danger)]">
+                  {t('finance.zeroIncomeRequired')}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -403,18 +501,95 @@ function FinancePage() {
           />
         </div>
 
-        {/* Said here, beside the button that sends the answers, because this is
-            the step where the money figures are entered. It has to match what
-            AppContext does: sessionStorage, so a refresh keeps the answers and a
-            closed tab normally loses them. "Normally", because a browser can
-            restore a closed tab together with what it had stored. */}
-        <p className="text-sm text-[var(--color-text-muted)]">
-          {/* The button's name only. The ↺ is the icon's own glyph and is
-              aria-hidden on the button, so pasted into the sentence it was read
-              out as a symbol and sat mid-word in scripts that have no space. */}
-          {t('finance.privacyNote', { button: t('common.startOver') })}
-        </p>
+        {/* The consent block, directly above the button that sends the
+            answers: the short notice again, what this tab keeps, and an
+            unticked box. Nothing is sent until it is ticked. Every sentence
+            goes through tn(), so NOTICE_VERSION covers it. */}
+        <div className="ui-formsection">
+          <div className="ui-formsection-head">
+            <span className="ui-formsection-num" aria-hidden="true">3</span>
+            <h2 className="ui-formsection-title">{tn('consent.title')}</h2>
+          </div>
+          <div className="ui-formsection-body space-y-5">
+            <ShortNotice />
 
+            {/* What this tab keeps, and how to clear it. It has to match what
+                AppContext does: sessionStorage, until the tab is closed or
+                Start over is pressed. The button's name only: the icon glyph
+                is aria-hidden on the button, so pasted into the sentence it
+                was read out as a symbol and sat mid-word in scripts that have
+                no space. */}
+            <p className="text-sm text-[var(--color-text-muted)]">
+              {tn('finance.privacyNote', { button: tn('common.startOver') })}
+            </p>
+
+            <div>
+              <label className="ui-check">
+                <input
+                  ref={consentRef}
+                  type="checkbox"
+                  id="consent-notice"
+                  name="consent-notice"
+                  data-consent="notice"
+                  checked={consentGiven}
+                  onChange={(event) => {
+                    setConsentGiven(event.target.checked)
+                    setConsentMissing(false)
+                  }}
+                  aria-required="true"
+                  aria-invalid={consentMissing || undefined}
+                  aria-describedby={consentMissing ? 'consent-error' : undefined}
+                />
+                <span>
+                  {tn('consent.agree', { fiduciary })}
+                  <span className="ui-required" aria-hidden="true">*</span>
+                </span>
+              </label>
+              {consentMissing && (
+                <p id="consent-error" role="alert" className="ui-notice ui-notice-danger mt-3 font-bold text-[var(--color-danger)]">
+                  {tn('consent.required')}
+                </p>
+              )}
+            </div>
+
+            {/* Only when this copy is built with VITE_REQUIRE_AGE_CHECK=true.
+                The answer is recorded with the consent; checking a parent or
+                guardian is the organisation's job, not this page's. */}
+            {DEPLOYMENT.requireAgeCheck && (
+              <div>
+                <label className="ui-check">
+                  <input
+                    ref={ageRef}
+                    type="checkbox"
+                    id="consent-age"
+                    name="consent-age"
+                    data-consent="age"
+                    checked={ageConfirmed}
+                    onChange={(event) => {
+                      setAgeConfirmed(event.target.checked)
+                      setAgeMissing(false)
+                    }}
+                    aria-required="true"
+                    aria-invalid={ageMissing || undefined}
+                    aria-describedby={ageMissing ? 'consent-age-error' : undefined}
+                  />
+                  <span>
+                    {tn('consent.age')}
+                    <span className="ui-required" aria-hidden="true">*</span>
+                  </span>
+                </label>
+                {ageMissing && (
+                  <p id="consent-age-error" role="alert" className="ui-notice ui-notice-danger mt-3 font-bold text-[var(--color-danger)]">
+                    {tn('consent.ageRequired')}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* No id on this banner, and none ending in -error in particular: the
+            verifiers tell it apart from the inline box errors above by that. */}
         {error && <div role="alert" className="ui-notice ui-notice-danger font-semibold text-[var(--color-danger)]">{errorText(error)}</div>}
 
         {/* Always in the page, and only its text changes: a live region that is
@@ -448,7 +623,10 @@ function FinancePage() {
 //
 // `optionalText` marks a question that may be left blank. It is part of the label,
 // so a screen reader hears it with the question rather than never at all.
-function InputField({ label, name, value, onChange, placeholder, hint, required = false, optionalText }) {
+//
+// `describedBy` ties the box to a note outside the label, such as the one that
+// asks to confirm a household income of 0.
+function InputField({ label, name, value, onChange, placeholder, hint, required = false, optionalText, describedBy }) {
   return (
     <label className="ui-field">
       <span className="font-extrabold">
@@ -461,7 +639,7 @@ function InputField({ label, name, value, onChange, placeholder, hint, required 
       {hint && <span className="mt-1 block text-sm font-normal text-[var(--color-text-muted)]">{hint}</span>}
       <span className="ui-money-field">
         <span className="ui-money-prefix" aria-hidden="true">₹</span>
-        <input name={name} value={value} onChange={onChange} type="number" min="0" max={MAX_RUPEES} placeholder={placeholder} required={required} className={fieldClass} />
+        <input name={name} value={value} onChange={onChange} type="number" min="0" max={MAX_RUPEES} placeholder={placeholder} required={required} className={fieldClass} aria-describedby={describedBy} />
       </span>
     </label>
   )

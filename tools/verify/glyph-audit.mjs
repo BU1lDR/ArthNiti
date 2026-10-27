@@ -15,6 +15,14 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+// A report, not a gate: it exits 0 whenever it ran, however many hits it lists.
+// Node's own exit on an uncaught error is 1, which elsewhere in tools/verify
+// means a finding, so a crash exits 2 instead.
+process.on('uncaughtException', (err) => {
+  console.error(err)
+  process.exit(2)
+})
+
 // fileURLToPath, not URL.pathname. The pathname of a Windows file URL is
 // '/D:/...', so stripping the leading slash gave a working drive path there, but
 // on Linux the same strip turned '/home/...' into a RELATIVE 'home/...', which

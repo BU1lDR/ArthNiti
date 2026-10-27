@@ -55,7 +55,21 @@ def test_mvp_summary_required_fields():
     assert isinstance(summary["priority"], str)
 
 
-def test_mvp_accessibility_context_is_preserved():
+MVP_SUMMARY_KEYS = {
+    "status",
+    "simple_message",
+    "message_code",
+    "next_step",
+    "next_step_code",
+    "priority",
+    "location_type",
+}
+
+
+def test_mvp_accessibility_fields_are_accepted_and_not_echoed():
+    # The summary used to echo the language, dialect, literacy level and
+    # entrepreneur type back. The page already holds them, and nothing on the
+    # server reads them, so they are accepted and left out of the response.
     response = client.post(
         "/api/analysis/run",
         json=MVP_PAYLOAD,
@@ -65,10 +79,9 @@ def test_mvp_accessibility_context_is_preserved():
 
     summary = response.json()["mvp_summary"]
 
-    assert summary["language"] == "Hindi"
-    assert summary["preferred_dialect"] == "Haryanvi"
-    assert summary["literacy_level"] == "low"
-    assert summary["entrepreneur_type"] == "small_shop_owner"
+    assert set(summary) == MVP_SUMMARY_KEYS
+    for key in ("language", "preferred_dialect", "literacy_level", "entrepreneur_type"):
+        assert key not in summary
     assert summary["location_type"] == "rural"
 
 
@@ -90,9 +103,7 @@ def test_mvp_defaults_work_without_accessibility_fields():
 
     summary = response.json()["mvp_summary"]
 
-    assert summary["language"] == "Hindi"
-    assert summary["preferred_dialect"] is None
-    assert summary["literacy_level"] == "low"
+    assert set(summary) == MVP_SUMMARY_KEYS
     assert summary["location_type"] == "rural"
 
 
@@ -138,12 +149,26 @@ def test_existing_analysis_sections_are_preserved_with_mvp_summary():
     assert "mvp_summary" in data
 
 def test_the_unified_route_forwards_every_request_field(monkeypatch):
-    # The route names each field by hand, so a field added to the request
-    # model but not to the call is accepted, validated and then dropped, and
-    # nothing fails. That is how household_monthly_income was first left out:
-    # every request came back not_checked whatever the reader typed.
+    # A field added to the request model but not passed on is accepted,
+    # validated and then dropped, and nothing fails. That is how
+    # household_monthly_income was first left out: every request came back
+    # not_checked whatever the reader typed. The only fields held back are the
+    # accepted-and-ignored ones and the consent record, and the set is named
+    # here in full so that growing it is a visible change.
     from app.api.routes import analysis as analysis_route
-    from app.schemas.analysis import UnifiedAnalysisRequest
+    from app.schemas.analysis import IGNORED_FIELDS, UnifiedAnalysisRequest
+
+    assert IGNORED_FIELDS == {
+        "employees",
+        "village",
+        "market_type",
+        "customers",
+        "user_language",
+        "preferred_dialect",
+        "literacy_level",
+        "entrepreneur_type",
+    }
+    assert IGNORED_FIELDS < set(UnifiedAnalysisRequest.model_fields)
 
     seen = {}
     real = analysis_route.run_unified_analysis
@@ -156,4 +181,4 @@ def test_the_unified_route_forwards_every_request_field(monkeypatch):
     response = client.post("/api/analysis/run", json=MVP_PAYLOAD)
 
     assert response.status_code == 200
-    assert set(seen) == set(UnifiedAnalysisRequest.model_fields)
+    assert set(seen) == set(UnifiedAnalysisRequest.model_fields) - IGNORED_FIELDS - {"consent"}

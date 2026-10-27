@@ -3,14 +3,16 @@ def build_mvp_summary(
     risk_analysis: dict,
     business_analysis: dict,
     advisory: dict,
-    user_language: str = "Hindi",
-    preferred_dialect: str | None = None,
-    literacy_level: str = "low",
 ):
     """
     Convert detailed backend analysis into a simple,
     action-oriented response suitable for rural and
     low-literacy entrepreneurs.
+
+    The summary no longer echoes the language, dialect and literacy level the
+    request carried. Nothing here reads them (the frontend translates the codes
+    itself), and an echoed default such as literacy "low" looked like the
+    person's own answer to a question nobody asked.
     """
 
     financial_status = financial_analysis.get("financial_status", "unknown")
@@ -187,7 +189,4 @@ def build_mvp_summary(
         "next_step": next_step,
         "next_step_code": next_step_code,
         "priority": priority,
-        "language": user_language,
-        "preferred_dialect": preferred_dialect,
-        "literacy_level": literacy_level,
     }

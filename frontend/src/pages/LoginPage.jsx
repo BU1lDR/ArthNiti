@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import BrandMark from '../components/BrandMark'
 import Button from '../components/Button'
+import ShortNotice from '../components/ShortNotice'
 import { APP_NAME } from '../i18n/brand'
 import { useI18n } from '../i18n/LanguageContext'
 
@@ -12,19 +13,17 @@ function LoginPage() {
   const { updateSection } = useApp()
   const { t } = useI18n()
   const navigate = useNavigate()
-  const [details, setDetails] = useState({ name: '', phone: '', address: '', email: '' })
-
-  const handleChange = (event) => {
-    const { name, value } = event.target
-    setDetails((current) => ({ ...current, [name]: value }))
-  }
+  // The name is the only question. This page used to ask for a phone number
+  // and an address as well, required, and then threw both away: nothing here
+  // authenticates anyone, so nothing needed them.
+  const [name, setName] = useState('')
 
   const handleSubmit = (event) => {
     event.preventDefault()
     // Carry the name into the journey so step 1 does not ask for it again.
     // Trimmed: `required` accepts a value of only spaces, and an untrimmed name
     // reaches the report, where it prints as a blank line under "Name".
-    updateSection('profile', { name: details.name.trim() })
+    updateSection('profile', { name: name.trim() })
     navigate('/profile')
   }
 
@@ -47,43 +46,15 @@ function LoginPage() {
         <p className="ui-page-subtitle mx-auto">{t('login.subtitle')}</p>
       </div>
 
-      {/* Only `login.namePh` exists as a placeholder string, so the other three
-          examples are kept free of translatable words — digits, proper nouns and
-          an address format read the same in every language. */}
+      <ShortNotice className="mb-6" />
+
       <form onSubmit={handleSubmit} className="ui-card overflow-hidden p-0">
         <div className="space-y-6 p-5 sm:p-8">
           <div>
             <label className="text-base font-extrabold" htmlFor="login-name">
               {t('login.name')}<span className="ui-required" aria-hidden="true">*</span>
             </label>
-            <input id="login-name" name="name" value={details.name} onChange={handleChange} type="text" placeholder={t('login.namePh')} className={fieldClass} autoComplete="name" required />
-          </div>
-
-          <div>
-            <label className="text-base font-extrabold" htmlFor="login-phone">
-              {t('login.phone')}<span className="ui-required" aria-hidden="true">*</span>
-            </label>
-            <span id="login-phone-hint" className="mt-1 block text-sm text-[var(--color-text-muted)]">{t('login.phoneHint')}</span>
-            {/* `title` is what the browser appends to its own pattern-mismatch
-                bubble. Without it the user sees only "Please match the requested
-                format", which says nothing and is in the browser's language, not
-                the one they picked. */}
-            <input id="login-phone" name="phone" value={details.phone} onChange={handleChange} type="tel" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} placeholder="9876543210" title={t('login.phoneHint')} className={fieldClass} autoComplete="tel" aria-describedby="login-phone-hint" required />
-          </div>
-
-          <div>
-            <label className="text-base font-extrabold" htmlFor="login-address">
-              {t('login.address')}<span className="ui-required" aria-hidden="true">*</span>
-            </label>
-            <span id="login-address-hint" className="mt-1 block text-sm text-[var(--color-text-muted)]">{t('login.addressHint')}</span>
-            <textarea id="login-address" name="address" value={details.address} onChange={handleChange} rows={3} placeholder="Khera, Lucknow, Uttar Pradesh" className={fieldClass} autoComplete="street-address" aria-describedby="login-address-hint" required />
-          </div>
-
-          <div>
-            <label className="text-base font-extrabold" htmlFor="login-email">
-              {t('login.email')} <span className="font-normal text-[var(--color-text-muted)]">{t('login.emailOptional')}</span>
-            </label>
-            <input id="login-email" name="email" value={details.email} onChange={handleChange} type="email" placeholder="name@example.com" className={fieldClass} autoComplete="email" />
+            <input id="login-name" name="name" value={name} onChange={(event) => setName(event.target.value)} type="text" placeholder={t('login.namePh')} className={fieldClass} autoComplete="off" required />
           </div>
         </div>
 

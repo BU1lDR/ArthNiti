@@ -27,9 +27,27 @@
 //                  into each other. Measured by rendering the same string at
 //                  line-height: normal in the same font and comparing.
 //
+// Nothing is measured until the page is drawn: #main filled and every chrome
+// container present, waited for up to 15 s. A load that never gets there is
+// NOT-RENDERED and is neither measured nor compared. An English load that never
+// rendered leaves the other seven languages at that route and width with
+// nothing to compare against (NO-BASELINE). If the first load never renders at
+// all, the run stops there instead of spending about an hour on 112 pages that
+// are not there.
+//
 // Run the Vite dev server first, then: node tools/verify/lang-layout.mjs
+// Exit 0: nothing found. 1: a finding: SHIFT, NAV-CUT, FLUSH, OVERLAP, CLIP,
+// VCLIP, HSCROLL, RAGGED, or PAGE-ERROR (the page threw). TIGHT-LEADING is only
+// reported. 2: the run could not measure: the dev server is down, or stops
+// mid-run (a navigation fails); the working directory is wrong; AppContext no
+// longer reads the seed's version; a load is NOT-RENDERED (#main never filled,
+// a chrome container missing, Edge's own error page, or an answer outside 2xx);
+// NO-BASELINE; a result page lost its seed (UNSEEDED); Edge's DevTools socket
+// closed under the audit; or the audit crashed, or ended any other way before
+// its verdict. report.json carries the same code as `exit`; a crash, or a run
+// that never started, leaves none.
 import { spawn } from 'node:child_process'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
@@ -38,8 +56,57 @@ const APP = 'http://localhost:5173'
 const OUT = resolve('screenshots/verify/lang')
 const PROFILE_DIR = resolve('screenshots/verify/edge-profile-lang')
 
+// 0 means the run measured and found nothing, 1 a finding, and 2 that the run
+// could not measure. Node's own exit on an uncaught error is 1, which reads as a
+// finding, so anything thrown or rejected that nothing catches exits 2 instead.
+process.on('uncaughtException', (err) => {
+  console.error(err)
+  crashExit()
+})
+// A crash exits 2 through this rather than process.exit(2) at once. For up to
+// about 100 ms after fetch() reads a response, V8 can still be recompiling
+// undici's WASM HTTP parser on a worker thread, and exiting in that window kills
+// node with 0xC0000409 (Git Bash shows 127): neither 0, 1 nor 2. The wait
+// blocks this thread, so nothing else of the run happens meanwhile.
+// tools/README.md, Exit codes, has the measurements.
+function crashExit() {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000)
+  process.exit(2)
+}
+// A run that ends without reaching its verdict exits 2. Before this, a CDP
+// socket that closed under a pending send left that send unsettled, the event
+// loop drained, and node exited 0 with no report. The verdict overrides it.
+process.exitCode = 2
+// Every path in this file resolves against the working directory.
+if (!existsSync(resolve('tools/verify/lang-layout.mjs'))) {
+  console.error(`lang-layout: ${process.cwd()} is not the repo root. Run this from the repo root: node tools/verify/lang-layout.mjs`)
+  process.exit(2)
+}
+// A report.json on disk is always from a run that finished. The last run's
+// goes once the working directory has been checked, so a run that stops early
+// leaves none.
+rmSync(resolve(OUT, 'report.json'), { force: true })
+
+// A server that is down used to surface as a crash inside the page (Edge's own
+// error page refuses storage access), which exited 1 and read as a finding.
+// It returns false with exitCode 2 set, and main() returns before Edge starts,
+// so node exits on its own: process.exit() this soon after a fetch can abort
+// it (see crashExit).
+async function requireServer(url, start) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    await res.body?.cancel()
+    if (res.ok) return true
+    console.error(`lang-layout: ${url} answered HTTP ${res.status}. ${start}`)
+  } catch (err) {
+    console.error(`lang-layout: nothing answered at ${url} (${err.cause?.code || err.name}). ${start}`)
+  }
+  process.exitCode = 2
+  return false
+}
+
 const LANGS = ['en', 'hi', 'ta', 'te', 'ml', 'kn', 'mr', 'bn']
-const ROUTES = ['/', '/business', '/finance', '/analysis', '/schemes', '/report']
+const ROUTES = ['/', '/business', '/finance', '/analysis', '/schemes', '/report', '/privacy']
 // Two desktop widths, because the utility strip's CONTENTS differ by language —
 // a dialect dropdown appears for Tamil, Malayalam, Kannada and Telugu and not for
 // English. At 1440px the row still fits either way; 1280 is a common laptop width
@@ -48,11 +115,11 @@ const ROUTES = ['/', '/business', '/finance', '/analysis', '/schemes', '/report'
 const VIEWS = [{ width: 1440, height: 900 }, { width: 1280, height: 860 }]
 
 const SEED = {
-  profile: { name: 'Lakshmi Devi', language: 'Tamil', dialect: '', literacyLevel: 'low' },
+  profile: { name: 'Lakshmi Devi', language: 'Tamil', dialect: '' },
   business: {
     businessName: 'Lakshmi Tailors', category: 'tailoring', categoryOther: '',
     initialInvestment: '200000', monthlyRevenue: '30000',
-    monthlyOperatingExpenses: '18000', employees: 2, existingDebt: 0,
+    monthlyOperatingExpenses: '18000', existingDebt: 0,
   },
   location: {
     village: 'Khera', district: 'Lucknow', state: 'Uttar Pradesh',
@@ -62,6 +129,30 @@ const SEED = {
   result: JSON.parse(readFileSync('screenshots/verify/case_good.json', 'utf8')),
 }
 
+// AppContext silently discards a payload whose v is not in its
+// READABLE_VERSIONS, and every result page then shows its empty state. Every
+// field SEED carries is a version 4 field, so the seed says 4, and this refuses
+// to start once AppContext stops reading 4.
+const SEED_VERSION = 4
+{
+  const file = 'frontend/src/context/AppContext.jsx'
+  const m = readFileSync(resolve(file), 'utf8').match(/^const READABLE_VERSIONS = new Set\(\[([\d,\s]*)\]\)/m)
+  if (!m?.[1].split(',').map(Number).includes(SEED_VERSION)) {
+    console.error(m
+      ? `lang-layout: ${file} no longer reads version ${SEED_VERSION} payloads (READABLE_VERSIONS is ${m[1].trim()}). Rewrite SEED in the current shape and raise SEED_VERSION.`
+      : `lang-layout: READABLE_VERSIONS not found in ${file}; update the parse in lang-layout.mjs.`)
+    process.exit(2)
+  }
+}
+
+// A result route has to show the seeded result. The app writes its state back
+// to sessionStorage once it has mounted, so a seed it discarded reads back with
+// no result.
+const RESULT_ROUTES = ['/analysis', '/schemes', '/advisory', '/report']
+const SEEDED = `(() => {
+  try { return !!JSON.parse(sessionStorage.getItem('sih-application')).data.result } catch { return false }
+})()`
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 class CDP {
@@ -69,13 +160,29 @@ class CDP {
     this.ws = new WebSocket(url)
     this.next = 1
     this.pending = new Map()
+    // What the page threw that nothing in it caught, as Runtime.exceptionThrown
+    // reports it. main() empties it before each measured load.
+    this.pageErrors = []
     this.sessionId = null
+    this.closed = false
     this.ready = new Promise((res, rej) => {
       this.ws.addEventListener('open', () => res())
       this.ws.addEventListener('error', () => rej(new Error('CDP socket error')))
+      this.ws.addEventListener('close', () => rej(new Error('CDP socket closed')))
+    })
+    // Edge gone (it died, or something killed it) closes the socket, and no
+    // reply is coming for anything still waiting. Each of those rejects, so the
+    // run stops as a crash instead of hanging on a send that never settles.
+    this.ws.addEventListener('close', () => {
+      this.closed = true
+      for (const slot of this.pending.values()) slot.reject(new Error(slot.method + ': CDP socket closed'))
+      this.pending.clear()
     })
     this.ws.addEventListener('message', (event) => {
       const msg = JSON.parse(event.data)
+      if (msg.method === 'Runtime.exceptionThrown') {
+        this.pageErrors.push(msg.params?.exceptionDetails?.exception?.description || msg.params?.exceptionDetails?.text || 'unknown')
+      }
       const slot = this.pending.get(msg.id)
       if (!slot) return
       this.pending.delete(msg.id)
@@ -85,6 +192,13 @@ class CDP {
   }
 
   send(method, params = {}, useSession = true) {
+    // A frame sent on a socket that is not open is dropped without a word, so its
+    // reply would never come. Nothing sends before ready, so not open here means
+    // closing or closed.
+    if (this.ws.readyState !== WebSocket.OPEN) {
+      this.closed = true
+      return Promise.reject(new Error(method + ': CDP socket closed'))
+    }
     const id = this.next++
     const envelope = { id, method, params }
     if (useSession && this.sessionId) envelope.sessionId = this.sessionId
@@ -106,13 +220,61 @@ class CDP {
 async function browserWsUrl() {
   for (let i = 0; i < 80; i++) {
     try {
-      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`)).json()
+      // Bounded: a listener that accepts and never answers would otherwise hold
+      // this for undici's five-minute header timeout.
+      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`, { signal: AbortSignal.timeout(2000) })).json()
       if (info.webSocketDebuggerUrl) return info.webSocketDebuggerUrl
     } catch { /* not listening yet */ }
     await sleep(250)
   }
   throw new Error('Edge never opened the DevTools endpoint on port ' + DEBUG_PORT)
 }
+
+// The chrome containers PROBE measures. AppShell draws every one of them on
+// every route but '/', which has no breadcrumb.
+const CHROME = ['.ui-utilitybar-inner', '.ui-masthead-inner', '.ui-navbar-inner', '.ui-breadcrumb', '.ui-main', '.ui-footer-inner']
+const chromeFor = (route) => CHROME.filter((sel) => route !== '/' || sel !== '.ui-breadcrumb')
+
+// Fixed sleeps were all that stood between a navigation and the probe, so a
+// page that was slow, blank or not the app was measured as it stood, and an
+// English one of those became the baseline. This waits for the page to be
+// drawn: #main filled and every chrome container there. '' once it is, else
+// what was still missing after about 15 s.
+async function waitForRender(cdp, route) {
+  const expression = `(() => ({
+    text: document.querySelector('#main')?.innerText?.trim().length || 0,
+    absent: ${JSON.stringify(chromeFor(route))}.filter((sel) => !document.querySelector(sel)),
+  }))()`
+  let last = null
+  for (let i = 0; i < 75; i++) {
+    // A page still loading can fail an evaluate, which only means not yet. A
+    // closed socket means never, and stops the run.
+    const got = await cdp.evaluate(expression).catch((err) => { if (cdp.closed) throw err; return null })
+    if (got) last = got
+    if (got && got.text > 40 && !got.absent.length) return ''
+    await sleep(200)
+  }
+  if (!last) return 'the page never answered'
+  return [last.text > 40 ? '' : '#main never filled', ...last.absent.map((sel) => 'no ' + sel)].filter(Boolean).join('; ')
+}
+
+// A navigation Edge could not complete (the dev server stopped answering
+// mid-run) replies with errorText. There is no page to measure after that, so
+// it throws.
+async function navigate(cdp, url) {
+  const { errorText } = await cdp.send('Page.navigate', { url })
+  if (errorText) throw new Error(`${url} did not load (${errorText}). Is the dev server still running?`)
+}
+
+// Why a load that navigated is still not the app: Edge's own error page, or an
+// answer outside 2xx. A copy Edge revalidated (a 304 on the wire) still reads
+// 200 here, as measured on 30 Sept 2026, and a responseStatus of 0 means Edge
+// recorded none. '' when neither.
+const LOAD_ERROR = `(() => {
+  if (location.protocol === 'chrome-error:') return 'an Edge error page'
+  const status = performance.getEntriesByType('navigation')[0]?.responseStatus || 0
+  return status && (status < 200 || status > 299) ? 'HTTP ' + status : ''
+})()`
 
 // Joined strings, not a template literal — the probe carries regex and escapes.
 const PROBE = [
@@ -122,7 +284,7 @@ const PROBE = [
   '',
   // 1. Chrome container geometry. Identical in every language by construction,
   //    so any difference is the shift.
-  '  for (const sel of [".ui-utilitybar-inner", ".ui-masthead-inner", ".ui-navbar-inner", ".ui-breadcrumb", ".ui-main", ".ui-footer-inner"]) {',
+  '  for (const sel of ' + JSON.stringify(CHROME) + ') {',
   '    const el = document.querySelector(sel)',
   '    if (!el) continue',
   '    const r = el.getBoundingClientRect()',
@@ -296,6 +458,7 @@ const PROBE = [
 ].join('\n')
 
 async function main() {
+  if (!(await requireServer(APP + '/', 'Start the Vite dev server first: npm run dev in ./frontend.'))) return
   mkdirSync(OUT, { recursive: true })
   mkdirSync(PROFILE_DIR, { recursive: true })
 
@@ -324,25 +487,68 @@ async function main() {
     // Tamil at 1280. Keying on route alone made every 1280 load report a SHIFT
     // against a 1440 English page, which is true and useless.
     const baseline = {}
-    for (const view of VIEWS) {
+    // Whether any navigation in this run has drawn the app yet.
+    let everRendered = false
+    views: for (const view of VIEWS) {
       await cdp.send('Emulation.setDeviceMetricsOverride', { ...view, deviceScaleFactor: 1, mobile: false })
       for (const lang of LANGS) {
       for (const route of ROUTES) {
         const key = `${route}@${view.width}`
-        await cdp.send('Page.navigate', { url: APP + route })
+        // On the app's origin first, so the writes below land in its storage.
+        // Once mounted the app writes its own state and language back, so the
+        // writes wait for it to draw and settle: made sooner, they can be
+        // written over.
+        await navigate(cdp, APP + route)
+        if (!(await waitForRender(cdp, route))) everRendered = true
         await sleep(600)
         await cdp.evaluate([
           `localStorage.setItem('sih-language', '${lang}');`,
           `localStorage.removeItem('sih-dialect');`,
           `localStorage.setItem('sih-theme', 'light');`,
           `localStorage.setItem('sih-textsize', 'md');`,
-          `sessionStorage.setItem('sih-application', ${JSON.stringify(JSON.stringify({ v: 1, data: SEED }))});`,
+          `sessionStorage.setItem('sih-application', ${JSON.stringify(JSON.stringify({ v: SEED_VERSION, data: SEED }))});`,
           'true',
         ].join(''))
-        await cdp.send('Page.navigate', { url: APP + route })
-        await sleep(900)
+        cdp.pageErrors.length = 0
+        await navigate(cdp, APP + route)
+        const unfilled = await waitForRender(cdp, route)
+        // Why this load is no page of the app, or '' when it is one.
+        const notRendered = (await cdp.evaluate(LOAD_ERROR)) || unfilled
+        const rendered = !notRendered
+        let r
+        if (rendered) {
+          everRendered = true
+          await sleep(900)
+          const unseeded = RESULT_ROUTES.includes(route) && !(await cdp.evaluate(SEEDED))
 
-        const r = await cdp.evaluate(PROBE)
+          // Open every <details> first, in every language alike, so English
+          // stays a like-for-like baseline. A closed one paints nothing inside
+          // it, so the /privacy retention text, the /report detailed figures and
+          // the /finance EMI question were never measured in any of the eight
+          // languages.
+          const detailsOpened = await cdp.evaluate(`(() => {
+            const all = [...document.querySelectorAll('details')]
+            for (const d of all) d.open = true
+            return all.length
+          })()`)
+          await sleep(150)
+
+          r = await cdp.evaluate(PROBE)
+          r.detailsOpened = detailsOpened
+          if (unseeded) r.findings.unshift({ kind: 'UNSEEDED', note: 'no result in the app state: this is the empty state' })
+        } else {
+          // Not probed: a page with none of the app on it passes every check.
+          r = { containers: {}, findings: [{ kind: 'NOT-RENDERED', why: notRendered }] }
+        }
+        r.rendered = rendered
+        r.pageErrors = [...cdp.pageErrors]
+        if (r.pageErrors.length) {
+          // Thrown in the page and caught by nothing in it. On a page that drew,
+          // that is a finding; on one that never did, it is likely the reason.
+          const first = r.pageErrors[0].split('\n')[0].slice(0, 200)
+          if (rendered) r.findings.unshift({ kind: 'PAGE-ERROR', count: r.pageErrors.length, first })
+          else r.findings[0].error = first
+        }
 
         // Full-page PNG per language. The measurable checks catch geometry; only
         // a picture answers "does the translated page look distorted".
@@ -350,7 +556,11 @@ async function main() {
         writeFileSync(`${OUT}/${route.replace(/\//g, '_') || '_home'}-${view.width}-${lang}.png`, Buffer.from(shot.data, 'base64'))
 
         // English is the reference: its containers define where the page sits.
-        if (lang === 'en') baseline[key] = { containers: r.containers, ragged: r.ragged }
+        // A load that never rendered is neither the reference nor compared with
+        // it, and a language whose English page never rendered has none.
+        if (!rendered) { /* it measured nothing */ }
+        else if (lang === 'en') baseline[key] = { containers: r.containers, ragged: r.ragged }
+        else if (!baseline[key]) r.findings.push({ kind: 'NO-BASELINE', note: 'English never rendered at this route and width, so nothing was compared' })
         else {
           // Raggedness is only a finding where translation *made* it worse — a
           // grid whose cards already differ in English is the copy, not the layout.
@@ -415,6 +625,12 @@ async function main() {
           console.log(`${tag}  ok`)
         }
         report.push({ width: view.width, lang, route, ...r })
+        // Both navigations of the first load came up empty. Every other load
+        // would wait 30 s to say the same, so the run stops here, as a 2.
+        if (!everRendered) {
+          console.log('\nThe app has not rendered once in this run; stopping after the first load.')
+          break views
+        }
       }
       }
     }
@@ -422,18 +638,24 @@ async function main() {
     edge.kill()
   }
 
-  writeFileSync(`${OUT}/report.json`, JSON.stringify(report, null, 2))
-  const total = LANGS.length * ROUTES.length * VIEWS.length
-  console.log(`\n${total} page loads, ${pagesWithFindings} with findings.`)
-
   const byKind = {}
   for (const p of report) for (const f of p.findings) byKind[f.kind] = (byKind[f.kind] || 0) + 1
+  // A load that did not measure what it names is not a layout finding, so the
+  // run exits 2, not 1: a result page on its empty state, a page that never
+  // rendered, and a language with no English page to be compared with.
+  const INSTRUMENT = ['UNSEEDED', 'NOT-RENDERED', 'NO-BASELINE']
+  const exit = INSTRUMENT.some((kind) => byKind[kind]) ? 2 : pagesWithFindings ? 1 : 0
+  writeFileSync(`${OUT}/report.json`, JSON.stringify({ exit, report }, null, 2))
+  console.log(`\n${report.length} page loads, ${pagesWithFindings} with findings.`)
   console.log('Totals: ' + (Object.keys(byKind).length ? Object.entries(byKind).map(([k, v]) => `${k}=${v}`).join('  ') : 'none'))
   console.log(`report.json in ${OUT}`)
-  process.exit(pagesWithFindings ? 1 : 0)
+  if (byKind.UNSEEDED) console.log(`${byKind.UNSEEDED} result-page load(s) showed the empty state: the seed was not read. The run is incomplete.`)
+  if (byKind['NOT-RENDERED']) console.log(`${byKind['NOT-RENDERED']} load(s) never rendered, so nothing on them was measured. The run is incomplete.`)
+  if (byKind['NO-BASELINE']) console.log(`${byKind['NO-BASELINE']} load(s) had no English page to compare with, so SHIFT and RAGGED were not checked. The run is incomplete.`)
+  process.exit(exit)
 }
 
 main().catch((error) => {
   console.error(error)
-  process.exit(1)
+  crashExit()
 })

@@ -16,6 +16,7 @@ import FinancePage from './pages/FinancePage'
 import SchemesPage from './pages/SchemesPage'
 import AdvisoryPage from './pages/AdvisoryPage'
 import ReportPage from './pages/ReportPage'
+import PrivacyPage from './pages/PrivacyPage'
 import { APP_NAME } from './i18n/brand'
 import { useI18n } from './i18n/LanguageContext'
 import { LANGUAGES } from './i18n/languages'
@@ -408,11 +409,12 @@ function AppShell({ children }) {
   )
 }
 
-// The last crumb has to name the page the reader is on. Only two routes are
-// outside the journey and the results — /login and the catch-all — and both used
+// The last crumb has to name the page the reader is on. Three routes are outside
+// the journey and the results — /login, /privacy and the catch-all. /login used
 // to fall back to the product name, which reads as though the page itself were
-// called अर्थNiti and tells a lost reader nothing about where they landed.
-const CRUMB_FALLBACK = { '/login': 'common.login' }
+// called अर्थNiti and tells a lost reader nothing about where they landed; any
+// path not named here is the catch-all, whose crumb is its own title.
+const CRUMB_FALLBACK = { '/login': 'common.login', '/privacy': 'common.privacy' }
 
 function Breadcrumb({ pathname }) {
   const { t } = useI18n()
@@ -430,6 +432,11 @@ function Breadcrumb({ pathname }) {
 
 function GovFooter() {
   const { t } = useI18n()
+  const location = useLocation()
+  // /privacy builds its back link from `from`. Clicked on /privacy itself, the
+  // link keeps the state that page already has, so the back link still points
+  // at the page the reader came from rather than at /privacy.
+  const privacyState = location.pathname === '/privacy' ? location.state : { from: location.pathname }
 
   return (
     <>
@@ -487,6 +494,12 @@ function GovFooter() {
               to: formatReviewDate(SCHEMES_CHECKED_TO),
             })}
           </span>
+          {/* On every page, so the full privacy notice is one tap away wherever
+              the reader is, including the result pages that have no notice of
+              their own. */}
+          <Link to="/privacy" state={privacyState} className="font-bold text-[var(--color-primary-strong)] underline">
+            {t('common.privacy')}
+          </Link>
         </div>
       </div>
     </>
@@ -710,6 +723,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/business" element={<BusinessPage />} />
         <Route path="/location" element={<LocationPage />} />

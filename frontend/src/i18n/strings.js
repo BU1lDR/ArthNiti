@@ -3,7 +3,7 @@
 // SCOPE: the whole interface is now translated, in four files that merge here.
 //
 //   strings.js       this file — chrome, landing page, the four journey steps
-//   resultStrings.js labels and headings on the four result pages
+//   resultStrings.js the four result pages, /login, /privacy and the catch-all
 //   backendStrings.js the prose the Python services generate
 //   schemeStrings.js  the prose typed into schemes.json — 30 schemes' own words
 //
@@ -59,7 +59,7 @@ const en = {
   // The confirm dialog Start over opens. "No" is the safe answer and is
   // the one focused, so it is worded as what it keeps, not as a refusal.
   'common.startOverTitle': 'Clear all your answers?',
-  'common.startOverText': 'This removes everything you entered in this tab. You cannot get it back.',
+  'common.startOverText': 'This removes your answers and your result from this tab. You cannot get them back. It keeps your choice of language, dialect, text size and colours. It does not affect anything that was already sent.',
   'common.startOverYes': 'Yes, clear everything',
   'common.startOverNo': 'No, keep my answers',
   'common.print': 'Save / Print',
@@ -146,7 +146,7 @@ const en = {
   'man.r3': 'Practical steps to take next, in plain words.',
   'man.r4': 'One page you can print and carry to a bank or an office.',
   'man.needTitle': 'What you should have ready',
-  'man.needText': 'Rough numbers are fine. Think of what you spend in a month, what you expect to earn, and any loan you are repaying. Closing this tab usually removes your answers.',
+  'man.needText': 'Rough numbers are fine. Think of what you spend in a month, what you expect to earn, and any loan you are repaying. Some of your answers are sent to work out your result. This tab keeps a copy of them, and closing the tab usually removes it.',
   'man.tipTitle': 'If reading is hard',
   'man.tipText': 'Change the language above, make the text bigger with A+ at the top of the page, or switch to the dark look. Every screen has pictures and a back link.',
 
@@ -223,9 +223,12 @@ const en = {
   'finance.changedWhileChecking': 'Your answers changed while we were checking. Press {button} again.',
   'finance.submit': 'Check my business',
   'finance.checking': 'Checking your business…',
-  // Beside the button that sends the answers. "Usually" because a browser
-  // can bring a closed tab back together with what it had stored.
-  'finance.privacyNote': 'Your answers stay only in this browser tab, even if you refresh the page. Closing the tab usually removes them. If other people also use this phone or computer, press {button} at the top when you finish.',
+  // Beside the button that sends the answers. True to AppContext and FinancePage:
+  // the answers ARE sent to work out the result, and sessionStorage keeps a copy
+  // that survives a refresh and is usually gone once the tab closes (a browser
+  // can restore a closed tab together with what it had stored). Start over
+  // clears only this tab copy, never what was already sent.
+  'finance.privacyNote': 'This tab keeps a copy of your answers, even if you refresh the page. Closing the tab usually removes it. If other people also use this phone or computer, press {button} at the top when you finish.',
 
   'money.left': 'Money left each month',
   // Two genuinely different figures used to share the 'money.left' label, so the
@@ -251,7 +254,6 @@ const en = {
   'business.numbersTitle': 'Your business numbers',
   'business.numbersHint': 'Rough estimates are okay. You can change them later.',
   'business.moreDetails': 'More business details',
-  'business.employees': 'How many people work here?',
   'business.debt': 'Existing business debt',
   'cat.retail': 'Retail / Shop',
   'cat.food': 'Food / Food Processing',
@@ -303,8 +305,33 @@ const en = {
   'errf.investment': 'how much money you require',
   'errf.opExpenses': 'how much the business itself will cost each month',
   'errf.householdIncome': 'how much your household earns in a month',
-  'errf.employees': 'how many people work here',
   'errf.debt': 'your existing business debt',
+
+  // The privacy short notice, the /finance consent block and the zero income
+  // check. All of these except the three finance.zeroIncome keys and
+  // errf.consent are in NOTICE_KEYS (frontend/src/config/notice.js), which
+  // parity4 check 9 hashes: change their text and you must bump NOTICE_VERSION
+  // and record the new hash in tools/notice-version.json. Every sentence must
+  // stay true of the shipped code. {fiduciary} is an organisation name or
+  // notice.demoOperator, so it sits where either reads correctly.
+  'common.privacy': 'Privacy notice',
+  'notice.sent': 'When you press {button} on the last step, some of your answers are sent to {fiduciary} to work out your result: your kind of work, your money figures, your state and district, and whether your business is in a village or a city.',
+  'notice.local': 'Your name, your business name, your village or town, where you sell and who your customers are stay in this browser tab. They are never sent, and they are printed on your report.',
+  'notice.demo': 'This is only a demonstration. Use made-up figures, not your real ones.',
+  'notice.demoOperator': 'the team running this demonstration',
+  'notice.readFull': 'Read the full privacy notice',
+  'consent.title': 'Before we check your business',
+  'consent.agree': 'I have read the note above. I agree to send these answers to {fiduciary} to work out my result.',
+  'consent.required': 'Tick the box to agree before we check your business. Nothing is sent until you do.',
+  'consent.age': 'I am 18 or older, or my parent or guardian is with me and agrees.',
+  'consent.ageRequired': 'Tick the box about your age before we check your business.',
+  'finance.zeroIncomeNote': 'You typed 0. That means no one in your household earns anything at all, and it can change the advice a lot. If you meant to skip this question, delete what you typed and leave it blank.',
+  'finance.zeroIncomeConfirm': 'No one in my household earns anything right now.',
+  'finance.zeroIncomeRequired': 'Tick the box to confirm 0, or delete what you typed to skip this question.',
+  'errf.district': 'your district',
+  'errf.areaType': 'whether your business is in a village or city',
+  'errf.consent': 'your agreement to how your answers are used',
+  'form.localOnly': 'This is never sent. It stays in this tab, is printed on your report, and does not change your result.',
 }
 
 const hi = {
@@ -318,7 +345,7 @@ const hi = {
   'common.breadcrumb': 'आप यहाँ हैं',
   'common.startOver': 'फिर से शुरू करें',
   'common.startOverTitle': 'अपने सारे जवाब मिटा दें?',
-  'common.startOverText': 'इससे इस टैब में भरी गई सारी जानकारी मिट जाएगी। इसे वापस नहीं लाया जा सकता।',
+  'common.startOverText': 'इससे इस टैब से आपके जवाब और आपका परिणाम मिट जाएँगे। इन्हें वापस नहीं लाया जा सकता। आपकी चुनी हुई भाषा, बोली, अक्षर का आकार और रंग वैसे ही रहेंगे। जो पहले ही भेजा जा चुका है, उस पर इसका कोई असर नहीं होता।',
   'common.startOverYes': 'हाँ, सब मिटा दें',
   'common.startOverNo': 'नहीं, मेरे जवाब रखें',
   'common.print': 'सेव करें / प्रिंट करें',
@@ -395,7 +422,7 @@ const hi = {
   'man.r3': 'आगे क्या करना है, आसान शब्दों में।',
   'man.r4': 'एक पन्ना जो छापकर आप बैंक या दफ़्तर ले जा सकते हैं।',
   'man.needTitle': 'क्या तैयार रखें',
-  'man.needText': 'अंदाज़े के आँकड़े भी ठीक हैं। सोचिए महीने में कितना खर्च होता है, कितनी कमाई की उम्मीद है, और कोई किस्त चल रही है। यह टैब बंद करने पर आम तौर पर आपके जवाब मिट जाते हैं।',
+  'man.needText': 'अंदाज़े के आँकड़े भी ठीक हैं। सोचिए महीने में कितना खर्च होता है, कितनी कमाई की उम्मीद है, और कोई किस्त चल रही है। आपका परिणाम निकालने के लिए आपके कुछ जवाब भेजे जाते हैं। यह टैब उनकी एक कॉपी रखता है, और टैब बंद करने पर वह आम तौर पर मिट जाती है।',
   'man.tipTitle': 'पढ़ने में दिक्कत हो तो',
   'man.tipText': 'ऊपर भाषा बदल लें, पन्ने के ऊपर A+ से अक्षर बड़े करें, या गहरे रंग में बदल लें। हर पन्ने पर तस्वीरें और पीछे जाने की कड़ी है।',
 
@@ -472,7 +499,7 @@ const hi = {
   'finance.changedWhileChecking': 'हमारे जाँचते समय आपके जवाब बदल गए। फिर से {button} दबाएँ।',
   'finance.submit': 'मेरा काम जाँचें',
   'finance.checking': 'आपका काम जाँच रहे हैं…',
-  'finance.privacyNote': 'आपके जवाब सिर्फ़ इसी ब्राउज़र टैब में रहते हैं, पेज रिफ़्रेश करने पर भी। टैब बंद करने पर वे आम तौर पर मिट जाते हैं। अगर इस फ़ोन या कंप्यूटर को दूसरे लोग भी इस्तेमाल करते हैं, तो काम पूरा होने पर ऊपर {button} बटन दबाएँ।',
+  'finance.privacyNote': 'यह टैब आपके जवाबों की एक कॉपी रखता है, पेज रिफ़्रेश करने पर भी। टैब बंद करने पर वह आम तौर पर मिट जाती है। अगर इस फ़ोन या कंप्यूटर को दूसरे लोग भी इस्तेमाल करते हैं, तो काम पूरा होने पर ऊपर {button} बटन दबाएँ।',
 
   'money.left': 'हर महीने बचने वाला पैसा',
   'money.leftAfterEmi': 'क़र्ज़ की किस्त चुकाने के बाद बचने वाला पैसा',
@@ -490,7 +517,6 @@ const hi = {
   'business.numbersTitle': 'आपके काम के आँकड़े',
   'business.numbersHint': 'मोटा अंदाज़ा भी ठीक है। बाद में बदल सकते हैं।',
   'business.moreDetails': 'काम की और जानकारी',
-  'business.employees': 'यहाँ कितने लोग काम करते हैं?',
   'business.debt': 'पहले से चल रहा क़र्ज़',
   'cat.retail': 'दुकान / खुदरा',
   'cat.food': 'खाना / खाद्य प्रसंस्करण',
@@ -515,20 +541,37 @@ const hi = {
   'err.timeout': 'इसमें उम्मीद से ज़्यादा समय लग रहा है। कृपया दोबारा कोशिश करें।',
   'err.offline': 'हम अपनी सेवा से जुड़ नहीं पाए। कृपया अपना इंटरनेट कनेक्शन जाँच लें और दोबारा कोशिश करें।',
   'err.badResponse': 'जवाब तो आया, लेकिन हम उसे पढ़ नहीं पाए। कृपया दोबारा कोशिश करें।',
-  'err.checkFields': 'कृपया {fields} को जाँच लें। पीछे जाकर जो कुछ छूट गया है उसे भर दें, फिर दोबारा कोशिश करें।',
+  'err.checkFields': 'कृपया ये जानकारी जाँच लें: {fields}। पीछे जाकर जो कुछ छूट गया है उसे भर दें, फिर दोबारा कोशिश करें।',
   'err.generic': 'हम अभी आपका काम जाँच नहीं पाए। कृपया दोबारा कोशिश करें।',
 
-  'errf.category': 'अपने काम की किस्म',
-  'errf.state': 'अपने राज्य',
-  'errf.capital': 'अपने पास पहले से मौजूद पैसे',
-  'errf.expenses': 'अपने हर महीने के खर्च',
+  'errf.category': 'आपके काम की किस्म',
+  'errf.state': 'आपका राज्य',
+  'errf.capital': 'आपके पास पहले से मौजूद पैसे',
+  'errf.expenses': 'आपके हर महीने के खर्च',
   'errf.revenue': 'हर महीने की उम्मीद की कमाई',
   'errf.emi': 'हर महीने की EMI या क़र्ज़ की किस्त',
   'errf.investment': 'शुरू करने के लिए ज़रूरी पैसे',
   'errf.opExpenses': 'हर महीने काम पर होने वाले खर्च',
-  'errf.householdIncome': 'अपने परिवार की महीने की कमाई',
-  'errf.employees': 'यहाँ काम करने वाले लोगों की गिनती',
-  'errf.debt': 'अपने पहले से चल रहे क़र्ज़',
+  'errf.householdIncome': 'आपके परिवार की महीने की कमाई',
+  'errf.debt': 'आपके पहले से चल रहे क़र्ज़',
+  'common.privacy': 'गोपनीयता सूचना',
+  'notice.sent': 'आख़िरी चरण पर {button} बटन दबाने पर, आपका परिणाम निकालने के लिए आपके कुछ जवाब {fiduciary} को भेजे जाते हैं: आपके काम की किस्म, आपके पैसों के आँकड़े, आपका राज्य और ज़िला, और यह कि आपका काम गाँव में है या शहर में।',
+  'notice.local': 'आपका नाम, आपके काम का नाम, आपका गाँव या कस्बा, आप कहाँ बेचते हैं और आपके ग्राहक कौन हैं, ये सब इसी ब्राउज़र टैब में रहते हैं। ये कभी नहीं भेजे जाते, और आपकी रिपोर्ट में छपते हैं।',
+  'notice.demo': 'यह सिर्फ़ दिखाने के लिए बना नमूना है। अपने असली आँकड़े न डालें, मन से बनाए हुए आँकड़े डालें।',
+  'notice.demoOperator': 'इस नमूने को चलाने वाली टीम',
+  'notice.readFull': 'पूरी गोपनीयता सूचना पढ़ें',
+  'consent.title': 'आपका काम जाँचने से पहले',
+  'consent.agree': 'मैंने ऊपर लिखी बात पढ़ ली है। मैं सहमत हूँ कि मेरा परिणाम निकालने के लिए ये जवाब {fiduciary} को भेजे जाएँ।',
+  'consent.required': 'आपका काम जाँचने से पहले सहमति वाले बॉक्स पर निशान लगाएँ। जब तक आप ऐसा नहीं करते, कुछ भी नहीं भेजा जाता।',
+  'consent.age': 'मेरी उम्र 18 साल या उससे ज़्यादा है, या मेरे माता-पिता या अभिभावक मेरे साथ हैं और सहमत हैं।',
+  'consent.ageRequired': 'आपका काम जाँचने से पहले उम्र वाले बॉक्स पर निशान लगाएँ।',
+  'finance.zeroIncomeNote': 'आपने 0 लिखा है। इसका मतलब है कि आपके परिवार में कोई भी कुछ नहीं कमाता, और इससे सलाह बहुत बदल सकती है। अगर आप यह सवाल छोड़ना चाहते थे, तो जो लिखा है उसे मिटाकर खाली छोड़ दें।',
+  'finance.zeroIncomeConfirm': 'अभी मेरे परिवार में कोई भी कुछ नहीं कमाता।',
+  'finance.zeroIncomeRequired': '0 पक्का करने के लिए बॉक्स पर निशान लगाएँ, या यह सवाल छोड़ने के लिए जो लिखा है उसे मिटा दें।',
+  'errf.district': 'आपका ज़िला',
+  'errf.areaType': 'आपके काम की जगह (गाँव या शहर)',
+  'errf.consent': 'आपके जवाबों के इस्तेमाल के लिए आपकी सहमति',
+  'form.localOnly': 'यह कभी नहीं भेजा जाता। यह इसी टैब में रहता है, आपकी रिपोर्ट में छपता है, और आपके परिणाम को नहीं बदलता।',
 }
 
 const ta = {
@@ -542,7 +585,7 @@ const ta = {
   'common.breadcrumb': 'நீங்கள் இங்கே இருக்கிறீர்கள்',
   'common.startOver': 'மீண்டும் தொடங்கு',
   'common.startOverTitle': 'உங்கள் பதில்கள் அனைத்தையும் அழிக்கவா?',
-  'common.startOverText': 'இந்தத் தாவலில் நீங்கள் உள்ளிட்ட அனைத்தும் அழிக்கப்படும். அவற்றைத் திரும்பப் பெற முடியாது.',
+  'common.startOverText': 'இது இந்தத் தாவலில் உள்ள உங்கள் பதில்களையும் முடிவையும் அழிக்கும். அவற்றைத் திரும்பப் பெற முடியாது. நீங்கள் தேர்ந்தெடுத்த மொழி, பேச்சு வழக்கு, எழுத்து அளவு, நிறங்கள் அப்படியே இருக்கும். ஏற்கனவே அனுப்பப்பட்டவற்றை இது பாதிக்காது.',
   'common.startOverYes': 'ஆம், அனைத்தையும் அழி',
   'common.startOverNo': 'இல்லை, என் பதில்களை வைத்திரு',
   'common.print': 'சேமி / அச்சிடு',
@@ -619,7 +662,7 @@ const ta = {
   'man.r3': 'அடுத்து என்ன செய்ய வேண்டும் என்பது எளிய சொற்களில்.',
   'man.r4': 'வங்கிக்கோ அலுவலகத்திற்கோ எடுத்துச் செல்ல அச்சிடக்கூடிய ஒரு பக்கம்.',
   'man.needTitle': 'என்ன தயாராக வைத்திருக்க வேண்டும்',
-  'man.needText': 'தோராயமான எண்கள் போதும். மாதம் எவ்வளவு செலவாகிறது, எவ்வளவு வரும் என எதிர்பார்க்கிறீர்கள், ஏதேனும் தவணை கட்டுகிறீர்களா என்று நினைத்துப் பாருங்கள். இந்தத் தாவலை மூடினால் பொதுவாக உங்கள் பதில்கள் அழியும்.',
+  'man.needText': 'தோராயமான எண்கள் போதும். மாதம் எவ்வளவு செலவாகிறது, எவ்வளவு வரும் என எதிர்பார்க்கிறீர்கள், ஏதேனும் தவணை கட்டுகிறீர்களா என்று நினைத்துப் பாருங்கள். உங்கள் முடிவைக் கணக்கிட உங்கள் சில பதில்கள் அனுப்பப்படும். இந்தத் தாவல் அவற்றின் ஒரு நகலை வைத்திருக்கும், தாவலை மூடினால் பொதுவாக அது அழியும்.',
   'man.tipTitle': 'படிக்கக் கடினமாக இருந்தால்',
   'man.tipText': 'மேலே மொழியை மாற்றுங்கள், பக்கத்தின் மேலுள்ள A+ ஆல் எழுத்தைப் பெரிதாக்குங்கள், அல்லது இருண்ட தோற்றத்திற்கு மாறுங்கள். எல்லாத் திரையிலும் படங்களும் பின்செல்லும் இணைப்பும் உள்ளன.',
 
@@ -696,7 +739,7 @@ const ta = {
   'finance.changedWhileChecking': 'நாங்கள் சரிபார்க்கும்போது உங்கள் பதில்கள் மாறிவிட்டன. மீண்டும் {button} அழுத்துங்கள்.',
   'finance.submit': 'என் தொழிலைச் சரிபார்',
   'finance.checking': 'உங்கள் தொழிலைச் சரிபார்க்கிறோம்…',
-  'finance.privacyNote': 'உங்கள் பதில்கள் இந்த உலாவித் தாவலில் மட்டுமே இருக்கும், பக்கத்தைப் புதுப்பித்தாலும் இருக்கும். தாவலை மூடினால் பொதுவாக அவை அழியும். இந்த ஃபோன் அல்லது கணினியை மற்றவர்களும் பயன்படுத்தினால், முடித்ததும் மேலே உள்ள {button} என்ற பொத்தானை அழுத்தவும்.',
+  'finance.privacyNote': 'இந்தத் தாவல் உங்கள் பதில்களின் ஒரு நகலை வைத்திருக்கும், பக்கத்தைப் புதுப்பித்தாலும் இருக்கும். தாவலை மூடினால் பொதுவாக அது அழியும். இந்த ஃபோன் அல்லது கணினியை மற்றவர்களும் பயன்படுத்தினால், முடித்ததும் மேலே உள்ள {button} என்ற பொத்தானை அழுத்தவும்.',
 
   // மிச்சம் is what is left over; மிதம் would read as "moderate". Must match
   // 'f.profit' in resultStrings.js — the two sit next to each other on /analysis,
@@ -717,7 +760,6 @@ const ta = {
   'business.numbersTitle': 'உங்கள் தொழில் எண்கள்',
   'business.numbersHint': 'தோராயமான கணக்கும் சரி. பிறகு மாற்றலாம்.',
   'business.moreDetails': 'மேலும் தொழில் விவரங்கள்',
-  'business.employees': 'இங்கே எத்தனை பேர் வேலை செய்கிறார்கள்?',
   'business.debt': 'ஏற்கனவே உள்ள கடன்',
   'cat.retail': 'கடை / சில்லறை',
   'cat.food': 'உணவு / உணவுப் பதப்படுத்தல்',
@@ -754,8 +796,25 @@ const ta = {
   'errf.investment': 'உங்களுக்குத் தேவையான பணம்',
   'errf.opExpenses': 'மாதம் தொழிலுக்கே ஆகும் செலவு',
   'errf.householdIncome': 'உங்கள் குடும்பம் மாதம் சம்பாதிக்கும் பணம்',
-  'errf.employees': 'இங்கே வேலை செய்பவர்களின் எண்ணிக்கை',
   'errf.debt': 'உங்களுக்கு ஏற்கனவே உள்ள கடன்',
+  'common.privacy': 'தனியுரிமை அறிவிப்பு',
+  'notice.sent': 'கடைசிப் படியில் {button} என்ற பொத்தானை அழுத்தும்போது, உங்கள் முடிவைக் கணக்கிட உங்கள் சில பதில்களை {fiduciary} பெறும்: உங்கள் வேலையின் வகை, உங்கள் பணக் கணக்குகள், உங்கள் மாநிலம், மாவட்டம், உங்கள் தொழில் கிராமத்திலா நகரத்திலா என்பது.',
+  'notice.local': 'உங்கள் பெயர், உங்கள் தொழிலின் பெயர், உங்கள் கிராமம் அல்லது நகரம், நீங்கள் எங்கே விற்கிறீர்கள், உங்கள் வாடிக்கையாளர்கள் யார் என்பவை இந்த உலாவித் தாவலிலேயே இருக்கும். அவை ஒருபோதும் அனுப்பப்படுவதில்லை, உங்கள் அறிக்கையில் அச்சிடப்படும்.',
+  'notice.demo': 'இது ஒரு மாதிரி மட்டுமே. உங்கள் உண்மையான எண்களைப் போடாதீர்கள், கற்பனையான எண்களைப் போடுங்கள்.',
+  'notice.demoOperator': 'இந்த மாதிரியை நடத்தும் குழு',
+  'notice.readFull': 'முழு தனியுரிமை அறிவிப்பைப் படியுங்கள்',
+  'consent.title': 'உங்கள் தொழிலைச் சரிபார்க்கும் முன்',
+  'consent.agree': 'மேலே உள்ளதைப் படித்துவிட்டேன். என் முடிவைக் கணக்கிட இந்தப் பதில்களை {fiduciary} பெறுவதற்கு நான் ஒப்புக்கொள்கிறேன்.',
+  'consent.required': 'உங்கள் தொழிலைச் சரிபார்க்கும் முன், ஒப்புதல் பெட்டியில் குறியிடுங்கள். நீங்கள் குறியிடும் வரை எதுவும் அனுப்பப்படாது.',
+  'consent.age': 'எனக்கு 18 வயது அல்லது அதற்கு மேல் ஆகிறது, அல்லது என் பெற்றோர் அல்லது பாதுகாவலர் என்னுடன் இருந்து ஒப்புக்கொள்கிறார்.',
+  'consent.ageRequired': 'உங்கள் தொழிலைச் சரிபார்க்கும் முன், வயது பற்றிய பெட்டியில் குறியிடுங்கள்.',
+  'finance.zeroIncomeNote': 'நீங்கள் 0 என்று போட்டிருக்கிறீர்கள். அதாவது உங்கள் குடும்பத்தில் யாரும் எதுவும் சம்பாதிப்பதில்லை, இது ஆலோசனையைப் பெரிதும் மாற்றலாம். இந்தக் கேள்வியை விட்டுவிட நினைத்திருந்தால், போட்டதை அழித்துக் காலியாக விடுங்கள்.',
+  'finance.zeroIncomeConfirm': 'இப்போது என் குடும்பத்தில் யாரும் எதுவும் சம்பாதிப்பதில்லை.',
+  'finance.zeroIncomeRequired': '0 என்பதை உறுதிசெய்யப் பெட்டியில் குறியிடுங்கள், அல்லது இந்தக் கேள்வியை விட்டுவிடப் போட்டதை அழியுங்கள்.',
+  'errf.district': 'உங்கள் மாவட்டம்',
+  'errf.areaType': 'உங்கள் தொழில் கிராமத்திலா நகரத்திலா என்பது',
+  'errf.consent': 'உங்கள் பதில்களைப் பயன்படுத்துவதற்கான உங்கள் ஒப்புதல்',
+  'form.localOnly': 'இது ஒருபோதும் அனுப்பப்படுவதில்லை. இது இந்தத் தாவலிலேயே இருக்கும், உங்கள் அறிக்கையில் அச்சிடப்படும், உங்கள் முடிவை மாற்றாது.',
 }
 
 const te = {
@@ -769,7 +828,7 @@ const te = {
   'common.breadcrumb': 'మీరు ఇక్కడ ఉన్నారు',
   'common.startOver': 'మళ్లీ మొదలుపెట్టు',
   'common.startOverTitle': 'మీ జవాబులన్నీ తొలగించాలా?',
-  'common.startOverText': 'ఈ ట్యాబ్‌లో మీరు నమోదు చేసినదంతా తొలగిపోతుంది. దాన్ని తిరిగి పొందలేరు.',
+  'common.startOverText': 'ఇది ఈ ట్యాబ్ నుంచి మీ జవాబులను, మీ ఫలితాన్ని తొలగిస్తుంది. వాటిని తిరిగి పొందలేరు. మీరు ఎంచుకున్న భాష, యాస, అక్షర పరిమాణం, రంగులు అలాగే ఉంటాయి. ఇప్పటికే పంపినవాటిపై దీని ప్రభావం ఉండదు.',
   'common.startOverYes': 'అవును, అన్నీ తొలగించు',
   'common.startOverNo': 'వద్దు, నా జవాబులు ఉంచు',
   'common.print': 'సేవ్ / ప్రింట్',
@@ -846,7 +905,7 @@ const te = {
   'man.r3': 'తర్వాత ఏం చేయాలో సులభమైన మాటల్లో.',
   'man.r4': 'బ్యాంకుకో కార్యాలయానికో తీసుకెళ్లేందుకు ముద్రించగల ఒక పేజీ.',
   'man.needTitle': 'ఏమి సిద్ధంగా ఉంచుకోవాలి',
-  'man.needText': 'సుమారు లెక్కలు చాలు. నెలకు ఎంత ఖర్చవుతుంది, ఎంత రావచ్చు, ఏదైనా వాయిదా కడుతున్నారా అని ఆలోచించండి. ఈ ట్యాబ్ మూసివేస్తే సాధారణంగా మీ జవాబులు తొలగిపోతాయి.',
+  'man.needText': 'సుమారు లెక్కలు చాలు. నెలకు ఎంత ఖర్చవుతుంది, ఎంత రావచ్చు, ఏదైనా వాయిదా కడుతున్నారా అని ఆలోచించండి. మీ ఫలితం లెక్కించడానికి మీ జవాబుల్లో కొన్ని పంపబడతాయి. ఈ ట్యాబ్ వాటి ప్రతిని ఉంచుకుంటుంది, ట్యాబ్ మూసివేస్తే సాధారణంగా అది తొలగిపోతుంది.',
   'man.tipTitle': 'చదవడం కష్టమైతే',
   'man.tipText': 'పైన భాష మార్చుకోండి, పేజీ పైన ఉన్న A+ తో అక్షరాలు పెద్దవి చేసుకోండి, లేదా ముదురు రూపానికి మారండి. ప్రతి తెరలో బొమ్మలు, వెనక్కి వెళ్లే లింక్ ఉన్నాయి.',
 
@@ -923,7 +982,7 @@ const te = {
   'finance.changedWhileChecking': 'మేము పరిశీలిస్తున్నప్పుడు మీ సమాధానాలు మారాయి. మళ్లీ {button} నొక్కండి.',
   'finance.submit': 'నా వ్యాపారం పరిశీలించు',
   'finance.checking': 'మీ వ్యాపారాన్ని పరిశీలిస్తున్నాం…',
-  'finance.privacyNote': 'మీ జవాబులు ఈ బ్రౌజర్ ట్యాబ్‌లో మాత్రమే ఉంటాయి, పేజీని రిఫ్రెష్ చేసినా ఉంటాయి. ట్యాబ్ మూసివేస్తే సాధారణంగా అవి తొలగిపోతాయి. ఈ ఫోన్ లేదా కంప్యూటర్‌ను ఇతరులు కూడా వాడితే, పూర్తయ్యాక పైన ఉన్న {button} అనే బటన్‌ను నొక్కండి.',
+  'finance.privacyNote': 'ఈ ట్యాబ్ మీ జవాబుల ప్రతిని ఉంచుకుంటుంది, పేజీని రిఫ్రెష్ చేసినా ఉంటుంది. ట్యాబ్ మూసివేస్తే సాధారణంగా అది తొలగిపోతుంది. ఈ ఫోన్ లేదా కంప్యూటర్‌ను ఇతరులు కూడా వాడితే, పూర్తయ్యాక పైన ఉన్న {button} అనే బటన్‌ను నొక్కండి.',
 
   'money.left': 'నెలకు మిగిలే డబ్బు',
   'money.leftAfterEmi': 'అప్పు వాయిదా కట్టిన తర్వాత మిగిలే డబ్బు',
@@ -941,7 +1000,6 @@ const te = {
   'business.numbersTitle': 'మీ వ్యాపార సంఖ్యలు',
   'business.numbersHint': 'సుమారు అంచనా చాలు. తర్వాత మార్చవచ్చు.',
   'business.moreDetails': 'మరిన్ని వ్యాపార వివరాలు',
-  'business.employees': 'ఇక్కడ ఎంత మంది పని చేస్తారు?',
   'business.debt': 'ఇప్పటికే ఉన్న అప్పు',
   'cat.retail': 'దుకాణం / రిటైల్',
   'cat.food': 'ఆహారం / ఆహార శుద్ధి',
@@ -978,8 +1036,25 @@ const te = {
   'errf.investment': 'మీకు అవసరమైన డబ్బు',
   'errf.opExpenses': 'నెలకు వ్యాపారానికే అయ్యే ఖర్చు',
   'errf.householdIncome': 'మీ కుటుంబం నెలకు సంపాదించే డబ్బు',
-  'errf.employees': 'ఇక్కడ పని చేసేవారి సంఖ్య',
   'errf.debt': 'మీకు ఇప్పటికే ఉన్న అప్పు',
+  'common.privacy': 'గోప్యతా నోటీసు',
+  'notice.sent': 'చివరి దశలో {button} అనే బటన్‌ను నొక్కినప్పుడు, మీ ఫలితం లెక్కించడానికి మీ జవాబుల్లో కొన్నింటిని {fiduciary} అందుకుంటుంది: మీ పని రకం, మీ డబ్బు లెక్కలు, మీ రాష్ట్రం, జిల్లా, మీ వ్యాపారం గ్రామంలోనా నగరంలోనా అనేది.',
+  'notice.local': 'మీ పేరు, మీ వ్యాపారం పేరు, మీ గ్రామం లేదా పట్టణం, మీరు ఎక్కడ అమ్ముతారు, మీ కస్టమర్లు ఎవరు అనేవి ఈ బ్రౌజర్ ట్యాబ్‌లోనే ఉంటాయి. వాటిని ఎప్పుడూ పంపరు, అవి మీ నివేదికలో ముద్రించబడతాయి.',
+  'notice.demo': 'ఇది ఒక నమూనా మాత్రమే. మీ నిజమైన లెక్కలు వేయకండి, కల్పిత లెక్కలు వేయండి.',
+  'notice.demoOperator': 'ఈ నమూనాను నడుపుతున్న బృందం',
+  'notice.readFull': 'పూర్తి గోప్యతా నోటీసు చదవండి',
+  'consent.title': 'మీ వ్యాపారాన్ని పరిశీలించే ముందు',
+  'consent.agree': 'పైన ఉన్నది నేను చదివాను. నా ఫలితం లెక్కించడానికి ఈ జవాబులను {fiduciary} అందుకోవడానికి నేను అంగీకరిస్తున్నాను.',
+  'consent.required': 'మీ వ్యాపారాన్ని పరిశీలించే ముందు, అంగీకార పెట్టెలో గుర్తు పెట్టండి. మీరు గుర్తు పెట్టే వరకు ఏదీ పంపబడదు.',
+  'consent.age': 'నా వయసు 18 ఏళ్లు లేదా అంతకంటే ఎక్కువ, లేదా నా తల్లిదండ్రులు లేదా సంరక్షకులు నాతో ఉండి అంగీకరిస్తున్నారు.',
+  'consent.ageRequired': 'మీ వ్యాపారాన్ని పరిశీలించే ముందు, వయసు గురించిన పెట్టెలో గుర్తు పెట్టండి.',
+  'finance.zeroIncomeNote': 'మీరు 0 అని రాశారు. అంటే మీ కుటుంబంలో ఎవరూ ఏమీ సంపాదించడం లేదు, ఇది సలహాను చాలా మార్చవచ్చు. ఈ ప్రశ్నను వదిలేయాలనుకుంటే, రాసినదాన్ని తుడిచి ఖాళీగా వదలండి.',
+  'finance.zeroIncomeConfirm': 'ప్రస్తుతం మా కుటుంబంలో ఎవరూ ఏమీ సంపాదించడం లేదు.',
+  'finance.zeroIncomeRequired': '0 అని నిర్ధారించడానికి పెట్టెలో గుర్తు పెట్టండి, లేదా ఈ ప్రశ్నను వదిలేయడానికి రాసినదాన్ని తుడిచేయండి.',
+  'errf.district': 'మీ జిల్లా',
+  'errf.areaType': 'మీ వ్యాపారం గ్రామంలోనా నగరంలోనా అనేది',
+  'errf.consent': 'మీ జవాబులను వాడుకోవడానికి మీ అంగీకారం',
+  'form.localOnly': 'ఇది ఎప్పుడూ పంపబడదు. ఇది ఈ ట్యాబ్‌లోనే ఉంటుంది, మీ నివేదికలో ముద్రించబడుతుంది, మీ ఫలితాన్ని మార్చదు.',
 }
 
 const ml = {
@@ -993,7 +1068,7 @@ const ml = {
   'common.breadcrumb': 'നിങ്ങൾ ഇവിടെയാണ്',
   'common.startOver': 'വീണ്ടും തുടങ്ങുക',
   'common.startOverTitle': 'നിങ്ങളുടെ എല്ലാ ഉത്തരങ്ങളും മായ്ക്കണോ?',
-  'common.startOverText': 'ഈ ടാബിൽ നിങ്ങൾ നൽകിയതെല്ലാം മായും. അത് തിരികെ കിട്ടില്ല.',
+  'common.startOverText': 'ഇത് ഈ ടാബിൽ നിന്ന് നിങ്ങളുടെ ഉത്തരങ്ങളും ഫലവും മായ്ക്കും. അവ തിരികെ കിട്ടില്ല. നിങ്ങൾ തിരഞ്ഞെടുത്ത ഭാഷ, നാട്ടുഭാഷ, അക്ഷര വലുപ്പം, നിറങ്ങൾ എന്നിവ മാറില്ല. ഇതിനകം അയച്ചവയെ ഇത് ബാധിക്കില്ല.',
   'common.startOverYes': 'അതെ, എല്ലാം മായ്ക്കുക',
   'common.startOverNo': 'വേണ്ട, എന്റെ ഉത്തരങ്ങൾ സൂക്ഷിക്കുക',
   'common.print': 'സേവ് / പ്രിന്റ്',
@@ -1070,7 +1145,7 @@ const ml = {
   'man.r3': 'അടുത്തതായി എന്ത് ചെയ്യണം എന്ന് ലളിതമായ വാക്കുകളിൽ.',
   'man.r4': 'ബാങ്കിലോ ഓഫീസിലോ കൊണ്ടുപോകാൻ പ്രിന്റ് ചെയ്യാവുന്ന ഒരു പേജ്.',
   'man.needTitle': 'എന്ത് തയ്യാറാക്കി വെക്കണം',
-  'man.needText': 'ഏകദേശ കണക്കുകൾ മതി. മാസം എത്ര ചെലവാകുന്നു, എത്ര കിട്ടുമെന്ന് പ്രതീക്ഷിക്കുന്നു, തവണ അടയ്ക്കുന്നുണ്ടോ എന്ന് ആലോചിക്കുക. ഈ ടാബ് അടച്ചാൽ സാധാരണയായി നിങ്ങളുടെ ഉത്തരങ്ങൾ മായും.',
+  'man.needText': 'ഏകദേശ കണക്കുകൾ മതി. മാസം എത്ര ചെലവാകുന്നു, എത്ര കിട്ടുമെന്ന് പ്രതീക്ഷിക്കുന്നു, തവണ അടയ്ക്കുന്നുണ്ടോ എന്ന് ആലോചിക്കുക. നിങ്ങളുടെ ഫലം കണക്കാക്കാൻ നിങ്ങളുടെ ചില ഉത്തരങ്ങൾ അയയ്ക്കും. ഈ ടാബ് അവയുടെ ഒരു പകർപ്പ് സൂക്ഷിക്കും, ടാബ് അടച്ചാൽ സാധാരണയായി അത് മായും.',
   'man.tipTitle': 'വായിക്കാൻ പ്രയാസമാണെങ്കിൽ',
   'man.tipText': 'മുകളിൽ ഭാഷ മാറ്റുക, പേജിന്റെ മുകളിലുള്ള A+ ഉപയോഗിച്ച് അക്ഷരം വലുതാക്കുക, അല്ലെങ്കിൽ ഇരുണ്ട രൂപത്തിലേക്ക് മാറുക. എല്ലാ സ്ക്രീനിലും ചിത്രങ്ങളും തിരികെ പോകാനുള്ള ലിങ്കും ഉണ്ട്.',
 
@@ -1147,7 +1222,7 @@ const ml = {
   'finance.changedWhileChecking': 'ഞങ്ങൾ പരിശോധിക്കുന്നതിനിടെ നിങ്ങളുടെ ഉത്തരങ്ങൾ മാറി. വീണ്ടും {button} അമർത്തുക.',
   'finance.submit': 'എന്റെ സംരംഭം പരിശോധിക്കുക',
   'finance.checking': 'നിങ്ങളുടെ സംരംഭം പരിശോധിക്കുന്നു…',
-  'finance.privacyNote': 'നിങ്ങളുടെ ഉത്തരങ്ങൾ ഈ ബ്രൗസർ ടാബിൽ മാത്രമേ ഉണ്ടാകൂ, പേജ് പുതുക്കിയാലും ഉണ്ടാകും. ടാബ് അടച്ചാൽ സാധാരണയായി അവ മായും. ഈ ഫോണോ കമ്പ്യൂട്ടറോ മറ്റുള്ളവരും ഉപയോഗിക്കുന്നുണ്ടെങ്കിൽ, പൂർത്തിയായ ശേഷം മുകളിലുള്ള {button} എന്ന ബട്ടൺ അമർത്തുക.',
+  'finance.privacyNote': 'ഈ ടാബ് നിങ്ങളുടെ ഉത്തരങ്ങളുടെ ഒരു പകർപ്പ് സൂക്ഷിക്കും, പേജ് പുതുക്കിയാലും ഉണ്ടാകും. ടാബ് അടച്ചാൽ സാധാരണയായി അത് മായും. ഈ ഫോണോ കമ്പ്യൂട്ടറോ മറ്റുള്ളവരും ഉപയോഗിക്കുന്നുണ്ടെങ്കിൽ, പൂർത്തിയായ ശേഷം മുകളിലുള്ള {button} എന്ന ബട്ടൺ അമർത്തുക.',
 
   'money.left': 'മാസം ബാക്കിയാകുന്ന പണം',
   'money.leftAfterEmi': 'വായ്പ അടവ് കഴിഞ്ഞ് ബാക്കിയാകുന്ന പണം',
@@ -1165,7 +1240,6 @@ const ml = {
   'business.numbersTitle': 'നിങ്ങളുടെ സംരംഭ കണക്കുകൾ',
   'business.numbersHint': 'ഏകദേശ കണക്ക് മതി. പിന്നീട് മാറ്റാം.',
   'business.moreDetails': 'കൂടുതൽ സംരംഭ വിവരങ്ങൾ',
-  'business.employees': 'ഇവിടെ എത്ര പേർ ജോലി ചെയ്യുന്നു?',
   'business.debt': 'നിലവിലുള്ള കടം',
   'cat.retail': 'കട / ചില്ലറ',
   'cat.food': 'ഭക്ഷണം / ഭക്ഷ്യ സംസ്കരണം',
@@ -1202,8 +1276,25 @@ const ml = {
   'errf.investment': 'നിങ്ങൾക്ക് വേണ്ട പണം',
   'errf.opExpenses': 'മാസം സംരംഭത്തിനു തന്നെ വരുന്ന ചെലവ്',
   'errf.householdIncome': 'നിങ്ങളുടെ കുടുംബം മാസം സമ്പാദിക്കുന്ന തുക',
-  'errf.employees': 'ഇവിടെ ജോലി ചെയ്യുന്നവരുടെ എണ്ണം',
   'errf.debt': 'നിങ്ങളുടെ നിലവിലുള്ള കടം',
+  'common.privacy': 'സ്വകാര്യതാ അറിയിപ്പ്',
+  'notice.sent': 'അവസാന ഘട്ടത്തിൽ {button} എന്ന ബട്ടൺ അമർത്തുമ്പോൾ, നിങ്ങളുടെ ഫലം കണക്കാക്കാൻ നിങ്ങളുടെ ചില ഉത്തരങ്ങൾ {fiduciary} സ്വീകരിക്കും: നിങ്ങളുടെ ജോലിയുടെ തരം, നിങ്ങളുടെ പണത്തിന്റെ കണക്കുകൾ, നിങ്ങളുടെ സംസ്ഥാനവും ജില്ലയും, നിങ്ങളുടെ സംരംഭം ഗ്രാമത്തിലാണോ നഗരത്തിലാണോ എന്നത്.',
+  'notice.local': 'നിങ്ങളുടെ പേര്, നിങ്ങളുടെ സംരംഭത്തിന്റെ പേര്, നിങ്ങളുടെ ഗ്രാമം അല്ലെങ്കിൽ പട്ടണം, നിങ്ങൾ എവിടെ വിൽക്കുന്നു, നിങ്ങളുടെ ഇടപാടുകാർ ആരാണ് എന്നിവ ഈ ബ്രൗസർ ടാബിൽ മാത്രമേ ഉണ്ടാകൂ. അവ ഒരിക്കലും അയയ്ക്കില്ല, നിങ്ങളുടെ റിപ്പോർട്ടിൽ അച്ചടിക്കും.',
+  'notice.demo': 'ഇത് ഒരു മാതൃക മാത്രമാണ്. നിങ്ങളുടെ യഥാർത്ഥ കണക്കുകൾ നൽകരുത്, സാങ്കൽപ്പിക കണക്കുകൾ നൽകുക.',
+  'notice.demoOperator': 'ഈ മാതൃക നടത്തുന്ന സംഘം',
+  'notice.readFull': 'മുഴുവൻ സ്വകാര്യതാ അറിയിപ്പും വായിക്കുക',
+  'consent.title': 'നിങ്ങളുടെ സംരംഭം പരിശോധിക്കുന്നതിനു മുൻപ്',
+  'consent.agree': 'മുകളിലുള്ളത് ഞാൻ വായിച്ചു. എന്റെ ഫലം കണക്കാക്കാൻ ഈ ഉത്തരങ്ങൾ {fiduciary} സ്വീകരിക്കുന്നതിന് ഞാൻ സമ്മതിക്കുന്നു.',
+  'consent.required': 'നിങ്ങളുടെ സംരംഭം പരിശോധിക്കുന്നതിനു മുൻപ് സമ്മതത്തിനുള്ള ബോക്സിൽ അടയാളമിടുക. നിങ്ങൾ അടയാളമിടുന്നതുവരെ ഒന്നും അയയ്ക്കില്ല.',
+  'consent.age': 'എനിക്ക് 18 വയസ്സോ അതിൽ കൂടുതലോ ഉണ്ട്, അല്ലെങ്കിൽ എന്റെ മാതാപിതാക്കളോ രക്ഷിതാവോ എന്റെ കൂടെയുണ്ട്, അവർ സമ്മതിക്കുന്നു.',
+  'consent.ageRequired': 'നിങ്ങളുടെ സംരംഭം പരിശോധിക്കുന്നതിനു മുൻപ് പ്രായത്തെക്കുറിച്ചുള്ള ബോക്സിൽ അടയാളമിടുക.',
+  'finance.zeroIncomeNote': 'നിങ്ങൾ 0 എന്ന് നൽകി. അതിന്റെ അർത്ഥം നിങ്ങളുടെ കുടുംബത്തിൽ ആരും ഒന്നും സമ്പാദിക്കുന്നില്ല എന്നാണ്, ഇത് ഉപദേശത്തെ വളരെയധികം മാറ്റാം. ഈ ചോദ്യം ഒഴിവാക്കാനാണ് ഉദ്ദേശിച്ചതെങ്കിൽ, നൽകിയത് മായ്ച്ച് ശൂന്യമായി വിടുക.',
+  'finance.zeroIncomeConfirm': 'ഇപ്പോൾ എന്റെ കുടുംബത്തിൽ ആരും ഒന്നും സമ്പാദിക്കുന്നില്ല.',
+  'finance.zeroIncomeRequired': '0 എന്നത് ഉറപ്പിക്കാൻ ബോക്സിൽ അടയാളമിടുക, അല്ലെങ്കിൽ ഈ ചോദ്യം ഒഴിവാക്കാൻ നൽകിയത് മായ്ക്കുക.',
+  'errf.district': 'നിങ്ങളുടെ ജില്ല',
+  'errf.areaType': 'നിങ്ങളുടെ സംരംഭം ഗ്രാമത്തിലാണോ നഗരത്തിലാണോ എന്നത്',
+  'errf.consent': 'നിങ്ങളുടെ ഉത്തരങ്ങൾ ഉപയോഗിക്കുന്നതിനുള്ള നിങ്ങളുടെ സമ്മതം',
+  'form.localOnly': 'ഇത് ഒരിക്കലും അയയ്ക്കില്ല. ഇത് ഈ ടാബിൽ മാത്രം ഉണ്ടാകും, നിങ്ങളുടെ റിപ്പോർട്ടിൽ അച്ചടിക്കും, നിങ്ങളുടെ ഫലത്തെ മാറ്റില്ല.',
 }
 
 const kn = {
@@ -1217,7 +1308,7 @@ const kn = {
   'common.breadcrumb': 'ನೀವು ಇಲ್ಲಿದ್ದೀರಿ',
   'common.startOver': 'ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ',
   'common.startOverTitle': 'ನಿಮ್ಮ ಎಲ್ಲಾ ಉತ್ತರಗಳನ್ನು ಅಳಿಸಬೇಕೆ?',
-  'common.startOverText': 'ಈ ಟ್ಯಾಬ್‌ನಲ್ಲಿ ನೀವು ತುಂಬಿದ ಎಲ್ಲವೂ ಅಳಿಸಿಹೋಗುತ್ತದೆ. ಅದನ್ನು ಮರಳಿ ಪಡೆಯಲು ಆಗುವುದಿಲ್ಲ.',
+  'common.startOverText': 'ಇದು ಈ ಟ್ಯಾಬ್‌ನಿಂದ ನಿಮ್ಮ ಉತ್ತರಗಳನ್ನು ಮತ್ತು ನಿಮ್ಮ ಫಲಿತಾಂಶವನ್ನು ಅಳಿಸುತ್ತದೆ. ಅವನ್ನು ಮರಳಿ ಪಡೆಯಲು ಆಗುವುದಿಲ್ಲ. ನೀವು ಆರಿಸಿದ ಭಾಷೆ, ಆಡುಭಾಷೆ, ಅಕ್ಷರ ಗಾತ್ರ ಮತ್ತು ಬಣ್ಣಗಳು ಹಾಗೆಯೇ ಇರುತ್ತವೆ. ಈಗಾಗಲೇ ಕಳುಹಿಸಿದ್ದರ ಮೇಲೆ ಇದರಿಂದ ಯಾವುದೇ ಪರಿಣಾಮ ಇಲ್ಲ.',
   'common.startOverYes': 'ಹೌದು, ಎಲ್ಲವನ್ನೂ ಅಳಿಸಿ',
   'common.startOverNo': 'ಬೇಡ, ನನ್ನ ಉತ್ತರಗಳನ್ನು ಇಡಿ',
   'common.print': 'ಉಳಿಸಿ / ಮುದ್ರಿಸಿ',
@@ -1294,7 +1385,7 @@ const kn = {
   'man.r3': 'ಮುಂದೆ ಏನು ಮಾಡಬೇಕು ಎಂಬುದು ಸರಳ ಮಾತಿನಲ್ಲಿ.',
   'man.r4': 'ಬ್ಯಾಂಕಿಗೆ ಅಥವಾ ಕಚೇರಿಗೆ ಒಯ್ಯಲು ಮುದ್ರಿಸಬಹುದಾದ ಒಂದು ಪುಟ.',
   'man.needTitle': 'ಏನನ್ನು ಸಿದ್ಧವಾಗಿ ಇಟ್ಟುಕೊಳ್ಳಬೇಕು',
-  'man.needText': 'ಸುಮಾರು ಲೆಕ್ಕ ಸಾಕು. ತಿಂಗಳಿಗೆ ಎಷ್ಟು ಖರ್ಚಾಗುತ್ತದೆ, ಎಷ್ಟು ಬರಬಹುದು, ಯಾವುದೇ ಕಂತು ಕಟ್ಟುತ್ತಿದ್ದೀರಾ ಎಂದು ಯೋಚಿಸಿ. ಈ ಟ್ಯಾಬ್ ಮುಚ್ಚಿದರೆ ಸಾಮಾನ್ಯವಾಗಿ ನಿಮ್ಮ ಉತ್ತರಗಳು ಅಳಿಸಿಹೋಗುತ್ತವೆ.',
+  'man.needText': 'ಸುಮಾರು ಲೆಕ್ಕ ಸಾಕು. ತಿಂಗಳಿಗೆ ಎಷ್ಟು ಖರ್ಚಾಗುತ್ತದೆ, ಎಷ್ಟು ಬರಬಹುದು, ಯಾವುದೇ ಕಂತು ಕಟ್ಟುತ್ತಿದ್ದೀರಾ ಎಂದು ಯೋಚಿಸಿ. ನಿಮ್ಮ ಫಲಿತಾಂಶ ಲೆಕ್ಕಹಾಕಲು ನಿಮ್ಮ ಕೆಲವು ಉತ್ತರಗಳನ್ನು ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ಈ ಟ್ಯಾಬ್ ಅವುಗಳ ಒಂದು ಪ್ರತಿಯನ್ನು ಇಟ್ಟುಕೊಳ್ಳುತ್ತದೆ, ಟ್ಯಾಬ್ ಮುಚ್ಚಿದರೆ ಸಾಮಾನ್ಯವಾಗಿ ಅದು ಅಳಿಸಿಹೋಗುತ್ತದೆ.',
   'man.tipTitle': 'ಓದಲು ಕಷ್ಟವಾದರೆ',
   'man.tipText': 'ಮೇಲೆ ಭಾಷೆ ಬದಲಿಸಿ, ಪುಟದ ಮೇಲಿನ A+ ಬಳಸಿ ಅಕ್ಷರ ದೊಡ್ಡದು ಮಾಡಿ, ಅಥವಾ ಗಾಢ ನೋಟಕ್ಕೆ ಬದಲಿಸಿ. ಎಲ್ಲ ಪರದೆಯಲ್ಲೂ ಚಿತ್ರಗಳು ಮತ್ತು ಹಿಂದೆ ಹೋಗುವ ಕೊಂಡಿ ಇವೆ.',
 
@@ -1371,7 +1462,7 @@ const kn = {
   'finance.changedWhileChecking': 'ನಾವು ಪರಿಶೀಲಿಸುತ್ತಿರುವಾಗ ನಿಮ್ಮ ಉತ್ತರಗಳು ಬದಲಾದವು. ಮತ್ತೆ {button} ಒತ್ತಿ.',
   'finance.submit': 'ನನ್ನ ಉದ್ಯಮ ಪರಿಶೀಲಿಸು',
   'finance.checking': 'ನಿಮ್ಮ ಉದ್ಯಮ ಪರಿಶೀಲಿಸುತ್ತಿದ್ದೇವೆ…',
-  'finance.privacyNote': 'ನಿಮ್ಮ ಉತ್ತರಗಳು ಈ ಬ್ರೌಸರ್ ಟ್ಯಾಬ್‌ನಲ್ಲಿ ಮಾತ್ರ ಇರುತ್ತವೆ, ಪುಟವನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಿದರೂ ಇರುತ್ತವೆ. ಟ್ಯಾಬ್ ಮುಚ್ಚಿದರೆ ಸಾಮಾನ್ಯವಾಗಿ ಅವು ಅಳಿಸಿಹೋಗುತ್ತವೆ. ಈ ಫೋನ್ ಅಥವಾ ಕಂಪ್ಯೂಟರ್ ಅನ್ನು ಬೇರೆಯವರೂ ಬಳಸುತ್ತಿದ್ದರೆ, ಮುಗಿಸಿದ ನಂತರ ಮೇಲಿರುವ {button} ಎಂಬ ಬಟನ್ ಒತ್ತಿ.',
+  'finance.privacyNote': 'ಈ ಟ್ಯಾಬ್ ನಿಮ್ಮ ಉತ್ತರಗಳ ಒಂದು ಪ್ರತಿಯನ್ನು ಇಟ್ಟುಕೊಳ್ಳುತ್ತದೆ, ಪುಟವನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಿದರೂ ಇರುತ್ತದೆ. ಟ್ಯಾಬ್ ಮುಚ್ಚಿದರೆ ಸಾಮಾನ್ಯವಾಗಿ ಅದು ಅಳಿಸಿಹೋಗುತ್ತದೆ. ಈ ಫೋನ್ ಅಥವಾ ಕಂಪ್ಯೂಟರ್ ಅನ್ನು ಬೇರೆಯವರೂ ಬಳಸುತ್ತಿದ್ದರೆ, ಮುಗಿಸಿದ ನಂತರ ಮೇಲಿರುವ {button} ಎಂಬ ಬಟನ್ ಒತ್ತಿ.',
 
   'money.left': 'ತಿಂಗಳಿಗೆ ಉಳಿಯುವ ಹಣ',
   'money.leftAfterEmi': 'ಸಾಲದ ಕಂತು ಕಟ್ಟಿದ ನಂತರ ಉಳಿಯುವ ಹಣ',
@@ -1389,7 +1480,6 @@ const kn = {
   'business.numbersTitle': 'ನಿಮ್ಮ ಉದ್ಯಮದ ಅಂಕಿಅಂಶ',
   'business.numbersHint': 'ಸುಮಾರು ಅಂದಾಜು ಸಾಕು. ನಂತರ ಬದಲಿಸಬಹುದು.',
   'business.moreDetails': 'ಇನ್ನಷ್ಟು ಉದ್ಯಮ ವಿವರ',
-  'business.employees': 'ಇಲ್ಲಿ ಎಷ್ಟು ಜನ ಕೆಲಸ ಮಾಡುತ್ತಾರೆ?',
   'business.debt': 'ಈಗಿರುವ ಸಾಲ',
   'cat.retail': 'ಅಂಗಡಿ / ಚಿಲ್ಲರೆ',
   'cat.food': 'ಆಹಾರ / ಆಹಾರ ಸಂಸ್ಕರಣೆ',
@@ -1426,8 +1516,25 @@ const kn = {
   'errf.investment': 'ನಿಮಗೆ ಬೇಕಾದ ಹಣ',
   'errf.opExpenses': 'ತಿಂಗಳಿಗೆ ಉದ್ಯಮಕ್ಕೇ ಆಗುವ ಖರ್ಚು',
   'errf.householdIncome': 'ನಿಮ್ಮ ಕುಟುಂಬ ತಿಂಗಳಿಗೆ ಸಂಪಾದಿಸುವ ಹಣ',
-  'errf.employees': 'ಇಲ್ಲಿ ಕೆಲಸ ಮಾಡುವವರ ಸಂಖ್ಯೆ',
   'errf.debt': 'ನಿಮ್ಮ ಈಗಿರುವ ಸಾಲ',
+  'common.privacy': 'ಗೌಪ್ಯತಾ ಸೂಚನೆ',
+  'notice.sent': 'ಕೊನೆಯ ಹಂತದಲ್ಲಿ {button} ಎಂಬ ಬಟನ್ ಒತ್ತಿದಾಗ, ನಿಮ್ಮ ಫಲಿತಾಂಶ ಲೆಕ್ಕಹಾಕಲು ನಿಮ್ಮ ಕೆಲವು ಉತ್ತರಗಳನ್ನು {fiduciary} ಪಡೆಯುತ್ತದೆ: ನಿಮ್ಮ ಕೆಲಸದ ಬಗೆ, ನಿಮ್ಮ ಹಣದ ಲೆಕ್ಕಗಳು, ನಿಮ್ಮ ರಾಜ್ಯ ಮತ್ತು ಜಿಲ್ಲೆ, ನಿಮ್ಮ ಉದ್ಯಮ ಹಳ್ಳಿಯಲ್ಲಿದೆಯೇ ನಗರದಲ್ಲಿದೆಯೇ ಎಂಬುದು.',
+  'notice.local': 'ನಿಮ್ಮ ಹೆಸರು, ನಿಮ್ಮ ಉದ್ಯಮದ ಹೆಸರು, ನಿಮ್ಮ ಹಳ್ಳಿ ಅಥವಾ ಪಟ್ಟಣ, ನೀವು ಎಲ್ಲಿ ಮಾರುತ್ತೀರಿ, ನಿಮ್ಮ ಗ್ರಾಹಕರು ಯಾರು ಎಂಬುದು ಈ ಬ್ರೌಸರ್ ಟ್ಯಾಬ್‌ನಲ್ಲೇ ಇರುತ್ತವೆ. ಅವುಗಳನ್ನು ಎಂದಿಗೂ ಕಳುಹಿಸುವುದಿಲ್ಲ, ಅವು ನಿಮ್ಮ ವರದಿಯಲ್ಲಿ ಮುದ್ರಣವಾಗುತ್ತವೆ.',
+  'notice.demo': 'ಇದು ಕೇವಲ ಒಂದು ಮಾದರಿ. ನಿಮ್ಮ ನಿಜವಾದ ಅಂಕಿಗಳನ್ನು ಹಾಕಬೇಡಿ, ಕಲ್ಪಿತ ಅಂಕಿಗಳನ್ನು ಹಾಕಿ.',
+  'notice.demoOperator': 'ಈ ಮಾದರಿಯನ್ನು ನಡೆಸುತ್ತಿರುವ ತಂಡ',
+  'notice.readFull': 'ಪೂರ್ಣ ಗೌಪ್ಯತಾ ಸೂಚನೆ ಓದಿ',
+  'consent.title': 'ನಿಮ್ಮ ಉದ್ಯಮ ಪರಿಶೀಲಿಸುವ ಮೊದಲು',
+  'consent.agree': 'ಮೇಲಿನದನ್ನು ನಾನು ಓದಿದ್ದೇನೆ. ನನ್ನ ಫಲಿತಾಂಶ ಲೆಕ್ಕಹಾಕಲು ಈ ಉತ್ತರಗಳನ್ನು {fiduciary} ಪಡೆಯಲು ನಾನು ಒಪ್ಪುತ್ತೇನೆ.',
+  'consent.required': 'ನಿಮ್ಮ ಉದ್ಯಮ ಪರಿಶೀಲಿಸುವ ಮೊದಲು ಒಪ್ಪಿಗೆಯ ಪೆಟ್ಟಿಗೆಯಲ್ಲಿ ಗುರುತು ಹಾಕಿ. ನೀವು ಗುರುತು ಹಾಕುವವರೆಗೆ ಏನನ್ನೂ ಕಳುಹಿಸುವುದಿಲ್ಲ.',
+  'consent.age': 'ನನಗೆ 18 ವರ್ಷ ಅಥವಾ ಅದಕ್ಕಿಂತ ಹೆಚ್ಚು, ಅಥವಾ ನನ್ನ ತಂದೆತಾಯಿ ಅಥವಾ ಪೋಷಕರು ನನ್ನ ಜೊತೆ ಇದ್ದು ಒಪ್ಪಿದ್ದಾರೆ.',
+  'consent.ageRequired': 'ನಿಮ್ಮ ಉದ್ಯಮ ಪರಿಶೀಲಿಸುವ ಮೊದಲು ವಯಸ್ಸಿನ ಪೆಟ್ಟಿಗೆಯಲ್ಲಿ ಗುರುತು ಹಾಕಿ.',
+  'finance.zeroIncomeNote': 'ನೀವು 0 ಎಂದು ಬರೆದಿದ್ದೀರಿ. ಅಂದರೆ ನಿಮ್ಮ ಕುಟುಂಬದಲ್ಲಿ ಯಾರೂ ಏನನ್ನೂ ಸಂಪಾದಿಸುತ್ತಿಲ್ಲ, ಇದು ಸಲಹೆಯನ್ನು ತುಂಬಾ ಬದಲಿಸಬಹುದು. ಈ ಪ್ರಶ್ನೆಯನ್ನು ಬಿಟ್ಟುಬಿಡಲು ಬಯಸಿದ್ದರೆ, ಬರೆದದ್ದನ್ನು ಅಳಿಸಿ ಖಾಲಿ ಬಿಡಿ.',
+  'finance.zeroIncomeConfirm': 'ಈಗ ನನ್ನ ಕುಟುಂಬದಲ್ಲಿ ಯಾರೂ ಏನನ್ನೂ ಸಂಪಾದಿಸುತ್ತಿಲ್ಲ.',
+  'finance.zeroIncomeRequired': '0 ಎಂದು ಖಚಿತಪಡಿಸಲು ಪೆಟ್ಟಿಗೆಯಲ್ಲಿ ಗುರುತು ಹಾಕಿ, ಅಥವಾ ಈ ಪ್ರಶ್ನೆಯನ್ನು ಬಿಟ್ಟುಬಿಡಲು ಬರೆದದ್ದನ್ನು ಅಳಿಸಿ.',
+  'errf.district': 'ನಿಮ್ಮ ಜಿಲ್ಲೆ',
+  'errf.areaType': 'ನಿಮ್ಮ ಉದ್ಯಮ ಹಳ್ಳಿಯಲ್ಲಿದೆಯೇ ನಗರದಲ್ಲಿದೆಯೇ ಎಂಬುದು',
+  'errf.consent': 'ನಿಮ್ಮ ಉತ್ತರಗಳನ್ನು ಬಳಸಲು ನಿಮ್ಮ ಒಪ್ಪಿಗೆ',
+  'form.localOnly': 'ಇದನ್ನು ಎಂದಿಗೂ ಕಳುಹಿಸುವುದಿಲ್ಲ. ಇದು ಈ ಟ್ಯಾಬ್‌ನಲ್ಲೇ ಇರುತ್ತದೆ, ನಿಮ್ಮ ವರದಿಯಲ್ಲಿ ಮುದ್ರಣವಾಗುತ್ತದೆ, ನಿಮ್ಮ ಫಲಿತಾಂಶವನ್ನು ಬದಲಿಸುವುದಿಲ್ಲ.',
 }
 
 const mr = {
@@ -1441,7 +1548,7 @@ const mr = {
   'common.breadcrumb': 'तुम्ही येथे आहात',
   'common.startOver': 'पुन्हा सुरू करा',
   'common.startOverTitle': 'तुमची सर्व उत्तरे पुसायची का?',
-  'common.startOverText': 'या टॅबमध्ये तुम्ही भरलेले सर्व काही पुसले जाईल. ते परत मिळणार नाही.',
+  'common.startOverText': 'यामुळे या टॅबमधून तुमची उत्तरे आणि तुमचा निकाल पुसले जातील. ते परत मिळणार नाहीत. तुम्ही निवडलेली भाषा, बोली, अक्षर आकार आणि रंग तसेच राहतील. आधीच पाठवलेल्या माहितीवर याचा काहीही परिणाम होत नाही.',
   'common.startOverYes': 'होय, सर्व पुसा',
   'common.startOverNo': 'नाही, माझी उत्तरे ठेवा',
   'common.print': 'सेव्ह / प्रिंट',
@@ -1518,7 +1625,7 @@ const mr = {
   'man.r3': 'पुढे काय करायचे ते सोप्या शब्दांत.',
   'man.r4': 'बँकेत किंवा कार्यालयात नेण्यासाठी छापता येणारे एक पान.',
   'man.needTitle': 'काय तयार ठेवावे',
-  'man.needText': 'अंदाजे आकडे पुरेसे आहेत. महिन्याला किती खर्च होतो, किती मिळण्याची अपेक्षा आहे, आणि कोणता हप्ता चालू आहे याचा विचार करा. हा टॅब बंद केल्यावर तुमची उत्तरे सहसा पुसली जातात.',
+  'man.needText': 'अंदाजे आकडे पुरेसे आहेत. महिन्याला किती खर्च होतो, किती मिळण्याची अपेक्षा आहे, आणि कोणता हप्ता चालू आहे याचा विचार करा. तुमचा निकाल काढण्यासाठी तुमची काही उत्तरे पाठवली जातात. हा टॅब त्यांची एक प्रत ठेवतो, आणि टॅब बंद केल्यावर ती सहसा पुसली जाते.',
   'man.tipTitle': 'वाचायला अडचण येत असेल तर',
   'man.tipText': 'वर भाषा बदला, पानाच्या वरच्या A+ ने अक्षरे मोठी करा, किंवा गडद रूपात बदला. प्रत्येक पानावर चित्रे आणि मागे जाण्याची कडी आहे.',
 
@@ -1595,7 +1702,7 @@ const mr = {
   'finance.changedWhileChecking': 'आम्ही तपासत असताना तुमची उत्तरे बदलली. पुन्हा {button} दाबा.',
   'finance.submit': 'माझा व्यवसाय तपासा',
   'finance.checking': 'तुमचा व्यवसाय तपासत आहोत…',
-  'finance.privacyNote': 'तुमची उत्तरे फक्त याच ब्राउझर टॅबमध्ये राहतात, पान रिफ्रेश केले तरी राहतात. टॅब बंद केल्यावर ती सहसा पुसली जातात. हा फोन किंवा संगणक इतर लोकही वापरत असतील, तर काम संपल्यावर वर असलेले {button} हे बटण दाबा.',
+  'finance.privacyNote': 'हा टॅब तुमच्या उत्तरांची एक प्रत ठेवतो, पान रिफ्रेश केले तरी ती राहते. टॅब बंद केल्यावर ती सहसा पुसली जाते. हा फोन किंवा संगणक इतर लोकही वापरत असतील, तर काम संपल्यावर वर असलेले {button} हे बटण दाबा.',
 
   'money.left': 'दर महिन्याला उरणारे पैसे',
   'money.leftAfterEmi': 'कर्जाचा हप्ता भरल्यावर उरणारे पैसे',
@@ -1613,7 +1720,6 @@ const mr = {
   'business.numbersTitle': 'तुमच्या व्यवसायाचे आकडे',
   'business.numbersHint': 'ढोबळ अंदाज पुरेसा आहे. नंतर बदलू शकता.',
   'business.moreDetails': 'व्यवसायाची अधिक माहिती',
-  'business.employees': 'येथे किती लोक काम करतात?',
   'business.debt': 'आधीचे कर्ज',
   'cat.retail': 'दुकान / किरकोळ',
   'cat.food': 'अन्न / अन्न प्रक्रिया',
@@ -1650,8 +1756,25 @@ const mr = {
   'errf.investment': 'तुम्हाला लागणारे पैसे',
   'errf.opExpenses': 'दर महिन्याला व्यवसायावरच होणारा खर्च',
   'errf.householdIncome': 'तुमच्या कुटुंबाची महिन्याची कमाई',
-  'errf.employees': 'येथे काम करणाऱ्या लोकांची संख्या',
   'errf.debt': 'तुमचे आधीचे कर्ज',
+  'common.privacy': 'गोपनीयता सूचना',
+  'notice.sent': 'शेवटच्या पायरीवर {button} हे बटण दाबल्यावर, तुमचा निकाल काढण्यासाठी तुमची काही उत्तरे {fiduciary} घेते: तुमच्या कामाचा प्रकार, तुमचे पैशांचे आकडे, तुमचे राज्य आणि जिल्हा, आणि तुमचा व्यवसाय गावात आहे की शहरात.',
+  'notice.local': 'तुमचे नाव, तुमच्या व्यवसायाचे नाव, तुमचे गाव किंवा शहर, तुम्ही कुठे विकता आणि तुमचे ग्राहक कोण आहेत, हे सर्व याच ब्राउझर टॅबमध्ये राहते. ते कधीही पाठवले जात नाही, आणि ते तुमच्या अहवालात छापले जाते.',
+  'notice.demo': 'हे फक्त एक प्रात्यक्षिक आहे. तुमचे खरे आकडे भरू नका, कल्पनेतील आकडे भरा.',
+  'notice.demoOperator': 'हे प्रात्यक्षिक चालवणारी टीम',
+  'notice.readFull': 'संपूर्ण गोपनीयता सूचना वाचा',
+  'consent.title': 'तुमचा व्यवसाय तपासण्यापूर्वी',
+  'consent.agree': 'वरील मजकूर मी वाचला आहे. माझा निकाल काढण्यासाठी {fiduciary} ही उत्तरे घेईल, हे मला मान्य आहे.',
+  'consent.required': 'तुमचा व्यवसाय तपासण्यापूर्वी संमतीच्या चौकटीत खूण करा. तुम्ही खूण करेपर्यंत काहीही पाठवले जात नाही.',
+  'consent.age': 'माझे वय 18 वर्षे किंवा त्याहून जास्त आहे, किंवा माझे आई-वडील किंवा पालक माझ्यासोबत आहेत आणि त्यांची संमती आहे.',
+  'consent.ageRequired': 'तुमचा व्यवसाय तपासण्यापूर्वी वयाबद्दलच्या चौकटीत खूण करा.',
+  'finance.zeroIncomeNote': 'तुम्ही 0 लिहिले आहे. याचा अर्थ तुमच्या कुटुंबात कोणीही काहीच कमावत नाही, आणि यामुळे सल्ला खूप बदलू शकतो. हा प्रश्न सोडायचा होता, तर लिहिलेले पुसून जागा रिकामी ठेवा.',
+  'finance.zeroIncomeConfirm': 'सध्या माझ्या कुटुंबात कोणीही काहीच कमावत नाही.',
+  'finance.zeroIncomeRequired': '0 ची खात्री करण्यासाठी चौकटीत खूण करा, किंवा हा प्रश्न सोडण्यासाठी लिहिलेले पुसा.',
+  'errf.district': 'तुमचा जिल्हा',
+  'errf.areaType': 'तुमचा व्यवसाय गावात आहे की शहरात',
+  'errf.consent': 'तुमची उत्तरे वापरण्यासाठी तुमची संमती',
+  'form.localOnly': 'हे कधीही पाठवले जात नाही. हे याच टॅबमध्ये राहते, तुमच्या अहवालात छापले जाते, आणि तुमचा निकाल बदलत नाही.',
 }
 
 const bn = {
@@ -1665,7 +1788,7 @@ const bn = {
   'common.breadcrumb': 'আপনি এখানে আছেন',
   'common.startOver': 'আবার শুরু করুন',
   'common.startOverTitle': 'আপনার সব উত্তর মুছে ফেলবেন?',
-  'common.startOverText': 'এই ট্যাবে আপনি যা কিছু লিখেছেন সব মুছে যাবে। তা আর ফিরে পাওয়া যাবে না।',
+  'common.startOverText': 'এতে এই ট্যাব থেকে আপনার উত্তর আর ফলাফল মুছে যাবে। সেগুলো আর ফিরে পাওয়া যাবে না। আপনার বেছে নেওয়া ভাষা, উপভাষা, লেখার আকার আর রং যেমন আছে তেমনই থাকবে। আগেই যা পাঠানো হয়েছে, তার ওপর এর কোনো প্রভাব নেই।',
   'common.startOverYes': 'হ্যাঁ, সব মুছে ফেলুন',
   'common.startOverNo': 'না, আমার উত্তর রাখুন',
   'common.print': 'সেভ / প্রিন্ট',
@@ -1742,7 +1865,7 @@ const bn = {
   'man.r3': 'পরে কী করবেন, সহজ কথায়।',
   'man.r4': 'ব্যাঙ্কে বা দপ্তরে নিয়ে যাওয়ার জন্য ছাপানো যায় এমন একটি পাতা।',
   'man.needTitle': 'কী তৈরি রাখবেন',
-  'man.needText': 'মোটামুটি হিসাব হলেই চলবে। মাসে কত খরচ হয়, কত আসতে পারে, কোনো কিস্তি দিচ্ছেন কি না ভেবে নিন। এই ট্যাব বন্ধ করলে সাধারণত আপনার উত্তর মুছে যায়।',
+  'man.needText': 'মোটামুটি হিসাব হলেই চলবে। মাসে কত খরচ হয়, কত আসতে পারে, কোনো কিস্তি দিচ্ছেন কি না ভেবে নিন। আপনার ফলাফল হিসাব করতে আপনার কিছু উত্তর পাঠানো হয়। এই ট্যাব সেগুলোর একটি কপি রাখে, আর ট্যাব বন্ধ করলে সাধারণত সেটি মুছে যায়।',
   'man.tipTitle': 'পড়তে অসুবিধা হলে',
   'man.tipText': 'উপরে ভাষা বদলান, পাতার উপরের A+ দিয়ে লেখা বড় করুন, বা গাঢ় রূপে বদলে নিন। প্রতিটি পাতায় ছবি আর পিছনে যাওয়ার লিঙ্ক আছে।',
 
@@ -1819,7 +1942,7 @@ const bn = {
   'finance.changedWhileChecking': 'আমরা যাচাই করার সময় আপনার উত্তর বদলে গেছে। আবার {button} চাপুন।',
   'finance.submit': 'আমার ব্যবসা যাচাই করুন',
   'finance.checking': 'আপনার ব্যবসা যাচাই করছি…',
-  'finance.privacyNote': 'আপনার উত্তর শুধু এই ব্রাউজার ট্যাবেই থাকে, পেজ রিফ্রেশ করলেও থাকে। ট্যাব বন্ধ করলে সাধারণত সেগুলি মুছে যায়। এই ফোন বা কম্পিউটার অন্যরাও ব্যবহার করলে, কাজ শেষ হলে ওপরের {button} বোতামটি টিপুন।',
+  'finance.privacyNote': 'এই ট্যাব আপনার উত্তরের একটি কপি রাখে, পেজ রিফ্রেশ করলেও থাকে। ট্যাব বন্ধ করলে সাধারণত সেটি মুছে যায়। এই ফোন বা কম্পিউটার অন্যরাও ব্যবহার করলে, কাজ শেষ হলে ওপরের {button} বোতামটি টিপুন।',
 
   'money.left': 'প্রতি মাসে বাকি থাকা টাকা',
   'money.leftAfterEmi': 'ঋণের কিস্তি দেওয়ার পরে বাকি থাকা টাকা',
@@ -1837,7 +1960,6 @@ const bn = {
   'business.numbersTitle': 'আপনার ব্যবসার হিসাব',
   'business.numbersHint': 'মোটামুটি অনুমানই চলবে। পরে বদলাতে পারেন।',
   'business.moreDetails': 'ব্যবসার আরও তথ্য',
-  'business.employees': 'এখানে কতজন কাজ করেন?',
   'business.debt': 'আগের ঋণ',
   'cat.retail': 'দোকান / খুচরা',
   'cat.food': 'খাদ্য / খাদ্য প্রক্রিয়াকরণ',
@@ -1874,8 +1996,25 @@ const bn = {
   'errf.investment': 'ব্যবসা শুরু করতে দরকারি টাকা',
   'errf.opExpenses': 'প্রতি মাসে শুধু ব্যবসার খরচ',
   'errf.householdIncome': 'আপনার পরিবারের মাসের আয়',
-  'errf.employees': 'এখানে কাজ করা লোকের সংখ্যা',
   'errf.debt': 'আপনার আগের ঋণ',
+  'common.privacy': 'গোপনীয়তা বিজ্ঞপ্তি',
+  'notice.sent': 'শেষ ধাপে {button} বোতামটি টিপলে, আপনার ফলাফল হিসাব করার জন্য {fiduciary} আপনার কিছু উত্তর পায়: আপনার কাজের ধরন, আপনার টাকার হিসাব, আপনার রাজ্য ও জেলা, আর আপনার ব্যবসা গ্রামে না শহরে।',
+  'notice.local': 'আপনার নাম, আপনার ব্যবসার নাম, আপনার গ্রাম বা শহর, আপনি কোথায় বিক্রি করেন আর আপনার ক্রেতা কারা, এগুলো এই ব্রাউজার ট্যাবেই থাকে। এগুলো কখনও পাঠানো হয় না, আর আপনার রিপোর্টে ছাপা হয়।',
+  'notice.demo': 'এটি শুধু একটি নমুনা। আপনার আসল হিসাব দেবেন না, বানানো হিসাব দিন।',
+  'notice.demoOperator': 'এই নমুনার পরিচালক দল',
+  'notice.readFull': 'পুরো গোপনীয়তা বিজ্ঞপ্তি পড়ুন',
+  'consent.title': 'আপনার ব্যবসা যাচাই করার আগে',
+  'consent.agree': 'ওপরের লেখাটি আমি পড়েছি। আমার ফলাফল হিসাব করার জন্য {fiduciary} এই উত্তরগুলো পাবে, এতে আমি রাজি।',
+  'consent.required': 'আপনার ব্যবসা যাচাই করার আগে সম্মতির বাক্সে টিক দিন। আপনি টিক না দেওয়া পর্যন্ত কিছুই পাঠানো হয় না।',
+  'consent.age': 'আমার বয়স 18 বছর বা তার বেশি, অথবা আমার মা-বাবা বা অভিভাবক আমার সঙ্গে আছেন এবং রাজি আছেন।',
+  'consent.ageRequired': 'আপনার ব্যবসা যাচাই করার আগে বয়সের বাক্সে টিক দিন।',
+  'finance.zeroIncomeNote': 'আপনি 0 লিখেছেন। এর মানে আপনার পরিবারে কেউই কিছু আয় করেন না, আর এতে পরামর্শ অনেকটা বদলে যেতে পারে। এই প্রশ্নটি বাদ দিতে চাইলে, যা লিখেছেন তা মুছে ঘরটি খালি রাখুন।',
+  'finance.zeroIncomeConfirm': 'এখন আমার পরিবারে কেউই কিছু আয় করেন না।',
+  'finance.zeroIncomeRequired': '0 নিশ্চিত করতে বাক্সে টিক দিন, অথবা এই প্রশ্নটি বাদ দিতে যা লিখেছেন তা মুছে দিন।',
+  'errf.district': 'আপনার জেলা',
+  'errf.areaType': 'আপনার ব্যবসা গ্রামে না শহরে',
+  'errf.consent': 'আপনার উত্তর ব্যবহারের জন্য আপনার সম্মতি',
+  'form.localOnly': 'এটি কখনও পাঠানো হয় না। এটি এই ট্যাবেই থাকে, আপনার রিপোর্টে ছাপা হয়, আর আপনার ফলাফল বদলায় না।',
 }
 
 // The other three parts of the dictionary live in their own files purely for file

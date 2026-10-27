@@ -43,8 +43,18 @@
 //             sideways scroll.
 //
 // Run the Vite dev server first, then: node tools/verify/manual-audit.mjs
+// Exit 0: nothing found. 1: a finding, a click that did not open the panel and
+// a trap that holds focus still among them. 2: the run could not measure: the
+// dev server is down, the working directory is wrong, Edge's DevTools socket
+// closed, a page did not load or rendered as Edge's error page or a status
+// other than 2xx, a start target is not on the page (any part of the
+// wordmark, the book icon, the open button), one Tab from the page body moved
+// focus nowhere, the open panel vanished or had under two controls before its
+// trap was measured, or the script crashed. A mode stops at its first fault.
+// report.json carries the same code as `exit` and lists the faults; a crash,
+// or a run that never started, leaves none.
 import { spawn } from 'node:child_process'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
@@ -52,6 +62,56 @@ const DEBUG_PORT = 9341
 const APP = 'http://localhost:5173'
 const OUT = resolve('screenshots/verify/manual')
 const PROFILE_DIR = resolve('screenshots/verify/edge-profile-manual')
+
+// 0 means the run measured and found nothing, 1 a finding, and 2 that the run
+// could not measure. Node's own exit on an uncaught error is 1, which reads as a
+// finding, so anything thrown or rejected that nothing catches exits 2 instead.
+process.on('uncaughtException', (err) => {
+  console.error(err)
+  crashExit()
+})
+// A crash exits 2 through this rather than process.exit(2) at once. For up to
+// about 100 ms after fetch() reads a response, V8 can still be recompiling
+// undici's WASM HTTP parser on a worker thread, and exiting in that window kills
+// node with 0xC0000409 (Git Bash shows 127): neither 0, 1 nor 2. The wait
+// blocks this thread, so nothing else of the run happens meanwhile.
+// tools/README.md, Exit codes, has the measurements.
+function crashExit() {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000)
+  process.exit(2)
+}
+// A run that ends without reaching its verdict exits 2, and the verdict at the
+// end of main() overrides it. Before this, a CDP socket that closed under a
+// pending send left that send unsettled, the event loop drained, and node
+// exited 0 with no report.
+process.exitCode = 2
+// Every path in this file resolves against the working directory.
+if (!existsSync(resolve('tools/verify/manual-audit.mjs'))) {
+  console.error(`manual-audit: ${process.cwd()} is not the repo root. Run this from the repo root: node tools/verify/manual-audit.mjs`)
+  process.exit(2)
+}
+// A report.json on disk is always from a run that finished. The last run's
+// goes once the working directory has been checked, so a run that stops early
+// leaves none.
+rmSync(resolve(OUT, 'report.json'), { force: true })
+
+// A server that is down used to surface as a crash inside the page (Edge's own
+// error page refuses storage access), which exited 1 and read as a finding.
+// It returns false with exitCode 2 set, and main() returns before Edge starts,
+// so node exits on its own: process.exit() this soon after a fetch can abort
+// it (see crashExit).
+async function requireServer(url, start) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    await res.body?.cancel()
+    if (res.ok) return true
+    console.error(`manual-audit: ${url} answered HTTP ${res.status}. ${start}`)
+  } catch (err) {
+    console.error(`manual-audit: nothing answered at ${url} (${err.cause?.code || err.name}). ${start}`)
+  }
+  process.exitCode = 2
+  return false
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -61,9 +121,19 @@ class CDP {
     this.next = 1
     this.pending = new Map()
     this.sessionId = null
+    this.closed = false
     this.ready = new Promise((res, rej) => {
       this.ws.addEventListener('open', () => res())
       this.ws.addEventListener('error', () => rej(new Error('CDP socket error')))
+      this.ws.addEventListener('close', () => rej(new Error('CDP socket closed')))
+    })
+    // Edge gone: every send still waiting for a reply fails. A send settles
+    // only from a reply, and a pending promise does not keep node alive, so
+    // without this the run drained away short of its verdict.
+    this.ws.addEventListener('close', () => {
+      this.closed = true
+      for (const slot of this.pending.values()) slot.reject(new Error(slot.method + ': CDP socket closed'))
+      this.pending.clear()
     })
     this.ws.addEventListener('message', (event) => {
       const msg = JSON.parse(event.data)
@@ -76,6 +146,9 @@ class CDP {
   }
 
   send(method, params = {}, useSession = true) {
+    // ws.send() on a closed socket drops the frame without an error, and the
+    // reply it waits for would never come.
+    if (this.ws.readyState !== WebSocket.OPEN) return Promise.reject(new Error(method + ': CDP socket closed'))
     const id = this.next++
     const envelope = { id, method, params }
     if (useSession && this.sessionId) envelope.sessionId = this.sessionId
@@ -97,12 +170,22 @@ class CDP {
 async function browserWsUrl() {
   for (let i = 0; i < 80; i++) {
     try {
-      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`)).json()
+      // Bounded: a listener that accepts and never answers would otherwise hold
+      // this for undici's five-minute header timeout.
+      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`, { signal: AbortSignal.timeout(2000) })).json()
       if (info.webSocketDebuggerUrl) return info.webSocketDebuggerUrl
     } catch { /* not listening yet */ }
     await sleep(250)
   }
   throw new Error('Edge never opened the DevTools endpoint on port ' + DEBUG_PORT)
+}
+
+// Page.navigate answers with errorText when the load itself failed, as it does
+// with the connection refused once the dev server has gone. That page was never
+// the app, so it throws: a fault, never a finding.
+async function navigate(cdp, url) {
+  const { errorText } = await cdp.send('Page.navigate', { url })
+  if (errorText) throw new Error(`${url} did not load (${errorText}). Is the dev server still up?`)
 }
 
 // Plain joined strings, not template literals: these probes carry regex and
@@ -135,9 +218,14 @@ const CHROME_PROBE = [
   '  const out = {}',
   '  const arth = document.querySelector(".ui-wordmark-arth")',
   '  const niti = document.querySelector(".ui-wordmark-niti")',
+  '  const wm = document.querySelector(".ui-wordmark-text")',
   '  const swoosh = document.querySelector(".ui-wordmark-swoosh path")',
   '  const bead = document.querySelector(".ui-wordmark-swoosh circle")',
-  '  if (!arth || !niti) return { missing: "wordmark" }',
+  // Every element the checks below read, named by the selector that missed. An
+  // absent one leaves its check measuring nothing: an absent swoosh or bead
+  // would read as switched off and pass.
+  '  const gone = [[arth, ".ui-wordmark-arth"], [niti, ".ui-wordmark-niti"], [wm, ".ui-wordmark-text"], [swoosh, ".ui-wordmark-swoosh path"], [bead, ".ui-wordmark-swoosh circle"]].filter(([el]) => !el).map(([, sel]) => sel)',
+  '  if (gone.length) return { missing: "the wordmark (" + gone.join(", ") + ")" }',
   // Walked from the element, not read off a known constant. The surface under
   // the wordmark used to be the hardcoded #08243F utility strip; since 11 Sept
   // 2026 it is the masthead's var(--color-surface), which is #ffffff light and
@@ -161,7 +249,6 @@ const CHROME_PROBE = [
   // shipped into the first capture of the since-removed high-contrast mode.
   '  const bc = bead ? getComputedStyle(bead).fill : "none"',
   '  out.beadOrphaned = (sc === "none" || alpha(sc) === 0) && !(bc === "none" || alpha(bc) === 0)',
-  '  const wm = document.querySelector(".ui-wordmark-text")',
   '  out.wordmarkPx = Math.round(parseFloat(getComputedStyle(wm).fontSize) * 10) / 10',
   // A one-line name that wrapped to two lines is a broken wordmark; count line
   // boxes with a Range, since getClientRects on a non-inline box returns one
@@ -187,7 +274,7 @@ const BOOK_PROBE = [
   '(async () => {',
   ...COLOUR_HELPERS,
   '  const icon = document.querySelector(".ui-manual-icon")',
-  '  if (!icon) throw new Error("no .ui-manual-icon on this page")',
+  '  if (!icon) return { missing: "the book icon (.ui-manual-icon)" }',
   '  const surface = backdrop(icon.parentElement)',
   '  const cs = getComputedStyle(document.documentElement)',
   '  const NAMES = ["--book-cover","--book-spine","--book-band","--book-seal","--book-seal-rim","--book-pages","--book-pageline","--book-sprout"]',
@@ -373,6 +460,27 @@ async function pressTab(cdp, shift) {
   await sleep(70)
 }
 
+// How the page load ended. Vite answers every route with index.html and a 200,
+// so Edge's own error page, or any other status, means the server failed rather
+// than the app. A copy Edge revalidated (a 304 on the wire) still reads 200
+// here, as measured on 30 Sept 2026, and a status of 0 means Edge does not
+// know it.
+const LOAD_PROBE = '({ protocol: location.protocol, status: performance.getEntriesByType("navigation")[0]?.responseStatus || 0 })'
+
+// The instrument check for the focus trap, made before the panel opens: one Tab
+// from the page body, sent the way pressTab sends it, has to put focus somewhere
+// (normally the skip link). If it does not, Edge is not acting on the key events,
+// and the trap would read "focus never left the panel" off presses that moved
+// nothing. TAB_MOVED blurs whatever the Tab reached, so the panel still opens
+// with focus on the body.
+const TAB_START = '(() => { document.activeElement?.blur(); window.__tabFrom = document.activeElement; return true })()'
+const TAB_MOVED = '(() => { const el = document.activeElement; const moved = el !== window.__tabFrom; delete window.__tabFrom; el?.blur(); return moved })()'
+
+// Clicks the button that opens the guide, or says it is not there. A bare
+// .click() on a missing button threw inside the page and ended the run as a
+// crash, with no report.
+const OPEN_GUIDE = '(() => { const b = document.querySelector(".ui-manual-open"); if (!b) return false; b.click(); return true })()'
+
 const MODES = [
   { name: 'light', theme: 'light', lang: 'en', size: 'md', w: 1440, h: 900, mobile: false },
   { name: 'dark', theme: 'dark', lang: 'en', size: 'md', w: 1440, h: 900, mobile: false },
@@ -395,7 +503,171 @@ const MIN_EDGE = 3
 // a wordmark.
 const MIN_TEXT_RATIO = 4.5
 
+// One mode, measured. Returns its report entry: notes are findings, and fault,
+// once set, is why the rest of the mode could not be measured. A mode stops at
+// its first fault, so nothing is reported off a page already known to be wrong.
+async function auditMode(cdp, mode) {
+  const entry = { mode: mode.name, fault: null, chrome: null, book: null, panel: null, trap: null, notes: [] }
+  const { notes } = entry
+  const stop = (why) => {
+    entry.fault = why
+    return entry
+  }
+
+  // mobile: true is load-bearing on the narrow pass — without it the viewport
+  // meta tag never applies and every measurement is a desktop measurement in
+  // a narrow window.
+  await cdp.send('Emulation.setDeviceMetricsOverride', {
+    width: mode.w, height: mode.h, deviceScaleFactor: mode.mobile ? 2 : 1, mobile: mode.mobile,
+  })
+
+  await navigate(cdp, APP + '/')
+  await sleep(900)
+  await cdp.evaluate([
+    `localStorage.setItem('sih-theme', '${mode.theme}');`,
+    `localStorage.setItem('sih-language', '${mode.lang}');`,
+    `localStorage.setItem('sih-textsize', '${mode.size}');`,
+    `localStorage.removeItem('sih-dialect');`,
+    'true',
+  ].join(''))
+  await navigate(cdp, APP + '/')
+  await sleep(1300)
+
+  console.log(`\n=== ${mode.name}`)
+
+  const load = await cdp.evaluate(LOAD_PROBE)
+  if (load.protocol === 'chrome-error:') return stop(`${APP}/ never rendered: it is Edge's own error page. Is the dev server still up?`)
+  if (load.status && (load.status < 200 || load.status > 299)) return stop(`${APP}/ never rendered: it answered HTTP ${load.status}`)
+
+  // --- the wordmark and the relocated pill
+  const chrome = await cdp.evaluate(CHROME_PROBE)
+  entry.chrome = chrome
+  if (chrome.missing) return stop(`${chrome.missing} is not on the page at all`)
+  for (const [k, v] of Object.entries(chrome)) console.log(`    ${k.padEnd(14)} ${v}`)
+  if (chrome.arthRatio < MIN_TEXT_RATIO) notes.push(`wordmark "${chrome.arthText}" is only ${chrome.arthRatio}:1 on ${chrome.groundColour}`)
+  if (chrome.nitiRatio < MIN_TEXT_RATIO) notes.push(`wordmark "${chrome.nitiText}" is only ${chrome.nitiRatio}:1 on ${chrome.groundColour}`)
+  if (chrome.swooshDeltaL !== null && chrome.swooshDeltaL < 3) notes.push(`the swoosh is painted but only dL* ${chrome.swooshDeltaL} from ${chrome.groundColour} — the token indirection is wrong`)
+  if (chrome.beadOrphaned) notes.push('the swoosh is switched off but its bead is still painted — it reads as a full stop after the name')
+  if (chrome.wordmarkLines > 1) notes.push(`the wordmark wrapped onto ${chrome.wordmarkLines} lines`)
+  if (chrome.pillPresent) notes.push('the prototype disclaimer pill is back on the page — it was removed on the owner\'s instruction')
+
+  // --- the book icon. The guard comes before png is touched: a missing icon
+  // has no capture to write.
+  const { png, ...book } = await cdp.evaluate(BOOK_PROBE)
+  entry.book = book
+  if (book.missing) return stop(`${book.missing} is not on the page at all`)
+  for (const [k, v] of Object.entries(book)) console.log(`    ${k.padEnd(14)} ${v}`)
+  writeFileSync(`${OUT}/book-${mode.name}.png`, Buffer.from(png.split(',')[1], 'base64'))
+  if (book.pctInk < MIN_INK) notes.push(`only ${book.pctInk}% of the book icon is painted — it may be background-on-background`)
+  if (book.iconVsPage < MIN_VS_PAGE) notes.push(`the book icon averages dL* ${book.iconVsPage} from the card behind it`)
+  if (book.regions < MIN_REGIONS) notes.push(`the cover's centre line crosses only ${book.regions} regions — the seal and band have merged into it`)
+  if (book.worstEdge !== null && book.worstEdge < MIN_EDGE) notes.push(`adjacent regions of the book differ by only dL* ${book.worstEdge}`)
+
+  // The top 520px: utility strip, masthead, tricolour, nav. Named for the
+  // chrome rather than for the strip, because the wordmark this capture
+  // exists to eyeball moved from the first band into the second on 11 Sept
+  // 2026 and the clip covers both either way.
+  const chromeShot = await cdp.send('Page.captureScreenshot', {
+    format: 'png', clip: { x: 0, y: 0, width: mode.w, height: Math.min(mode.h, 520), scale: 1 },
+  })
+  writeFileSync(`${OUT}/chrome-${mode.name}.png`, Buffer.from(chromeShot.data, 'base64'))
+
+  // --- the Tab control, after the capture so a focused skip link is not in it
+  await cdp.evaluate(TAB_START)
+  await pressTab(cdp, false)
+  if (!(await cdp.evaluate(TAB_MOVED))) {
+    return stop('one Tab from the page body left focus where it was: Edge is not acting on the key events, so the focus trap cannot be measured')
+  }
+
+  // --- open it and measure the panel
+  if (!(await cdp.evaluate(OPEN_GUIDE))) return stop('the open button (.ui-manual-open) is not on the page at all')
+  await sleep(700)
+  const panel = await cdp.evaluate(PANEL_PROBE)
+  entry.panel = panel
+  if (panel.missing) {
+    notes.push('clicking the open button did not render the panel')
+  } else {
+    console.log(`    panel          ${panel.panelW}x${panel.panelH}  role=${panel.dialogRole} modal=${panel.modal} focused=${panel.focused} strings=${panel.strings}`)
+    if (panel.dialogRole !== 'dialog' || panel.modal !== 'true') notes.push('the panel is not announced as a modal dialog')
+    if (!panel.focused) notes.push('focus did not move into the panel when it opened')
+    if (!panel.fitsViewport) notes.push(`the panel is ${panel.panelH}px tall in a ${mode.h}px viewport — its top will be unreachable`)
+    for (const f of panel.findings) {
+      notes.push(`${f.kind}  ` + Object.entries(f).filter(([k]) => k !== 'kind').map(([k, v]) => `${k}=${v}`).join(' '))
+    }
+  }
+
+  const open = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })
+  writeFileSync(`${OUT}/panel-${mode.name}.png`, Buffer.from(open.data, 'base64'))
+  // The trap, Escape and the focus hand-back all act on the panel. Without it
+  // they would only restate the finding above as three more.
+  if (panel.missing) return entry
+
+  // --- the focus trap: Tab and Shift+Tab must both stay inside the panel. The
+  // panel rendered a moment ago, so either guard here means the run lost what
+  // it was measuring, not that the trap failed.
+  const trap = await cdp.evaluate(TRAP_LIST)
+  if (trap.missing) return stop('the panel was gone before the focus trap could be measured')
+  if (trap.count < 2) return stop(`only ${trap.count} focusable control in the panel — the trap has nothing to cycle`)
+
+  // Two full laps plus a couple of extra presses, so the wrap at each end is
+  // crossed rather than merely approached.
+  const steps = trap.count + 2
+  const forward = []
+  for (let i = 0; i < steps; i++) {
+    await pressTab(cdp, false)
+    forward.push(await cdp.evaluate(ACTIVE_DESC))
+  }
+  const back = []
+  for (let i = 0; i < steps; i++) {
+    await pressTab(cdp, true)
+    back.push(await cdp.evaluate(ACTIVE_DESC))
+  }
+
+  const escaped = [...forward, ...back].filter((step) => !step.inPanel)
+  // If Tab moved nothing at all, every step reports "still in the panel" and
+  // the trap looks perfect while being untested: the same false zero this repo
+  // has hit twice, with getClientRects() and with the font shorthand. The Tab
+  // control proved the key events move focus, so focus that never travelled
+  // here is the trap holding it still: a finding.
+  const distinct = new Set(forward.map((step) => step.desc)).size
+
+  entry.trap = { count: trap.count, distinct, forward, back }
+
+  if (distinct < 2) {
+    notes.push(
+      `Tab never moved focus inside the panel (${distinct} distinct target over ${steps} presses), though it did before the panel opened — the trap is stuck`,
+    )
+  }
+  if (escaped.length) {
+    notes.push(
+      `focus left the modal ${escaped.length}x: ${escaped.map((step) => step.desc).slice(0, 4).join(' | ')}`,
+    )
+  }
+  if (!escaped.length && distinct >= 2) {
+    console.log(`    trap           ${trap.count} stops, ${distinct} visited, focus never left the panel`)
+  }
+
+  // Escape has to close it, or a keyboard user is stuck behind the scrim.
+  await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+  await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+  await sleep(400)
+  const closed = await cdp.evaluate('!document.querySelector(".ui-manual-panel") && getComputedStyle(document.body).overflow !== "hidden"')
+  if (!closed) notes.push('Escape did not close the panel, or the body scroll lock was left on')
+
+  // Closing must hand focus back to the button that opened it. Escape used to
+  // skip this and leave focus on a node it had just unmounted, which drops a
+  // keyboard user at the top of the document to walk the whole chrome again.
+  const restored = await cdp.evaluate(
+    'document.activeElement === document.querySelector(".ui-manual-open")',
+  )
+  if (closed && !restored) {
+    notes.push('closing with Escape did not return focus to the button that opened the guide')
+  }
+  return entry
+}
+
 async function main() {
+  if (!(await requireServer(APP + '/', 'Start the Vite dev server first: npm run dev in ./frontend.'))) return
   mkdirSync(OUT, { recursive: true })
   mkdirSync(PROFILE_DIR, { recursive: true })
 
@@ -410,6 +682,7 @@ async function main() {
   ], { stdio: 'ignore' })
 
   let failures = 0
+  const faults = []
   const report = []
   try {
     const cdp = new CDP(await browserWsUrl())
@@ -421,162 +694,32 @@ async function main() {
     await cdp.send('Runtime.enable')
 
     for (const mode of MODES) {
-      // mobile: true is load-bearing on the narrow pass — without it the viewport
-      // meta tag never applies and every measurement is a desktop measurement in
-      // a narrow window.
-      await cdp.send('Emulation.setDeviceMetricsOverride', {
-        width: mode.w, height: mode.h, deviceScaleFactor: mode.mobile ? 2 : 1, mobile: mode.mobile,
-      })
-
-      await cdp.send('Page.navigate', { url: APP + '/' })
-      await sleep(900)
-      await cdp.evaluate([
-        `localStorage.setItem('sih-theme', '${mode.theme}');`,
-        `localStorage.setItem('sih-language', '${mode.lang}');`,
-        `localStorage.setItem('sih-textsize', '${mode.size}');`,
-        `localStorage.removeItem('sih-dialect');`,
-        'true',
-      ].join(''))
-      await cdp.send('Page.navigate', { url: APP + '/' })
-      await sleep(1300)
-
-      console.log(`\n=== ${mode.name}`)
-      const notes = []
-
-      // --- the wordmark and the relocated pill
-      const chrome = await cdp.evaluate(CHROME_PROBE)
-      if (chrome.missing) {
-        notes.push(`${chrome.missing} is not on the page at all`)
-      } else {
-        for (const [k, v] of Object.entries(chrome)) console.log(`    ${k.padEnd(14)} ${v}`)
-        if (chrome.arthRatio < MIN_TEXT_RATIO) notes.push(`wordmark "${chrome.arthText}" is only ${chrome.arthRatio}:1 on ${chrome.groundColour}`)
-        if (chrome.nitiRatio < MIN_TEXT_RATIO) notes.push(`wordmark "${chrome.nitiText}" is only ${chrome.nitiRatio}:1 on ${chrome.groundColour}`)
-        if (chrome.swooshDeltaL !== null && chrome.swooshDeltaL < 3) notes.push(`the swoosh is painted but only dL* ${chrome.swooshDeltaL} from ${chrome.groundColour} — the token indirection is wrong`)
-        if (chrome.beadOrphaned) notes.push('the swoosh is switched off but its bead is still painted — it reads as a full stop after the name')
-        if (chrome.wordmarkLines > 1) notes.push(`the wordmark wrapped onto ${chrome.wordmarkLines} lines`)
-        if (chrome.pillPresent) notes.push('the prototype disclaimer pill is back on the page — it was removed on the owner\'s instruction')
-      }
-
-      // --- the book icon
-      const book = await cdp.evaluate(BOOK_PROBE)
-      const { png, ...bookReport } = book
-      for (const [k, v] of Object.entries(bookReport)) console.log(`    ${k.padEnd(14)} ${v}`)
-      writeFileSync(`${OUT}/book-${mode.name}.png`, Buffer.from(png.split(',')[1], 'base64'))
-      if (book.pctInk < MIN_INK) notes.push(`only ${book.pctInk}% of the book icon is painted — it may be background-on-background`)
-      if (book.iconVsPage < MIN_VS_PAGE) notes.push(`the book icon averages dL* ${book.iconVsPage} from the card behind it`)
-      if (book.regions < MIN_REGIONS) notes.push(`the cover's centre line crosses only ${book.regions} regions — the seal and band have merged into it`)
-      if (book.worstEdge !== null && book.worstEdge < MIN_EDGE) notes.push(`adjacent regions of the book differ by only dL* ${book.worstEdge}`)
-
-      // The top 520px: utility strip, masthead, tricolour, nav. Named for the
-      // chrome rather than for the strip, because the wordmark this capture
-      // exists to eyeball moved from the first band into the second on 11 Sept
-      // 2026 and the clip covers both either way.
-      const chromeShot = await cdp.send('Page.captureScreenshot', {
-        format: 'png', clip: { x: 0, y: 0, width: mode.w, height: Math.min(mode.h, 520), scale: 1 },
-      })
-      writeFileSync(`${OUT}/chrome-${mode.name}.png`, Buffer.from(chromeShot.data, 'base64'))
-
-      // --- open it and measure the panel
-      await cdp.evaluate('document.querySelector(".ui-manual-open").click(); true')
-      await sleep(700)
-      const panel = await cdp.evaluate(PANEL_PROBE)
-      if (panel.missing) {
-        notes.push('clicking the open button did not render the panel')
-      } else {
-        console.log(`    panel          ${panel.panelW}x${panel.panelH}  role=${panel.dialogRole} modal=${panel.modal} focused=${panel.focused} strings=${panel.strings}`)
-        if (panel.dialogRole !== 'dialog' || panel.modal !== 'true') notes.push('the panel is not announced as a modal dialog')
-        if (!panel.focused) notes.push('focus did not move into the panel when it opened')
-        if (!panel.fitsViewport) notes.push(`the panel is ${panel.panelH}px tall in a ${mode.h}px viewport — its top will be unreachable`)
-        for (const f of panel.findings) {
-          notes.push(`${f.kind}  ` + Object.entries(f).filter(([k]) => k !== 'kind').map(([k, v]) => `${k}=${v}`).join(' '))
-        }
-      }
-
-      const open = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })
-      writeFileSync(`${OUT}/panel-${mode.name}.png`, Buffer.from(open.data, 'base64'))
-
-      // --- the focus trap: Tab and Shift+Tab must both stay inside the panel
-      let trapReport = null
-      const trap = await cdp.evaluate(TRAP_LIST)
-      if (trap.missing) {
-        notes.push('the panel was gone before the focus trap could be measured')
-      } else if (trap.count < 2) {
-        notes.push(`only ${trap.count} focusable control in the panel — the trap has nothing to cycle`)
-      } else {
-        // Two full laps plus a couple of extra presses, so the wrap at each end is
-        // crossed rather than merely approached.
-        const steps = trap.count + 2
-        const forward = []
-        for (let i = 0; i < steps; i++) {
-          await pressTab(cdp, false)
-          forward.push(await cdp.evaluate(ACTIVE_DESC))
-        }
-        const back = []
-        for (let i = 0; i < steps; i++) {
-          await pressTab(cdp, true)
-          back.push(await cdp.evaluate(ACTIVE_DESC))
-        }
-
-        const escaped = [...forward, ...back].filter((step) => !step.inPanel)
-        // The instrument check. If Tab moved nothing at all, every step reports
-        // "still in the panel" and the trap looks perfect while being untested —
-        // the same false zero this repo has hit twice with getClientRects() and
-        // with the font shorthand. So require that focus actually travelled.
-        const distinct = new Set(forward.map((step) => step.desc)).size
-
-        trapReport = { count: trap.count, distinct, forward, back }
-
-        if (distinct < 2) {
-          notes.push(
-            `Tab never moved focus (${distinct} distinct target over ${steps} presses) — the trap is untested, not passing`,
-          )
-        }
-        if (escaped.length) {
-          notes.push(
-            `focus left the modal ${escaped.length}x: ${escaped.map((step) => step.desc).slice(0, 4).join(' | ')}`,
-          )
-        }
-        if (!escaped.length && distinct >= 2) {
-          console.log(`    trap           ${trap.count} stops, ${distinct} visited, focus never left the panel`)
-        }
-      }
-
-      // Escape has to close it, or a keyboard user is stuck behind the scrim.
-      await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
-      await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
-      await sleep(400)
-      const closed = await cdp.evaluate('!document.querySelector(".ui-manual-panel") && getComputedStyle(document.body).overflow !== "hidden"')
-      if (!closed) notes.push('Escape did not close the panel, or the body scroll lock was left on')
-
-      // Closing must hand focus back to the button that opened it. Escape used to
-      // skip this and leave focus on a node it had just unmounted, which drops a
-      // keyboard user at the top of the document to walk the whole chrome again.
-      const restored = await cdp.evaluate(
-        'document.activeElement === document.querySelector(".ui-manual-open")',
-      )
-      if (closed && !restored) {
-        notes.push('closing with Escape did not return focus to the button that opened the guide')
-      }
-
-      if (notes.length) {
-        failures++
-        for (const n of notes) console.log(`    FAIL  ${n}`)
-      } else {
+      const entry = await auditMode(cdp, mode)
+      if (entry.notes.length) failures++
+      for (const n of entry.notes) console.log(`    FAIL  ${n}`)
+      if (entry.fault) {
+        faults.push(`${mode.name}: ${entry.fault}`)
+        console.log(`    FAULT ${entry.fault}`)
+      } else if (!entry.notes.length) {
         console.log('    ok    wordmark, icon and panel hold up; no disclaimer pill')
       }
-      report.push({ mode: mode.name, chrome, book: bookReport, panel, trap: trapReport, notes })
+      report.push(entry)
     }
   } finally {
     edge.kill()
   }
 
-  writeFileSync(`${OUT}/report.json`, JSON.stringify(report, null, 2))
-  console.log(`\n${MODES.length} modes checked, ${failures} with problems.`)
+  // A fault outranks a finding: a mode that could not be measured has not been
+  // shown clean, whatever the others found.
+  const exit = faults.length ? 2 : failures ? 1 : 0
+  writeFileSync(`${OUT}/report.json`, JSON.stringify({ exit, faults, report }, null, 2))
+  console.log(`\n${MODES.length} modes checked, ${failures} with problems, ${faults.length} stopped by a fault.`)
   console.log(`Captures and report.json in ${OUT}`)
-  process.exit(failures ? 1 : 0)
+  process.exit(exit)
 }
 
 main().catch((error) => {
   console.error(error)
-  process.exit(1)
+  // A crash is not a finding.
+  crashExit()
 })

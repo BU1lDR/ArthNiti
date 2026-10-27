@@ -12,7 +12,10 @@
 // with no share, and a state-scope fallback with a share of the state's total.
 // Two rows share one attribution, so the dedupe in the sources block is proven
 // rather than assumed. Every row is also held to the fetch's own validateRow,
-// so the fixture cannot drift into a shape the fetch would never write.
+// so the fixture cannot drift into a shape the fetch would never write. The
+// same rows load a second time with no market type ticked on /location: the
+// where-you-sell line comes from the reader's own answers, not from the row, so
+// it must name what was ticked in the first case and be absent in the second.
 //
 // Why the sources block gets its own checks: GODL-India makes the attribution
 // mandatory, so it must print (never inside a <details>, which prints
@@ -25,19 +28,37 @@
 // kills msedge or node by image name: other gates, and the reader's own
 // browser, may be running.
 //
-//   node tools/verify/market-ui.mjs             36 loads, exit 1 on any finding
+//   node tools/verify/market-ui.mjs             40 loads, exit 1 on any finding
 //   node tools/verify/market-ui.mjs --broken    one DOM defect per honesty check; exits 1
 //                                               only if every defect is caught by its
-//                                               own check, 2 if any is missed
+//                                               own check, 2 if any is missed or there
+//                                               is a real DICT-EN finding (see Exit)
 //   node tools/verify/market-ui.mjs --url=http://localhost:5173   skip starting Vite
 //
 // Run from the repo root. Needs screenshots/verify/case_good.json, which
 // refresh-cases.mjs writes.
+//
+// Exit 0: nothing found. 1: a finding (under --broken, every defect caught and
+// no DICT-EN finding). 2: the run could not measure (the working directory is
+// wrong, an input is missing or does not load, market-lib.mjs included,
+// STORAGE_KEY or STORAGE_VERSION is not found in AppContext.jsx, port 5179 or
+// 9373 is already held, Vite would not start, the --url= copy is down, a
+// navigation failed (the server gone mid-run), Edge or its DevTools socket went
+// away, a result page never rendered (NOT-RENDERED, even one that threw) or
+// showed its empty state because the seed was not read (UNSEEDED), a refuter
+// missed, the script crashed, or the run ended before its verdict), or, under
+// --broken only, a real DICT-EN finding. No defect is planted in the dictionary
+// check, so there a 1 would read as the pass and hide it. That one 2 is a
+// finding, not a failure to measure: it prints as DICT-EN, not REFUTER FAILED,
+// and report.json counts it in kinds, not in defects_missed. 130: stopped by a
+// signal (SIGINT, SIGTERM, SIGHUP or SIGBREAK), after cleanup. report.json
+// carries the same code as `exit`; a crash, a failed navigation, a lost Edge, a
+// signal, or a run that never started leaves none.
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, openSync, closeSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:net'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { rowIdentity, validateRow } from '../market-lib.mjs'
 
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
 const DEBUG_PORT = 9373
@@ -106,23 +127,79 @@ for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK']) {
   process.on(signal, () => { cleanup(); process.exit(130) })
 }
 
+// 0 means the run measured and found nothing, 1 a finding (under --broken,
+// every defect caught), and 2 that the run could not measure (or, under
+// --broken, a real DICT-EN finding: see the header). Node's own exit on
+// an uncaught error is 1, which reads as a finding and under --broken as the
+// pass, so anything thrown or rejected that nothing catches exits 2 instead. The
+// three imports below are the likeliest, if a file they load is gone or no
+// longer parses. process.exit runs cleanup() through the 'exit' listener above.
+process.on('uncaughtException', (err) => {
+  console.error(err)
+  crashExit()
+})
+// A crash exits 2 through this rather than process.exit(2) at once. For up to
+// about 100 ms after fetch() reads a response, V8 can still be recompiling
+// undici's WASM HTTP parser on a worker thread, and exiting in that window kills
+// node with 0xC0000409 (Git Bash shows 127): neither 0, 1 nor 2. The wait
+// blocks this thread, so nothing else of the run happens meanwhile.
+// tools/README.md, Exit codes, has the measurements.
+function crashExit() {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000)
+  process.exit(2)
+}
+// A run that ends without reaching its verdict exits 2; the verdict overrides
+// this. Before it, a CDP socket that closed under a pending send left the send
+// unsettled, the event loop drained, and node exited 0 with no report.
+process.exitCode = 2
+// Every path in this file resolves against the working directory.
+if (!existsSync(resolve('tools/verify/market-ui.mjs'))) {
+  console.error(`market-ui: ${process.cwd()} is not the repo root. Run this from the repo root: node tools/verify/market-ui.mjs`)
+  process.exit(2)
+}
+// A report.json on disk is always from a run that finished. The last run's
+// goes once the working directory has been checked, so a run that stops early
+// leaves none.
+rmSync(resolve(OUT, 'report.json'), { force: true })
+
 // --- inputs, all read before anything is started ----------------------------
+// The fetch's own row checks, imported here rather than at the top. A static
+// import links before any line of this file runs, so a syntax error or a
+// renamed export in market-lib.mjs ended the run with node's own 1 (a finding,
+// and under --broken the pass) and left the last run's report standing. Here
+// either one reaches the handler above and exits 2.
+const { rowIdentity, validateRow } = await import('../market-lib.mjs')
+if (typeof rowIdentity !== 'function' || typeof validateRow !== 'function') {
+  throw new Error('tools/market-lib.mjs no longer exports rowIdentity and validateRow')
+}
 if (!existsSync(CASE_FILE)) {
   console.error('market-ui: screenshots/verify/case_good.json is missing.')
   console.error('Run `node tools/verify/refresh-cases.mjs` with the backend up, then re-run this.')
-  process.exit(1)
+  // A missing input is not a finding, and under --broken 1 is the pass.
+  process.exit(2)
 }
 const CASE_GOOD = JSON.parse(readFileSync(CASE_FILE, 'utf8'))
 
 // Read, not hardcoded: a payload whose v does not match is discarded by
 // AppContext, so a bumped version would silently seed nothing and every result
 // page would fall to its empty state.
-const versionMatch = /const STORAGE_VERSION = (\d+)/.exec(readFileSync(resolve('frontend/src/context/AppContext.jsx'), 'utf8'))
+const APP_CONTEXT = readFileSync(resolve('frontend/src/context/AppContext.jsx'), 'utf8')
+const versionMatch = /const STORAGE_VERSION = (\d+)/.exec(APP_CONTEXT)
 if (!versionMatch) {
   console.error('market-ui: could not find STORAGE_VERSION in frontend/src/context/AppContext.jsx')
-  process.exit(1)
+  process.exit(2)
 }
 const STORAGE_VERSION = Number(versionMatch[1])
+// The key too, for the same reason: a seed written under a key the app no
+// longer reads is never seen, and the SEEDED read-back below, under the old key,
+// would still find it and pass. Only a plain string literal is taken: a key
+// built from an expression would parse as a piece of itself, so it is refused.
+const keyMatch = /const STORAGE_KEY = (['"])([^'"\n]+)\1;?[ \t]*(?:\/\/.*)?\r?$/m.exec(APP_CONTEXT)
+if (!keyMatch) {
+  console.error('market-ui: could not find STORAGE_KEY in frontend/src/context/AppContext.jsx')
+  process.exit(2)
+}
+const STORAGE_KEY = keyMatch[2]
 
 const { APP_NAME } = await import(pathToFileURL(resolve('frontend/src/i18n/brand.js')).href)
 
@@ -235,10 +312,13 @@ const provenance = ({ id, title, page, query, attribution, price, nic = null, pe
   attribution,
 })
 
-const LOCAL = { village: 'Khera', market_type: 'village, weekly', customers: 'Local families' }
+// No local_context: the service stopped echoing the village, market type and
+// customers back (the UI no longer sends them), and MarketCard reads the market
+// type from the reader's own answers. A card that still read the row would lose
+// its where-you-sell line here, and WHERE-SELL reports it.
 const common = (over) => ({
   state: 'Uttar Pradesh', district: 'Lucknow', scope: 'district', match_level: 'district',
-  last_verified: '2026-09-23', local_context: LOCAL, ...over,
+  last_verified: '2026-09-23', ...over,
 })
 const AGMARK_PROV = { id: '35985678-0d79-46b4-9ed6-6f13308a1d24', title: 'Variety-wise Daily Market Prices Data of Commodity', page: 'https://www.data.gov.in/resource/variety-wise-daily-market-prices-data-commodity', price: true }
 const UDYAM_PROV = { id: '8b68ae56-84cf-4728-a0a6-1be11028dea7', title: 'List of MSME Registered Units under UDYAM', page: 'https://www.data.gov.in/resource/list-msme-registered-units-under-udyam' }
@@ -305,11 +385,11 @@ const ROWS = [
 
 // The fixture is held to the fetch's own validator, so a row shape the fetch
 // could never write cannot pass here and then fail on real data. match_level
-// and local_context are added by the service, not stored in the file.
+// is added by the service, not stored in the file.
 {
   const problems = []
   for (const row of ROWS) {
-    const { match_level: _level, local_context: _context, ...stored } = row
+    const { match_level: _level, ...stored } = row
     for (const e of validateRow(stored, { commodities: COMMODITIES.commodities, nicMap: NIC_MAP })) problems.push(`${rowIdentity(stored)}: ${e}`)
   }
   if (problems.length) {
@@ -321,11 +401,11 @@ const ROWS = [
 // The form answers drive.mjs seeds with its good case. The result is the real
 // captured response with only the market section replaced.
 const FORM = {
-  profile: { name: 'Lakshmi Devi', language: 'Tamil', dialect: '', literacyLevel: 'low' },
+  profile: { name: 'Lakshmi Devi', language: 'Tamil', dialect: '' },
   business: {
     businessName: 'Lakshmi Tailors', category: 'tailoring', categoryOther: '',
     initialInvestment: '200000', monthlyRevenue: '30000',
-    monthlyOperatingExpenses: '18000', employees: 2, existingDebt: 0,
+    monthlyOperatingExpenses: '18000', existingDebt: 0,
   },
   location: {
     village: 'Khera', district: 'Lucknow', state: 'Uttar Pradesh',
@@ -333,10 +413,21 @@ const FORM = {
   },
   finance: { availableCapital: '150000', monthlyExpenses: '15000', monthlyEmi: '3000' },
 }
+// nomarket: the same rows, but the reader ticked no market type on /location.
+// The where-you-sell line must then be absent from every card, not printed
+// with an empty value.
 const CASES = {
   rows: { ...FORM, result: { ...CASE_GOOD, market_context: ROWS } },
   empty: { ...FORM, result: { ...CASE_GOOD, market_context: [] } },
+  nomarket: { ...FORM, location: { ...FORM.location, marketType: [] }, result: { ...CASE_GOOD, market_context: ROWS } },
 }
+
+// What the where-you-sell line must read on /analysis in the rows case: the
+// label of each market type ticked on /location, in the page's language,
+// joined the way choiceListText in AnalysisPage.jsx joins them. The keys
+// mirror its CHOICE_KEYS.
+const MARKET_KEYS = { village: 'market.village', weekly: 'market.weekly', town: 'market.town', online: 'market.online' }
+const marketPlaces = (lang) => FORM.location.marketType.map((value) => T(lang, MARKET_KEYS[value])).join(', ')
 
 const LANGS = ['en', 'hi', 'ta', 'te', 'ml', 'kn', 'mr', 'bn']
 const ROUTES = ['/analysis', '/report']
@@ -347,16 +438,18 @@ const VIEWPORTS = {
   phone: { name: '360', width: 360, height: 740, deviceScaleFactor: 2, mobile: true },
 }
 // case, viewport, languages. 8 × 2 × 2 routes = 32 loads with rows, then the
-// empty market section in two scripts on both routes = 4 more.
+// empty market section in two scripts on both routes = 4 more, then the rows
+// with no market type ticked, the same way = 4 more. 40 loads.
 const PASSES = [
   ['rows', VIEWPORTS.desktop, LANGS],
   ['rows', VIEWPORTS.phone, LANGS],
   ['empty', VIEWPORTS.desktop, ['en', 'hi']],
+  ['nomarket', VIEWPORTS.desktop, ['en', 'hi']],
 ]
 
-// Same prefix set as drive.mjs, cmd|mknote|src included. A t() key that exists
+// Same prefix set as drive.mjs, cmd|mknote|src and the notice prefixes included. A t() key that exists
 // in no dictionary prints as itself, so a leaked key is found verbatim.
-const RAW_KEY = /\b(?:common|nav|res|st|risk|f|an|ch|mk|sc|sch|ad|rp|login|nf|landing|profile|business|location|finance|money|cat|market|area|greeting|cmd|mknote|src)\.[a-zA-Z_][a-zA-Z0-9_]*/g
+const RAW_KEY = /\b(?:common|nav|res|st|risk|f|an|ch|mk|sc|sch|ad|rp|login|nf|landing|profile|business|location|finance|money|cat|market|area|greeting|cmd|mknote|src|privacy|notice|consent|errf|form)\.[a-zA-Z_][a-zA-Z0-9_]*/g
 const BAD_TOKENS = ['null%', 'NaN', 'undefined', '[object Object]', 'Infinity', '₹null', '₹NaN', '₹undefined']
 const RAW_ENUMS = ['wholesale_price_per_kg', 'registered_units', 'count_suppressed', 'match_level', 'src.', 'mknote.', 'cmd.']
 
@@ -403,10 +496,20 @@ class CDP {
     this.pending = new Map()
     this.pageErrors = []
     this.sessionId = null
+    this.closed = false
 
     this.ready = new Promise((res, rej) => {
       this.ws.addEventListener('open', () => res())
       this.ws.addEventListener('error', () => rej(new Error('CDP socket error')))
+      this.ws.addEventListener('close', () => rej(new Error('CDP socket closed')))
+    })
+
+    // Edge gone: every call still waiting for its reply fails now. Nothing else
+    // would ever settle it.
+    this.ws.addEventListener('close', () => {
+      this.closed = true
+      for (const slot of this.pending.values()) slot.reject(new Error(slot.method + ': CDP socket closed'))
+      this.pending.clear()
     })
 
     this.ws.addEventListener('message', (event) => {
@@ -423,6 +526,9 @@ class CDP {
   }
 
   send(method, params = {}, useSession = true) {
+    // A frame sent on a socket that is not open is dropped without an error, so
+    // its reply would never come.
+    if (this.ws.readyState !== WebSocket.OPEN) return Promise.reject(new Error(method + ': CDP socket closed'))
     const id = this.next++
     const envelope = { id, method, params }
     if (useSession && this.sessionId) envelope.sessionId = this.sessionId
@@ -444,7 +550,9 @@ class CDP {
 async function browserWsUrl() {
   for (let i = 0; i < 80; i++) {
     try {
-      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`)).json()
+      // Bounded: a listener that accepts and never answers would otherwise hold
+      // this for undici's five-minute header timeout.
+      const info = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`, { signal: AbortSignal.timeout(2000) })).json()
       if (info.webSocketDebuggerUrl) return info.webSocketDebuggerUrl
     } catch { /* not listening yet */ }
     await sleep(250)
@@ -452,7 +560,23 @@ async function browserWsUrl() {
   throw new Error('Edge never opened the DevTools endpoint on port ' + DEBUG_PORT)
 }
 
+// Whether something already listens where our Vite would bind. --strictPort
+// makes Vite exit on a taken port, but the readiness loop below can reach the
+// other listener first: one that answered would pass for our Vite and the run
+// would measure somebody else's app, and one that never answered held the run
+// for undici's five-minute header timeout before Vite's exit was seen.
+function portInUse(port) {
+  return new Promise((done) => {
+    const probe = createServer()
+    probe.once('error', (err) => done(err.code || err.message))
+    probe.once('listening', () => probe.close(() => done(null)))
+    probe.listen({ port, host: '127.0.0.1', exclusive: true })
+  })
+}
+
 async function startVite() {
+  const held = await portInUse(VITE_PORT)
+  if (held) throw new Error(`port ${VITE_PORT} is already in use (${held}); free it, or pass --url= to audit a copy that is already running`)
   const logFd = openSync(`${OUT}/vite.log`, 'w')
   // Node straight at Vite's own bin, not `npm run dev` through a shell, so the
   // PID we hold is Vite's and not a cmd.exe wrapped around it.
@@ -469,7 +593,7 @@ async function startVite() {
       throw new Error(`Vite exited with ${vite.exitCode}; see ${OUT}/vite.log (is port ${VITE_PORT} taken?)`)
     }
     try {
-      const res = await fetch(APP + '/')
+      const res = await fetch(APP + '/', { signal: AbortSignal.timeout(2000) })
       if (res.ok) return
     } catch { /* not listening yet */ }
     await sleep(250)
@@ -481,12 +605,32 @@ async function startVite() {
 // passes on an empty shell.
 async function waitForRender(cdp) {
   for (let i = 0; i < 75; i++) {
-    const len = await cdp.evaluate(`document.querySelector('#main')?.innerText?.trim().length || 0`).catch(() => 0)
+    // A page mid-navigation can refuse an evaluate, which only means not yet. A
+    // closed socket means Edge is gone, and polling on would hide that.
+    const len = await cdp.evaluate(`document.querySelector('#main')?.innerText?.trim().length || 0`)
+      .catch((err) => { if (cdp.closed) throw err; return 0 })
     if (len > 40) return true
     await sleep(200)
   }
   return false
 }
+
+// A navigation that failed (the server gone mid-run, say) commits Edge's own
+// error page, and every check run on it would read as a finding about the app.
+// It ends the run instead, through main()'s catch, as a fault.
+async function navigate(cdp, url) {
+  const { errorText } = await cdp.send('Page.navigate', { url })
+  if (errorText) throw new Error(`${url} did not load (${errorText}); is the app still being served?`)
+}
+
+// Whether the result page is showing the seeded result. AppContext writes its
+// state back under the same key once it has mounted, so a seed it discarded (a
+// version it no longer reads, say) reads back with no result, and the page is
+// the empty state: a page with no market section, which measures as findings
+// about the app rather than as a run that never saw it.
+const SEEDED = `(() => {
+  try { return !!JSON.parse(sessionStorage.getItem(${JSON.stringify(STORAGE_KEY)})).data.result } catch { return false }
+})()`
 
 // Runs in the page, after every <details> is open: innerText skips the body of
 // a closed one, so anything inside a disclosure would otherwise be invisible.
@@ -620,6 +764,15 @@ const breakPage = (want) => `(() => {
   mark('multi-count caveat removed from a list row', 'MULTI', removeEl(paraIn(tailoring, want.multi)), c.tailoring.heading)
   mark("another row's note printed here", 'NOTE', addPara(state, c.state.borrowedNote), c.state.heading)
   mark('checked date removed', 'CHECKED', swapText(state, c.state.checked, ''), c.state.heading)
+  // On the wheat card, which only PROVENANCE also targets, with a different
+  // sentence. With no market type ticked the line is planted; with some ticked,
+  // /analysis loses what they were. /report never shows the line, so the rows
+  // case has nothing to break there.
+  if (want.caseName === 'nomarket') {
+    mark('where-you-sell shown with no market type', 'WHERE-SELL', addPara(wheat, want.whereSell), c.wheat.heading)
+  } else if (want.route === '/analysis') {
+    mark('market types dropped from where-you-sell', 'WHERE-SELL', swapText(wheat, want.places, ''), c.wheat.heading)
+  }
 
   let truncated = false
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
@@ -661,6 +814,8 @@ function brokenTargets(caseName, lang, sourcesHeading) {
     multi: T(lang, 'mk.countMulti'),
     warranty: T(lang, 'mk.warranty'),
     notEndorsed: T(lang, 'mk.notEndorsed', { app: APP_NAME }),
+    whereSell: T(lang, 'mk.whereSell'),
+    places: marketPlaces(lang),
     attributions: [...new Set(ROWS.map((r) => r.provenance.attribution))],
   }
   if (caseName === 'empty') return want
@@ -689,12 +844,13 @@ function brokenTargets(caseName, lang, sourcesHeading) {
 }
 
 // --- the checks, on one load ------------------------------------------------
-function checkLoad({ caseName, lang, vp, route, rendered, pageErrors, got }) {
+function checkLoad({ caseName, lang, vp, route, pageErrors, got }) {
   const found = []
   const add = (kind, detail) => found.push({ kind, detail })
   const text = got.text || ''
 
-  if (!rendered) add('NOT-RENDERED', '#main never filled')
+  // A page that never rendered, or showed its empty state, does not get here:
+  // main() records it as a fault. One that rendered and threw is a finding.
   if (pageErrors.length) add('PAGE-EXCEPTION', pageErrors[0].split('\n')[0])
 
   const leaked = [...new Set(text.match(RAW_KEY) || [])]
@@ -725,6 +881,7 @@ function checkLoad({ caseName, lang, vp, route, rendered, pageErrors, got }) {
   const stale = T(lang, 'mk.stale')
   const multi = T(lang, 'mk.countMulti')
   const whereSell = T(lang, 'mk.whereSell')
+  const places = marketPlaces(lang)
   const shareRe = templateRegex(lookup(lang, 'mk.countShare'))
   const allNotes = ROWS.filter((r) => r.note_code).map((r) => TB(lang, r.note_code, r.note))
 
@@ -744,7 +901,15 @@ function checkLoad({ caseName, lang, vp, route, rendered, pageErrors, got }) {
     if (!has(e.provenance)) add('PROVENANCE', `${who}: missing "${e.provenance}"`)
     if (!has(e.source)) add('SOURCE', `${who}: missing "${e.source}"`)
     if (!has(e.checked)) add('CHECKED', `${who}: missing "${e.checked}"`)
-    if (route === '/analysis' && !has(whereSell)) add('WHERE-SELL', `${who}: mk.whereSell missing`)
+    // The where-you-sell line is on /analysis only. With a market type ticked it
+    // must name what was ticked; with none it must not be there at all, on
+    // either route.
+    if (caseName === 'nomarket') {
+      if (has(whereSell)) add('WHERE-SELL', `${who}: mk.whereSell shown although no market type was ticked`)
+    } else if (route === '/analysis') {
+      if (!has(whereSell)) add('WHERE-SELL', `${who}: mk.whereSell missing`)
+      if (!has(places)) add('WHERE-SELL', `${who}: the market types ticked on /location ("${places}") missing`)
+    }
 
     if (row.metric === 'wholesale_price_per_kg') {
       if (!hasPara(e.price)) add('PRICE-FIGURE', `${who}: no element reading exactly "${e.price}"`)
@@ -829,14 +994,31 @@ async function main() {
   for (const pid of ownEdgePids()) killPid(pid)
   // Anything else answering on 9373 is somebody else's browser, and driving it
   // would seed their sessionStorage and report on their pages.
-  const taken = await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`).then(() => true, () => false)
+  // A listener that accepts and never answers is taken too; unbounded, this
+  // waited five minutes on one.
+  const taken = await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`, { signal: AbortSignal.timeout(2000) })
+    .then(() => true, (err) => err.name === 'TimeoutError')
   if (taken) throw new Error(`port ${DEBUG_PORT} is already answering; free it before running this gate`)
+  // The copy --url= names has to be up, or every load would measure Edge's
+  // error page.
+  if (URL_ARG) {
+    try {
+      const res = await fetch(APP + '/', { signal: AbortSignal.timeout(5000) })
+      await res.body?.cancel()
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    } catch (err) {
+      throw new Error(`nothing usable answered at ${APP}/ (${err.cause?.code || err.message}); start that copy first, or drop --url= to let this start its own Vite`)
+    }
+  }
 
   rmSync(OUT, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
   mkdirSync(PROFILE_DIR, { recursive: true })
 
   const findings = []
   const report = []
+  // Loads that measured nothing: the page never rendered, or showed its empty
+  // state. Either one makes the run exit 2, in both modes.
+  const faults = []
   // --broken only: defects that were not applied, or were applied and missed.
   const refuter = []
   for (const f of checkDictionaryEnglish()) findings.push({ tag: 'dictionary', ...f })
@@ -875,11 +1057,11 @@ async function main() {
 
       for (const lang of langs) {
         // Establish the origin before writing storage, then seed and navigate.
-        await cdp.send('Page.navigate', { url: APP + '/' })
+        await navigate(cdp, APP + '/')
         await waitForRender(cdp)
         const payload = JSON.stringify({ v: STORAGE_VERSION, data: CASES[caseName] })
         await cdp.evaluate(`
-          sessionStorage.setItem('sih-application', ${JSON.stringify(payload)});
+          sessionStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(payload)});
           localStorage.setItem('sih-language', ${JSON.stringify(lang)});
           localStorage.setItem('sih-theme', 'light');
           localStorage.setItem('sih-textsize', 'md');
@@ -894,21 +1076,40 @@ async function main() {
         for (const route of ROUTES) {
           const tag = `${caseName}-${lang}-${vp.name}${route.replace(/\//g, '_')}`
           cdp.pageErrors.length = 0
-          await cdp.send('Page.navigate', { url: APP + route })
+          await navigate(cdp, APP + route)
           const rendered = await waitForRender(cdp)
           await sleep(450)
+          const seeded = await cdp.evaluate(SEEDED)
 
           // The screenshot shows the page as a reader lands on it, before the
-          // probe opens every disclosure.
+          // probe opens every disclosure. It is taken for a load that measured
+          // nothing too, since that is where the reason shows.
           const shot = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true })
           writeFileSync(`${OUT}/${tag}.png`, Buffer.from(shot.data, 'base64'))
 
+          // A page that never rendered, or rendered its empty state, is not
+          // checked. Every check would fire on it (no card, no sources block) and
+          // read as findings about the market section, which the run never saw;
+          // under --broken every defect would miss its target. The run exits 2.
+          const unmeasured = []
+          if (!rendered) {
+            const threw = cdp.pageErrors.length ? `; the page threw: ${cdp.pageErrors[0].split('\n')[0]}` : ''
+            unmeasured.push({ kind: 'NOT-RENDERED', detail: `#main never filled${threw}` })
+          }
+          if (!seeded) unmeasured.push({ kind: 'UNSEEDED', detail: `no result under ${STORAGE_KEY} after the load: the seed was not read, so this is the empty state` })
+          if (unmeasured.length) {
+            for (const f of unmeasured) faults.push({ tag, ...f })
+            report.push({ tag, caseName, lang, viewport: vp.name, route, rendered, seeded, faults: unmeasured, broke: [], problems: [] })
+            console.log(`FAULT ${tag.padEnd(26)} ${unmeasured.map((f) => f.kind).join(' ')}: not measured`)
+            continue
+          }
+
           let broke = []
-          if (BROKEN) broke = await cdp.evaluate(breakPage(breakWant))
+          if (BROKEN) broke = await cdp.evaluate(breakPage({ ...breakWant, route }))
 
           const got = await cdp.evaluate(probe({ headings, sourcesHeading }))
           writeFileSync(`${OUT}/${tag}.txt`, got.text)
-          const problems = checkLoad({ caseName, lang, vp, route, rendered, pageErrors: [...cdp.pageErrors], got })
+          const problems = checkLoad({ caseName, lang, vp, route, pageErrors: [...cdp.pageErrors], got })
 
           // Under --broken, every applied defect must be reported by its own
           // kind on this load and, for a per-card check, name that card.
@@ -922,12 +1123,12 @@ async function main() {
           }
           const caught = verdicts.filter((v) => v.caught).length
 
-          report.push({ tag, caseName, lang, viewport: vp.name, route, rendered, chars: got.text.length, cards: got.cards.filter((c) => c.found).length, broke: verdicts, problems })
+          report.push({ tag, caseName, lang, viewport: vp.name, route, rendered, seeded, chars: got.text.length, cards: got.cards.filter((c) => c.found).length, broke: verdicts, problems })
           for (const p of problems) findings.push({ tag, ...p })
           const status = BROKEN ? (caught === verdicts.length ? 'ok  ' : 'MISS') : problems.length ? 'FAIL' : 'ok  '
           console.log(
             `${status}  ${tag.padEnd(26)} ${String(got.text.length).padStart(5)}c` +
-              (caseName === 'rows' ? ` cards=${got.cards.filter((c) => c.found).length}/${ROWS.length}` : '') +
+              (caseName !== 'empty' ? ` cards=${got.cards.filter((c) => c.found).length}/${ROWS.length}` : '') +
               (BROKEN ? ` caught ${caught}/${verdicts.length}` : '') +
               (!BROKEN && problems.length ? '  ' + problems.map((p) => p.kind).join(' ') : ''),
           )
@@ -942,42 +1143,57 @@ async function main() {
   const kinds = {}
   for (const f of findings) kinds[f.kind] = (kinds[f.kind] || 0) + 1
   const applied = report.reduce((n, r) => n + r.broke.filter((v) => v.applied).length, 0)
+  // The dictionary check runs before any load and no defect targets it, so a
+  // DICT-EN finding under --broken is a real one and still fails the run.
+  const real = findings.filter((f) => f.tag === 'dictionary')
+  // Under --broken, 1 is the expected result: every defect was caught. 2 means
+  // the refuter itself failed, which proves nothing about the checks, or a real
+  // DICT-EN finding, which a 1 would hide. The two are told apart below: a
+  // DICT-EN finding once printed as REFUTER FAILED, with nothing missed.
+  const refuterMissed = BROKEN && (refuter.length > 0 || !applied ||
+    report.length !== PASSES.reduce((n, [, , langs]) => n + langs.length * ROUTES.length, 0))
+  const refuterFailed = refuterMissed || (BROKEN && real.length > 0)
+  // A load that measured nothing outranks both verdicts: in a clean run its
+  // absence of findings is not a pass, and under --broken its defects were never
+  // planted.
+  const exit = faults.length ? 2 : BROKEN ? (refuterFailed ? 2 : 1) : findings.length ? 1 : 0
+  const faultedLoads = report.filter((r) => r.faults).length
   writeFileSync(`${OUT}/report.json`, JSON.stringify({
-    mode: BROKEN ? 'broken' : 'clean', app: APP, loads: report.length, findings: findings.length, kinds,
+    exit, mode: BROKEN ? 'broken' : 'clean', app: APP, loads: report.length, faults, findings: findings.length, kinds,
     ...(BROKEN ? { defects_applied: applied, defects_missed: refuter.length, refuter } : {}),
     report, details: findings,
   }, null, 2))
 
   if (BROKEN) {
-    // The dictionary check runs before any load and no defect targets it, so a
-    // DICT-EN finding under --broken is a real one and still fails the run.
-    const real = findings.filter((f) => f.tag === 'dictionary')
     for (const f of [...refuter, ...real].slice(0, 60)) console.log(`  ${f.tag}  ${f.kind}  ${f.detail}`)
     console.log(`\n${report.length} page loads, ${applied} defects applied, ${refuter.length} not applied or missed, ${findings.length} findings ${JSON.stringify(kinds)}.`)
     console.log(`PNGs, text dumps and report.json in ${OUT}`)
-    // 1 is the expected result: every defect was caught. 2 means the refuter
-    // itself failed, which proves nothing about the checks.
-    if (refuter.length || real.length || !applied || report.length !== PASSES.reduce((n, [, , langs]) => n + langs.length * ROUTES.length, 0)) {
-      console.log('REFUTER FAILED: see above.')
-      process.exitCode = 2
-    } else {
-      console.log('Every defect was caught by its own check.')
-      process.exitCode = 1
+    if (!faults.length) {
+      if (refuterMissed) console.log('REFUTER FAILED: see above.')
+      if (real.length) {
+        console.log(`DICT-EN: ${real.length} real finding${real.length === 1 ? '' : 's'} in the dictionary (listed above), not a missed defect.` +
+          (refuterMissed ? '' : ' Every planted defect was caught, but a 1 would read as the pass, so the run exits 2. Run it without --broken to see this as a finding.'))
+      }
+      if (!refuterFailed) console.log('Every defect was caught by its own check.')
     }
-    return
+  } else {
+    for (const f of findings.slice(0, 60)) console.log(`  ${f.tag}  ${f.kind}  ${f.detail}`)
+    if (findings.length > 60) console.log(`  … ${findings.length - 60} more in report.json`)
+    console.log(`\n${report.length} page loads, ${findings.length} findings${findings.length ? ' ' + JSON.stringify(kinds) : ''}.`)
+    console.log(`PNGs, text dumps and report.json in ${OUT}`)
   }
-
-  for (const f of findings.slice(0, 60)) console.log(`  ${f.tag}  ${f.kind}  ${f.detail}`)
-  if (findings.length > 60) console.log(`  … ${findings.length - 60} more in report.json`)
-  console.log(`\n${report.length} page loads, ${findings.length} findings${findings.length ? ' ' + JSON.stringify(kinds) : ''}.`)
-  console.log(`PNGs, text dumps and report.json in ${OUT}`)
+  if (faults.length) {
+    console.log(`\n${faults.length} instrument fault(s) on ${faultedLoads} of ${report.length} loads; the run did not measure what it names:`)
+    for (const f of faults.slice(0, 20)) console.log(`  ${f.tag}  ${f.kind}  ${f.detail}`)
+    if (faults.length > 20) console.log(`  … ${faults.length - 20} more in report.json`)
+  }
   // exitCode rather than exit(): exit() can cut off stdout redirected to a file.
-  process.exitCode = findings.length ? 1 : 0
+  process.exitCode = exit
 }
 
 main().catch((err) => {
   console.error('market-ui ERROR:', err.message)
   cleanup()
-  // Under --broken, 1 means every defect was caught, so a crash must not use it.
-  process.exitCode = BROKEN ? 2 : 1
+  // A crash is not a finding, and under --broken 1 is the pass.
+  process.exitCode = 2
 })

@@ -239,6 +239,8 @@ def test_frontend_contract_market_rows_carry_translation_codes(synthetic_market)
             assert isinstance(row["note_code"], str)
         # No source backs a demand level or a season, so neither is sent.
         assert not {"seasonality", "seasonality_code", "demand_indicator"} & set(row)
+        # The reader's village, market type and customers are not echoed back.
+        assert "local_context" not in row
 
 
 def test_frontend_contract_scheme_translation_codes():

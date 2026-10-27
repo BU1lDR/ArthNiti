@@ -2,23 +2,14 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.limits import MAX_CATEGORY_LENGTH, MAX_PLACE_LENGTH
+
 
 class MarketContextRequest(BaseModel):
-    state: str = Field(min_length=1)
-    district: str = Field(min_length=1)
-    business_category: str = Field(min_length=1)
-
-
-class LocalContext(BaseModel):
-    """The free-text detail the entrepreneur gave about where they sell.
-
-    Echoed back rather than computed. Defaults to empty strings because
-    /api/market/context does not collect it — only the unified analysis run does.
-    """
-
-    village: str = ""
-    market_type: str = ""
-    customers: str = ""
+    # Capped like every text field; see limits.py.
+    state: str = Field(min_length=1, max_length=MAX_PLACE_LENGTH)
+    district: str = Field(min_length=1, max_length=MAX_PLACE_LENGTH)
+    business_category: str = Field(min_length=1, max_length=MAX_CATEGORY_LENGTH)
 
 
 class Provenance(BaseModel):
@@ -114,5 +105,10 @@ class MarketContext(BaseModel):
     # returns exactly the keys the service returned, and a null the row does
     # carry (a suppressed count, an aggregate row's share) is still sent,
     # because it was set.
+    #
+    # There is no local_context. Rows used to carry the village, market type
+    # and customers from the request, echoed back unchanged. Nothing computed
+    # from them, the frontend no longer sends them, and an echoed default looks
+    # like the person's own answer, so the echo went, here and in the service
+    # together (a required field the service stopped sending would be a 500).
     match_level: str
-    local_context: LocalContext

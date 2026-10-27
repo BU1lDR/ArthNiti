@@ -25,7 +25,7 @@ def analyze_business(
         initial_investment=request.initial_investment,
         expected_monthly_revenue=request.expected_monthly_revenue,
         monthly_operating_expenses=request.monthly_operating_expenses,
-        employees=request.employees,
+        # request.employees is accepted and ignored (see the schema).
         existing_debt=request.existing_debt,
     )
 

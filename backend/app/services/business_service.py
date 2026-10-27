@@ -3,11 +3,13 @@ def calculate_business_analysis(
     initial_investment: float,
     expected_monthly_revenue: float,
     monthly_operating_expenses: float,
-    employees: int = 0,
     existing_debt: float = 0,
 ):
     """
     Calculate basic business feasibility metrics.
+
+    There is no headcount parameter. One was accepted here and never read, which
+    made it look as though the number of employees shaped the verdict.
     """
 
     # Monthly operating surplus

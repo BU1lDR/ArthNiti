@@ -11,7 +11,6 @@ def test_unified_analysis_profitable_business():
         monthly_emi=5000,
         initial_investment=100000,
         monthly_operating_expenses=30000,
-        employees=2,
         existing_debt=10000,
     )
 

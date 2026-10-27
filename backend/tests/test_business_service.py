@@ -7,7 +7,6 @@ def test_feasible_business():
         initial_investment=100000,
         expected_monthly_revenue=50000,
         monthly_operating_expenses=30000,
-        employees=2,
         existing_debt=0,
     )
 
