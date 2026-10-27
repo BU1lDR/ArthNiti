@@ -18,6 +18,7 @@ from app.api.routes import market
 from app.core.meta_client import MetaClient
 from app.core.processing_log import configure_logging, processing_log_middleware
 from app.core.settings import load_settings
+from app.core.spend import SpendCap
 
 
 STARTUP_LOGGER = logging.getLogger("arthniti.startup")
@@ -169,11 +170,14 @@ def _log_startup(settings, routers):
             "ARTHNITI_AI_ENABLED is true: POST /api/intake/transcribe and "
             "/api/intake/extract send what a person says or types to Meta's "
             "model API (%s for text, %s for speech), at most %d calls an hour "
-            "in all. docs/PROCESSOR_SCHEDULE.md lists what that adds for the "
+            "in all, and at most $%.2f of billing in all (the total is kept in "
+            "%s). docs/PROCESSOR_SCHEDULE.md lists what that adds for the "
             "deployer.",
             settings.ai_model,
             settings.asr_model,
             settings.ai_hourly_limit,
+            settings.ai_spend_cap_usd,
+            settings.ai_spend_file,
         )
 
 
@@ -196,7 +200,9 @@ def create_app(settings=None, model_client=None):
         raise ValueError("A model client was given, but ARTHNITI_AI_ENABLED is not true.")
 
     if settings.ai_enabled and model_client is None:
-        model_client = MetaClient(settings.model_api_key)
+        # A ledger that cannot be used stops the start here and not the first call.
+        spend = SpendCap(settings.ai_spend_file, settings.ai_spend_cap_usd)
+        model_client = MetaClient(settings.model_api_key, spend=spend)
 
     configure_logging()
 
@@ -223,7 +229,9 @@ def create_app(settings=None, model_client=None):
         app.include_router(router)
 
     # No cookies or credentials are used, so none are allowed; and only what
-    # the frontend sends: GET and POST with a JSON body.
+    # the frontend sends: GET and POST with a JSON body, or with a WAV
+    # recording for the helper. Both set Content-Type, which is why a browser
+    # asks first.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),

@@ -88,6 +88,13 @@ CATEGORIES = (
 
 LOCATION_TYPES = ("rural", "semi-urban", "urban")
 
+# Words the speech model is asked to favour, because the form turns on them and
+# they are likelier to be misheard than everyday speech: the Indian counting
+# words, the loan word, the places the market data covers, and the kinds of
+# business. Meta states no limit on the list, so it stays short. Whether it
+# improves what is heard has not been measured.
+SPEECH_KEYWORDS = ("lakh", "crore", "EMI", "rupees", "Lucknow", "Varanasi", "Uttar Pradesh", *CATEGORIES)
+
 # Two letters or more, at least one of them a letter or digit. A single "a" is
 # in every sentence and grounds nothing.
 MIN_QUOTE_LENGTH = 2

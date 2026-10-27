@@ -6,6 +6,15 @@ each answer through the same checks the helper's route does, and sends a
 recording to the speech model (yours, or one second of silence). It prints what
 came back and, for a failed call, Meta's own error message, which the app never
 logs: the only text sent here is the samples below. It never prints the key.
+Each chat line ends with the token counts Meta reports for that call (in, how
+many of those were cached, out, how many of those were reasoning), which is how
+to see whether MAX_COMPLETION_TOKENS is sized right and the prompt cache works.
+
+Every call is charged to the spend cap (core/spend.py) before it is sent, the
+same cap the app uses (ARTHNITI_AI_SPEND_CAP_USD, ARTHNITI_AI_SPEND_FILE), and
+the run prints what it recorded. Those figures are upper estimates made before
+the calls, not Meta's bill: Meta's own figure is on the Usage page of its
+dashboard, and comparing the two is how to see how high the estimates run.
 
 Needs MODEL_API_KEY in the environment (the app reads no .env file). Exits 0
 when every call worked, 1 when one did not, 2 when it could not start.
@@ -21,6 +30,7 @@ import wave
 from app.api.routes.intake import MAX_COMPLETION_TOKENS
 from app.core.meta_client import MetaClient, MetaError
 from app.core.settings import SettingsError, load_settings
+from app.core.spend import SpendCap
 from app.services import intake_service as intake
 
 
@@ -63,11 +73,23 @@ def _read(client, model, language, text):
 
     # A reply that no answer survived is a failure of the check: the wire works,
     # but nothing the model said was usable.
-    return bool(answers), f"{len(answers)} answers kept, {result['ignored']} ignored. {shown}"
+    return bool(answers), f"{len(answers)} answers kept, {result['ignored']} ignored. {shown}  [{_tokens(client.last_usage)}]"
+
+
+def _tokens(usage):
+    """What Meta says a chat call used. A figure it left out prints as ?, and a zero as 0."""
+
+    if "prompt_tokens" not in usage or "completion_tokens" not in usage:
+        return "tokens: not reported"
+
+    return (
+        f"tokens: {usage['prompt_tokens']} in ({usage.get('cached_tokens', '?')} cached), "
+        f"{usage['completion_tokens']} out ({usage.get('reasoning_tokens', '?')} reasoning)"
+    )
 
 
 def _hear(client, model, wav):
-    transcript = client.transcribe(wav, SPOKEN, model)
+    transcript = client.transcribe(wav, SPOKEN, model, intake.SPEECH_KEYWORDS)
 
     return True, f"transcript: {transcript!r}"
 
@@ -113,7 +135,13 @@ def main(argv=None):
 
     # Only the helper's own variables: a production setting left in the shell
     # would otherwise demand its own origins.
-    names = ("MODEL_API_KEY", "ARTHNITI_AI_MODEL", "ARTHNITI_AI_ASR_MODEL")
+    names = (
+        "MODEL_API_KEY",
+        "ARTHNITI_AI_MODEL",
+        "ARTHNITI_AI_ASR_MODEL",
+        "ARTHNITI_AI_SPEND_CAP_USD",
+        "ARTHNITI_AI_SPEND_FILE",
+    )
     environ = {name: os.environ[name] for name in names if name in os.environ}
 
     try:
@@ -135,14 +163,28 @@ def main(argv=None):
             print(f"{args.wav} is not a mono 16-bit WAV at 16 or 24 kHz.", file=sys.stderr)
             return 2
 
-    client = MetaClient(settings.model_api_key, timeout=60, keep_detail=True)
+    try:
+        spend = SpendCap(settings.ai_spend_file, settings.ai_spend_cap_usd)
+    except ValueError as error:
+        print(f"Cannot start: {error}", file=sys.stderr)
+        return 2
+
+    client = MetaClient(settings.model_api_key, spend=spend, timeout=60, keep_detail=True)
+    before = spend.spent_usd()
 
     print(f"Meta Model API: chat {settings.ai_model}, speech {settings.asr_model}")
+    print(f"Spend cap ${settings.ai_spend_cap_usd:.2f}; ${before:.4f} already recorded in {settings.ai_spend_file}")
 
     results = run(client, settings.ai_model, settings.asr_model, wav)
 
     for name, passed, note in results:
         print(f"{'PASS' if passed else 'FAIL'}  {name}: {note}")
+
+    after = spend.spent_usd()
+    print(
+        f"Recorded by this run: ${after - before:.4f}. Recorded in all: ${after:.4f} of ${settings.ai_spend_cap_usd:.2f}. "
+        "These are upper estimates; the Usage page on Meta's dashboard has the real figure."
+    )
 
     return 0 if all(passed for _, passed, _ in results) else 1
 

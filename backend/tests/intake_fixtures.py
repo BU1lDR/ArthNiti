@@ -7,12 +7,23 @@ tests/test_meta_client.py.
 """
 
 import io
+import tempfile
 import wave
+from pathlib import Path
 
 
 KEY = "LLM_1234567_" + "q" * 24
 
-AI_ON = {"ARTHNITI_AI_ENABLED": "true", "MODEL_API_KEY": KEY}
+# A test that builds the app without a fake model gets a real spend ledger. This
+# one is in a folder of its own, removed when the run ends, so that no test
+# reads or writes the owner's real ledger in the backend folder.
+_LEDGER_FOLDER = tempfile.TemporaryDirectory(prefix="arthniti-test-ledger-")
+
+AI_ON = {
+    "ARTHNITI_AI_ENABLED": "true",
+    "MODEL_API_KEY": KEY,
+    "ARTHNITI_AI_SPEND_FILE": str(Path(_LEDGER_FOLDER.name) / "ledger"),
+}
 
 
 class FakeModel:
@@ -23,9 +34,15 @@ class FakeModel:
         self.transcript = "main silai karti hoon"
         self.extraction = {"text_answers": [], "money_answers": []}
         self.failure = None
+        # What the real client keeps of the last chat reply's token counts.
+        self.last_usage = {}
+        # The words the last speech call asked the model to favour. Kept apart
+        # from `calls`, whose entries many tests unpack.
+        self.keywords = ()
 
-    def transcribe(self, wav, language, model):
+    def transcribe(self, wav, language, model, keywords=()):
         self.calls.append(("transcribe", wav, language, model))
+        self.keywords = keywords
         if self.failure:
             raise self.failure
         return self.transcript

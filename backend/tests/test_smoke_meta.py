@@ -10,10 +10,14 @@ import io
 import wave
 
 import pytest
+from fastapi.testclient import TestClient
 
 from app import smoke_meta
 from app.core.meta_client import MetaError
-from intake_fixtures import KEY, FakeModel, wav_bytes
+from app.core.settings import load_settings
+from app.core.spend import SpendCap
+from app.main import create_app
+from intake_fixtures import AI_ON, KEY, FakeModel, wav_bytes
 
 
 # Both samples hold the words the fake model quotes.
@@ -25,20 +29,39 @@ QUOTING = {
 }
 
 
+class ChargingModel(FakeModel):
+    """Charges the spend cap it is built with before it answers, as the real client does before it sends."""
+
+    cost = 0.01
+    spend = None
+
+    def transcribe(self, wav, language, model, keywords=()):
+        self.spend.charge(self.cost)
+        return super().transcribe(wav, language, model, keywords)
+
+    def complete_json(self, model, messages, schema_name, schema, max_tokens):
+        self.spend.charge(self.cost)
+        return super().complete_json(model, messages, schema_name, schema, max_tokens)
+
+
 @pytest.fixture
-def model(monkeypatch):
-    fake = FakeModel()
+def model(monkeypatch, tmp_path):
+    fake = ChargingModel()
     fake.extraction = QUOTING
     built = []
 
     def client(*args, **kwargs):
         built.append((args, kwargs))
+        fake.spend = kwargs["spend"]
         return fake
 
     monkeypatch.setattr(smoke_meta, "MetaClient", client)
     monkeypatch.setattr(smoke_meta, "SAMPLES", TEXTS)
     monkeypatch.setenv("MODEL_API_KEY", KEY)
+    # Never the owner's real ledger in the backend folder.
+    monkeypatch.setenv("ARTHNITI_AI_SPEND_FILE", str(tmp_path / "ledger"))
     fake.built = built
+    fake.ledger = tmp_path / "ledger"
     return fake
 
 
@@ -67,7 +90,74 @@ def test_the_key_is_never_printed_and_meta_is_told_to_keep_its_reasons(model, ca
     # script asks for.
     ((args, kwargs),) = model.built
     assert args == (KEY,)
-    assert kwargs == {"timeout": 60, "keep_detail": True}
+    assert {name: value for name, value in kwargs.items() if name != "spend"} == {"timeout": 60, "keep_detail": True}
+
+
+def test_the_client_is_built_with_the_spend_cap_from_the_environment(model, capsys, monkeypatch):
+    monkeypatch.setenv("ARTHNITI_AI_SPEND_CAP_USD", "0.5")
+    run(capsys)
+
+    ((_, kwargs),) = model.built
+    spend = kwargs["spend"]
+    assert isinstance(spend, SpendCap)
+
+    # The run's own charges are in the file named in the environment, and the cap
+    # in force is its 0.5 and not the default 10: after the run's 0.03, another
+    # 0.47 is allowed and the next cent is not.
+    assert model.ledger.read_text().split() == ["10000"] * 3
+    spend.charge(0.47)
+    assert model.ledger.read_text().split()[-1] == "470000"
+
+    with pytest.raises(MetaError) as refused:
+        spend.charge(0.01)
+
+    assert refused.value.kind == "spend_cap"
+
+
+def test_it_prints_the_cap_and_what_the_run_recorded_as_an_upper_estimate(model, capsys, monkeypatch):
+    model.ledger.write_text("5000000\n", encoding="utf-8")
+    monkeypatch.setenv("ARTHNITI_AI_SPEND_CAP_USD", "7.5")
+
+    code, out, _ = run(capsys)
+
+    assert code == 0
+    assert "Spend cap $7.50; $5.0000 already recorded in " + str(model.ledger) in out
+    assert "Recorded by this run: $0.0300. Recorded in all: $5.0300 of $7.50." in out
+    assert "upper estimate" in out and "Usage page" in out
+
+
+def test_a_call_the_cap_refuses_fails_with_its_reason_and_nothing_after_it_is_hidden(model, capsys, monkeypatch):
+    monkeypatch.setenv("ARTHNITI_AI_SPEND_CAP_USD", "0.5")
+    model.cost = 0.3
+
+    code, out, _ = run(capsys)
+
+    assert code == 1
+    assert out.count("PASS") == 1 and out.count("FAIL") == 2
+    assert "spend_cap. message=cap $0.50, recorded $0.30, this call $0.3000" in out
+    assert model.ledger.read_text().split() == ["300000"]
+    # The refused calls never reached the fake.
+    assert len(model.calls) == 1
+
+
+def test_a_ledger_that_cannot_be_used_stops_the_run_before_any_call(model, capsys):
+    model.ledger.write_text("not a number\n", encoding="utf-8")
+
+    code, out, err = run(capsys)
+
+    assert code == 2
+    assert "Cannot start" in err and "ledger" in err
+    assert out == "" and model.calls == [] and model.built == []
+
+
+def test_a_spend_cap_that_is_not_an_amount_stops_the_run_before_any_call(model, capsys, monkeypatch):
+    monkeypatch.setenv("ARTHNITI_AI_SPEND_CAP_USD", "abc")
+
+    code, out, err = run(capsys)
+
+    assert code == 2
+    assert "ARTHNITI_AI_SPEND_CAP_USD" in err
+    assert out == "" and model.calls == [] and model.built == []
 
 
 def test_the_models_it_names_are_the_ones_it_calls(model, capsys, monkeypatch):
@@ -92,6 +182,69 @@ def test_each_sample_is_sent_in_its_own_language(model, capsys):
         assert any(smoke_meta.intake.LANGUAGES[language] in message["content"] for message in messages)
 
 
+def test_the_chat_call_is_the_one_the_helper_makes(model, capsys):
+    # A check that asked Meta something the route never asks would pass while
+    # the route failed.
+    run(capsys)
+    route = FakeModel()
+    route.extraction = QUOTING
+    client = TestClient(create_app(load_settings(AI_ON), model_client=route))
+    for language, text in TEXTS:
+        client.post("/api/intake/extract", json={"text": text, "language": language})
+
+    assert [call for call in model.calls if call[0] == "complete_json"] == route.calls
+    assert len(route.calls) == len(TEXTS)
+
+
+def test_the_speech_call_is_the_one_the_helper_makes(model, capsys, tmp_path):
+    # As for the chat call: a check that asked for something the route never
+    # asks for would pass while the route failed.
+    recording = tmp_path / "said.wav"
+    recording.write_bytes(wav_bytes(frames=800, fill=b"\x01"))
+    run(capsys, "--wav", str(recording))
+    route = FakeModel()
+    client = TestClient(create_app(load_settings(AI_ON), model_client=route))
+    client.post(
+        "/api/intake/transcribe",
+        params={"language": "hi"},
+        content=recording.read_bytes(),
+        headers={"Content-Type": "audio/wav"},
+    )
+
+    assert [call for call in model.calls if call[0] == "transcribe"] == route.calls
+    assert model.keywords == route.keywords
+    # Both empty would be equal too.
+    assert route.keywords
+
+
+FULL = {"prompt_tokens": 412, "cached_tokens": 256, "completion_tokens": 95, "reasoning_tokens": 31}
+
+
+@pytest.mark.parametrize(
+    ("usage", "shown"),
+    [
+        (FULL, "tokens: 412 in (256 cached), 95 out (31 reasoning)"),
+        ({"prompt_tokens": 412, "completion_tokens": 95}, "tokens: 412 in (? cached), 95 out (? reasoning)"),
+        (
+            {"prompt_tokens": 412, "cached_tokens": 0, "completion_tokens": 95, "reasoning_tokens": 0},
+            "tokens: 412 in (0 cached), 95 out (0 reasoning)",
+        ),
+        ({"prompt_tokens": 412}, "tokens: not reported"),
+        ({"completion_tokens": 95}, "tokens: not reported"),
+        ({}, "tokens: not reported"),
+    ],
+    ids=["all four", "details missing", "zeros", "no output count", "no input count", "nothing"],
+)
+def test_each_chat_line_shows_what_meta_says_the_call_used(model, capsys, usage, shown):
+    model.last_usage = usage
+
+    _, out, _ = run(capsys)
+
+    assert out.count(shown) == 2
+    # The speech line has no token counts: Meta bills it by the second of audio.
+    assert out.count("tokens:") == 2
+
+
 def test_a_failed_call_prints_what_meta_said_and_exits_1(model, capsys):
     model.failure = MetaError("auth", 401, code="invalid_api_key", param="Authorization", detail="That key is not valid")
 
@@ -104,7 +257,7 @@ def test_a_failed_call_prints_what_meta_said_and_exits_1(model, capsys):
 
 
 def test_one_failed_call_does_not_hide_the_others(model, capsys):
-    def only_the_speech_fails(wav, language, model_name):
+    def only_the_speech_fails(wav, language, model_name, keywords=()):
         raise MetaError("unavailable")
 
     model.transcribe = only_the_speech_fails

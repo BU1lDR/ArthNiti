@@ -9,6 +9,11 @@ methods to replace.
 Standard library only. The app has no HTTP client dependency, and a JSON post
 and a two-part form post do not justify adding one.
 
+Every call is charged to a spend cap (core/spend.py) before it is sent, at a
+price that is too high rather than too low, and a client cannot be built
+without one. A call that fails after it was sent is charged all the same,
+because Meta may have billed it.
+
 The wire format follows Meta's documentation. It has not been checked against
 the live API; `python -m app.smoke_meta`, run with a real key, does that.
 
@@ -22,6 +27,7 @@ built with `keep_detail=True`, which only the smoke script does.
 
 import http.client
 import json
+import math
 import re
 import secrets
 import urllib.error
@@ -53,13 +59,70 @@ _SECONDS = re.compile(r"[0-9]{1,9}")
 # person: bad_request (we sent something Meta refuses: 400, 404, 413, 422 and
 # any other 4xx), auth (the key), billing, rate_limited, unavailable (the
 # network, a timeout, a 5xx), bad_output (Meta answered 200 with something that
-# is not the shape documented).
+# is not the shape documented), spend_cap (our own ceiling refused the call, and
+# nothing was sent).
 _KIND_BY_STATUS = {
     401: "auth",
     402: "billing",
     403: "auth",
     429: "rate_limited",
 }
+
+# Dollars per million tokens, (input, output), from Meta's price list as read on
+# 26 Oct 2026. A model that is not listed is charged as the dearest one, so a
+# model that is new or misspelt can only look dearer than it is.
+_SPARK = (1.25, 4.25)
+_DEAREST = (4.00, 20.00)
+_CHAT_PRICES = {"muse-spark-1.3": _SPARK, "muse-spark-1.2": _SPARK, "muse-spark-1.1": _SPARK}
+
+# Speech is billed by the whole second of audio. A recording is charged as at
+# least ten seconds, because no minimum charge is documented and none is
+# assumed. The app records 16 kHz mono 16-bit sound, 32,000 bytes a second, and
+# a 24 kHz recording is taken for longer than it is.
+_SPEECH_PER_HOUR = 0.18
+_SPEECH_FLOOR_SECONDS = 10
+_WAV_BYTES_PER_SECOND = 32_000
+
+
+def _chat_cost(model: str, request_bytes: int, max_tokens: int):
+    """The most a chat call can cost, in dollars: a token for every byte sent and the whole allowance written.
+
+    No tokenizer makes a token of less than a byte. The allowance counts the
+    reasoning tokens, which Meta bills as output.
+    """
+
+    input_price, output_price = _CHAT_PRICES.get(model, _DEAREST)
+
+    return (request_bytes * input_price + max_tokens * output_price) / 1_000_000
+
+
+def _speech_cost(wav_bytes: int):
+    seconds = max(math.ceil(wav_bytes / _WAV_BYTES_PER_SECOND), _SPEECH_FLOOR_SECONDS)
+
+    return seconds * _SPEECH_PER_HOUR / 3600
+
+
+# The token counts of a chat reply, and where Meta's documentation puts each.
+_USAGE_FIELDS = {
+    "prompt_tokens": ("usage", "prompt_tokens"),
+    "cached_tokens": ("usage", "prompt_tokens_details", "cached_tokens"),
+    "completion_tokens": ("usage", "completion_tokens"),
+    "reasoning_tokens": ("usage", "completion_tokens_details", "reasoning_tokens"),
+}
+
+
+def _count(reply: object, *path: str):
+    for step in path:
+        reply = reply.get(step) if isinstance(reply, dict) else None
+
+    # A bool is an int in Python and is not a count.
+    return reply if type(reply) is int and reply >= 0 else None
+
+
+def _usage(reply: object):
+    found = {name: _count(reply, *path) for name, path in _USAGE_FIELDS.items()}
+
+    return {name: count for name, count in found.items() if count is not None}
 
 
 class MetaError(Exception):
@@ -128,7 +191,7 @@ def _failure(error: urllib.error.HTTPError, keep_detail: bool):
 
 
 class MetaClient:
-    def __init__(self, api_key: str, base_url: str = DEFAULT_BASE_URL, timeout: float = 30, keep_detail: bool = False):
+    def __init__(self, api_key: str, *, spend, base_url: str = DEFAULT_BASE_URL, timeout: float = 30, keep_detail: bool = False):
         if not _KEY.fullmatch(api_key):
             raise ValueError("The API key is empty or has a character that cannot go in a header.")
 
@@ -136,18 +199,31 @@ class MetaClient:
         if not base_url.startswith(("http://", "https://")):
             raise ValueError("The base URL must start with http:// or https://.")
 
+        # Anything with charge(usd) will do, which lets a test pass a fake.
+        if not callable(getattr(spend, "charge", None)):
+            raise ValueError("A spend cap is required: spend must have a charge(usd) method.")
+
         self._key = api_key
+        self._spend = spend
         self._base = base_url.rstrip("/")
         # ponytail: a timeout for each wait on the network, not for the whole
         # call; a server that sends a byte a second can hold a thread. A total
         # deadline needs a worker thread or an async client.
         self._timeout = timeout
         self._keep_detail = keep_detail
+        # The token counts Meta reported for the last chat call (see _usage), or
+        # {}. ponytail: one slot for every thread, so under concurrent calls it
+        # holds whichever finished last. Only the smoke script reads it, and it
+        # makes its calls one at a time.
+        self.last_usage = {}
         # Built here and not at import: it reads the proxy settings of the
         # environment as they are now.
         self._opener = urllib.request.build_opener(_RefuseRedirects)
 
-    def _post(self, path: str, body: bytes, content_type: str):
+    def _post(self, path: str, body: bytes, content_type: str, cost: float):
+        # Before the request exists, so a refusal leaves nothing sent.
+        self._spend.charge(cost)
+
         request = urllib.request.Request(
             self._base + path,
             data=body,
@@ -177,6 +253,11 @@ class MetaClient:
         Reasoning is set to low: this is reading a few sentences, not solving a
         problem, and reasoning tokens are billed and count against max_tokens.
         No temperature is set; Meta documents a default of 1.0 for these models.
+
+        Meta caches the start of a prompt by itself, so the instructions go
+        first and the person's words last (services/intake_service.py). The
+        cache key only helps it send the calls that begin alike, all the calls
+        of one task, to the same cache.
         """
 
         body = {
@@ -185,21 +266,39 @@ class MetaClient:
             "response_format": {"type": "json_schema", "json_schema": {"name": schema_name, "schema": schema}},
             "reasoning_effort": "low",
             "max_completion_tokens": max_tokens,
+            "prompt_cache_key": schema_name,
         }
 
-        reply = self._post("/chat/completions", json.dumps(body).encode(), "application/json")
+        payload = json.dumps(body).encode()
+
+        self.last_usage = {}
+
+        reply = self._post("/chat/completions", payload, "application/json", _chat_cost(model, len(payload), max_tokens))
 
         try:
-            return json.loads(json.loads(reply)["choices"][0]["message"]["content"])
+            parsed = json.loads(reply)
+            # Before the answer is read: Meta billed these tokens whether or not
+            # the answer is any use.
+            self.last_usage = _usage(parsed)
+            return json.loads(parsed["choices"][0]["message"]["content"])
         except (ValueError, LookupError, TypeError, RecursionError):
             raise MetaError("bad_output") from None
 
-    def transcribe(self, wav: bytes, language: str, model: str):
-        """The transcript of a mono 16-bit WAV, with `language` (a name such as "Hindi") as the bias."""
+    def transcribe(self, wav: bytes, language: str, model: str, keywords=()):
+        """The transcript of a mono 16-bit WAV, with `language` (a name such as "Hindi") as the bias.
+
+        `keywords` are words the model is asked to favour: names, places, jargon.
+        Meta does not promise their spelling.
+        """
 
         # 128 random bits: the boundary cannot be found inside the audio.
         boundary = secrets.token_hex(16)
-        settings = json.dumps({"model": model, "audioEncoding": "WAV", "mode": "PUSH_TO_TALK", "languageBias": [language]})
+        request = {"model": model, "audioEncoding": "WAV", "mode": "PUSH_TO_TALK", "languageBias": [language]}
+
+        if keywords:
+            request["keywords"] = keywords
+
+        settings = json.dumps(request)
 
         body = b"".join(
             [
@@ -216,7 +315,7 @@ class MetaClient:
             ]
         )
 
-        reply = self._post("/asr/transcribe", body, f"multipart/form-data; boundary={boundary}")
+        reply = self._post("/asr/transcribe", body, f"multipart/form-data; boundary={boundary}", _speech_cost(len(wav)))
 
         try:
             transcript = json.loads(reply)["transcript"]

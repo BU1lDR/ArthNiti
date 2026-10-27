@@ -22,10 +22,12 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from types import SimpleNamespace
 
 import pytest
 
 from app.core.meta_client import MAX_RESPONSE_BYTES, MetaClient, MetaError
+from app.core.spend import SpendCap
 
 
 KEY = "LLM_1234567_" + "q" * 24
@@ -100,8 +102,11 @@ class Stub:
     def reply(self, status=200, body=b"{}", headers=None, delay=0, raw=None):
         self.status, self.body, self.headers, self.delay, self.raw = status, body, headers or {}, delay, raw
 
-    def reply_chat(self, content):
-        self.reply(body=json.dumps({"choices": [{"message": {"role": "assistant", "content": content}}]}).encode())
+    def reply_chat(self, content, usage=None):
+        body = {"choices": [{"message": {"role": "assistant", "content": content}}]}
+        if usage is not None:
+            body["usage"] = usage
+        self.reply(body=json.dumps(body).encode())
 
     def close(self):
         self.server.shutdown()
@@ -136,9 +141,28 @@ def stub(_stub_server):
     return _stub_server
 
 
+class Meter:
+    """A spend cap that allows everything. It remembers what it was asked to charge,
+    and how many requests the stub had seen by then."""
+
+    def __init__(self, stub):
+        self.charges = []
+        self.sent_before = []
+        self._stub = stub
+
+    def charge(self, usd):
+        self.charges.append(usd)
+        self.sent_before.append(len(self._stub.requests))
+
+
 @pytest.fixture
-def client(stub):
-    return MetaClient(KEY, base_url=stub.url, timeout=5)
+def spend(stub):
+    return Meter(stub)
+
+
+@pytest.fixture
+def client(stub, spend):
+    return MetaClient(KEY, spend=spend, base_url=stub.url, timeout=5)
 
 
 def complete(client, **overrides):
@@ -202,7 +226,21 @@ def test_the_chat_body_asks_for_the_schema_with_low_reasoning_and_sets_no_temper
         },
         "reasoning_effort": "low",
         "max_completion_tokens": 1234,
+        "prompt_cache_key": "form_answers",
     }
+
+
+def test_the_cache_key_names_the_task_so_calls_for_one_task_share_a_prefix(stub, client):
+    # Meta caches the start of a prompt by itself; the key only helps it route
+    # the calls that begin alike to the same place. One key for one task, never
+    # one per person, which would split the calls that could share.
+    stub.reply_chat("{}")
+
+    complete(client, schema_name="form_answers")
+    complete(client, schema_name="another_task")
+
+    keys = [json.loads(request["body"])["prompt_cache_key"] for request in stub.requests]
+    assert keys == ["form_answers", "another_task"]
 
 
 def test_the_chat_call_returns_the_json_the_model_wrote(client, stub):
@@ -219,12 +257,119 @@ def test_the_first_choice_is_the_one_used(stub, client):
     assert complete(client) == {"n": 1}
 
 
-def test_a_trailing_slash_on_the_base_url_is_harmless(stub):
+def test_a_trailing_slash_on_the_base_url_is_harmless(stub, spend):
     stub.reply_chat("{}")
 
-    complete(MetaClient(KEY, base_url=stub.url + "/", timeout=5))
+    complete(MetaClient(KEY, spend=spend, base_url=stub.url + "/", timeout=5))
 
     assert stub.requests[0]["target"] == "/chat/completions"
+
+
+# ---------------------------------------------------------------- what a chat call used
+
+
+def test_a_new_client_has_no_token_counts(client):
+    assert client.last_usage == {}
+
+
+def test_the_token_counts_meta_reports_are_kept_for_the_caller_to_read(stub, client):
+    stub.reply_chat(
+        "{}",
+        usage={
+            "prompt_tokens": 412,
+            "completion_tokens": 95,
+            "total_tokens": 507,
+            "prompt_tokens_details": {"cached_tokens": 256},
+            "completion_tokens_details": {"reasoning_tokens": 31},
+        },
+    )
+
+    complete(client)
+
+    # total_tokens is not kept: it is the sum of two figures that are.
+    assert client.last_usage == {
+        "prompt_tokens": 412,
+        "cached_tokens": 256,
+        "completion_tokens": 95,
+        "reasoning_tokens": 31,
+    }
+
+
+def test_a_reply_without_token_counts_leaves_none(stub, client):
+    stub.reply_chat("{}")
+
+    complete(client)
+
+    assert client.last_usage == {}
+
+
+@pytest.mark.parametrize("odd", [True, -1, 1.5, "12", None, [3], {"n": 3}], ids=repr)
+def test_a_count_that_is_not_a_whole_number_is_left_out(stub, client, odd):
+    # These figures are printed by the smoke script; nothing else Meta sends
+    # should reach a terminal through them.
+    stub.reply_chat("{}", usage={"prompt_tokens": odd, "completion_tokens": 7})
+
+    complete(client)
+
+    assert client.last_usage == {"completion_tokens": 7}
+
+
+@pytest.mark.parametrize("usage", ["lots", [1, 2], 5], ids=repr)
+def test_token_counts_that_are_not_an_object_leave_none(stub, client, usage):
+    stub.reply_chat("{}", usage=usage)
+
+    complete(client)
+
+    assert client.last_usage == {}
+
+
+def test_details_that_are_null_do_not_hide_the_main_counts(stub, client):
+    stub.reply_chat(
+        "{}",
+        usage={
+            "prompt_tokens": 5,
+            "completion_tokens": 3,
+            "prompt_tokens_details": None,
+            "completion_tokens_details": None,
+        },
+    )
+
+    complete(client)
+
+    assert client.last_usage == {"prompt_tokens": 5, "completion_tokens": 3}
+
+
+def test_a_count_of_zero_is_a_count(stub, client):
+    stub.reply_chat(
+        "{}",
+        usage={"prompt_tokens": 5, "completion_tokens": 3, "prompt_tokens_details": {"cached_tokens": 0}},
+    )
+
+    complete(client)
+
+    assert client.last_usage["cached_tokens"] == 0
+
+
+def test_the_counts_of_a_reply_that_could_not_be_used_are_still_kept(stub, client):
+    # Meta billed the tokens whether or not the answer was any good.
+    stub.reply_chat("not json", usage={"prompt_tokens": 40, "completion_tokens": 9})
+
+    with pytest.raises(MetaError) as bad:
+        complete(client)
+
+    assert bad.value.kind == "bad_output"
+    assert client.last_usage == {"prompt_tokens": 40, "completion_tokens": 9}
+
+
+def test_the_counts_of_one_call_are_not_shown_for_the_next(stub, client):
+    stub.reply_chat("{}", usage={"prompt_tokens": 40, "completion_tokens": 9})
+    complete(client)
+
+    stub.reply(status=500)
+    with pytest.raises(MetaError):
+        complete(client)
+
+    assert client.last_usage == {}
 
 
 # ---------------------------------------------------------------- the speech call
@@ -259,6 +404,32 @@ def test_the_speech_call_sends_a_request_part_and_an_audio_part(stub, client):
     assert 'filename="recording.wav"' in head["Content-Disposition"]
     # Byte for byte, whatever the audio contains.
     assert content == WAV
+
+
+def test_the_words_to_favour_go_in_the_request_part(stub, client):
+    stub.reply(body=b'{"transcript": ""}')
+
+    transcribe(client, keywords=("lakh", "EMI"))
+
+    _, content = multipart(stub.requests[0])["request"]
+    assert json.loads(content) == {
+        "model": "muse-voice-transcribe-1.0",
+        "audioEncoding": "WAV",
+        "mode": "PUSH_TO_TALK",
+        "languageBias": ["Hindi"],
+        "keywords": ["lakh", "EMI"],
+    }
+
+
+@pytest.mark.parametrize("none", [(), []], ids=["tuple", "list"])
+def test_an_empty_list_of_words_is_not_sent(stub, client, none):
+    # What Meta does with "keywords": [] is not documented; leaving it out is.
+    stub.reply(body=b'{"transcript": ""}')
+
+    transcribe(client, keywords=none)
+
+    _, content = multipart(stub.requests[0])["request"]
+    assert "keywords" not in json.loads(content)
 
 
 def test_each_speech_call_uses_a_new_boundary(stub, client):
@@ -348,14 +519,14 @@ def test_meta_s_error_code_and_the_parameter_it_blames_are_kept_for_the_smoke_sc
 
 
 @pytest.mark.parametrize("name", sorted(CALLS))
-def test_meta_s_message_is_kept_only_when_the_client_is_asked_to_keep_it(stub, name):
+def test_meta_s_message_is_kept_only_when_the_client_is_asked_to_keep_it(stub, spend, name):
     body = json.dumps({"error": {"message": "Unsupported   parameter\nreasoning_effort"}}).encode()
     stub.reply(status=400, body=body)
 
     with pytest.raises(MetaError) as quiet:
-        CALLS[name](MetaClient(KEY, base_url=stub.url, timeout=5))
+        CALLS[name](MetaClient(KEY, spend=spend, base_url=stub.url, timeout=5))
     with pytest.raises(MetaError) as asked:
-        CALLS[name](MetaClient(KEY, base_url=stub.url, timeout=5, keep_detail=True))
+        CALLS[name](MetaClient(KEY, spend=spend, base_url=stub.url, timeout=5, keep_detail=True))
 
     assert quiet.value.detail == ""
     # Kept with its white space tidied, for a person reading the smoke output.
@@ -387,11 +558,11 @@ def test_an_error_body_that_is_not_the_expected_shape_gives_no_code_and_does_not
 
 
 @pytest.mark.parametrize("name", sorted(CALLS))
-def test_a_long_error_message_is_cut_short(stub, name):
+def test_a_long_error_message_is_cut_short(stub, spend, name):
     stub.reply(status=400, body=json.dumps({"error": {"message": "m" * 5000}}).encode())
 
     with pytest.raises(MetaError) as raised:
-        CALLS[name](MetaClient(KEY, base_url=stub.url, timeout=5, keep_detail=True))
+        CALLS[name](MetaClient(KEY, spend=spend, base_url=stub.url, timeout=5, keep_detail=True))
 
     assert raised.value.detail == "m" * 300
 
@@ -499,11 +670,11 @@ def test_a_server_that_cannot_be_reached_is_unavailable(monkeypatch, call, failu
     assert raised.value.__suppress_context__ is True
 
 
-def test_a_server_that_takes_too_long_is_unavailable(stub):
+def test_a_server_that_takes_too_long_is_unavailable(stub, spend):
     stub.reply(delay=0.8)
 
     with pytest.raises(MetaError) as raised:
-        complete(MetaClient(KEY, base_url=stub.url, timeout=0.2))
+        complete(MetaClient(KEY, spend=spend, base_url=stub.url, timeout=0.2))
 
     assert raised.value.kind == "unavailable"
 
@@ -689,20 +860,159 @@ def test_an_error_reply_that_dies_while_being_read_still_gives_its_status(monkey
     assert body.closed
 
 
+# ---------------------------------------------------------------- the spend cap
+#
+# The owner has no budget for the model API beyond a free credit, so a call is
+# charged to the cap before it is sent, at a price that is too high and not too
+# low. What the cap does with the charge is tested in test_spend_cap.py.
+
+
+def answer(stub, name):
+    """Have the stub answer this kind of call the way Meta would, so the call succeeds."""
+
+    if name == "chat":
+        stub.reply_chat("{}")
+    else:
+        stub.reply(body=b'{"transcript": ""}')
+
+
+def dollars(input_bytes, output_tokens, rates=(1.25, 4.25)):
+    """The most a chat call can cost: a token for every byte sent, and the whole allowance written."""
+
+    return (input_bytes * rates[0] + output_tokens * rates[1]) / 1_000_000
+
+
+# Bytes in a second of 16 kHz mono 16-bit sound, which is what the app records.
+SECOND = 32_000
+
+
+@pytest.mark.parametrize("name", sorted(CALLS))
+def test_each_call_is_charged_once_and_before_anything_is_sent(stub, spend, client, name):
+    answer(stub, name)
+
+    CALLS[name](client)
+
+    assert len(spend.charges) == 1
+    assert spend.sent_before == [0]
+    assert len(stub.requests) == 1
+
+
+@pytest.mark.parametrize("name", sorted(CALLS))
+def test_a_call_the_cap_refuses_is_never_sent(stub, tmp_path, name):
+    answer(stub, name)
+    client = MetaClient(KEY, spend=SpendCap(tmp_path / "ledger", 0.0001), base_url=stub.url, timeout=5)
+
+    with pytest.raises(MetaError) as raised:
+        CALLS[name](client)
+
+    assert raised.value.kind == "spend_cap"
+    assert stub.requests == []
+    assert not (tmp_path / "ledger").exists()
+
+
+@pytest.mark.parametrize("name", sorted(CALLS))
+@pytest.mark.parametrize("status", [400, 429, 500])
+def test_a_call_that_fails_is_still_charged(stub, spend, client, name, status):
+    stub.reply(status=status)
+
+    with pytest.raises(MetaError):
+        CALLS[name](client)
+
+    assert len(spend.charges) == 1
+
+
+def test_a_chat_call_is_charged_a_token_for_every_byte_sent_and_the_whole_allowance_written(stub, spend, client):
+    stub.reply_chat("{}")
+
+    complete(client)
+
+    assert spend.charges == [pytest.approx(dollars(len(stub.requests[0]["body"]), 1234))]
+
+
+@pytest.mark.parametrize(
+    ("model", "rates"),
+    [
+        ("muse-spark-1.3", (1.25, 4.25)),
+        ("muse-spark-1.2", (1.25, 4.25)),
+        ("muse-spark-1.1", (1.25, 4.25)),
+        ("muse-wonder-1.0", (4.00, 20.00)),
+        # A name that is not on the list is charged as the dearest model, so a
+        # new model can only look dearer than it is.
+        ("muse-spark-9.9", (4.00, 20.00)),
+        ("a-model-nobody-listed", (4.00, 20.00)),
+    ],
+)
+def test_a_model_is_charged_its_listed_price_and_an_unlisted_one_the_dearest(stub, spend, client, model, rates):
+    stub.reply_chat("{}")
+
+    complete(client, model=model)
+
+    assert spend.charges == [pytest.approx(dollars(len(stub.requests[0]["body"]), 1234, rates))]
+
+
+@pytest.mark.parametrize(
+    ("size", "seconds"),
+    [
+        (30 * SECOND, 30),
+        # A second begun is a second billed.
+        (30 * SECOND + 1, 31),
+        (100 * SECOND, 100),
+    ],
+)
+def test_a_recording_is_charged_by_its_length_rounded_up_to_whole_seconds(stub, spend, client, size, seconds):
+    stub.reply(body=b'{"transcript": ""}')
+
+    transcribe(client, wav=b"\0" * size)
+
+    assert spend.charges == [pytest.approx(seconds * 0.18 / 3600)]
+
+
+@pytest.mark.parametrize("size", [0, 44, len(WAV), 9 * SECOND, 10 * SECOND])
+def test_a_short_recording_is_charged_as_ten_seconds_at_least(stub, spend, client, size):
+    # Meta documents no minimum charge; this does not rely on there being none.
+    stub.reply(body=b'{"transcript": ""}')
+
+    transcribe(client, wav=b"\0" * size)
+
+    assert spend.charges == [pytest.approx(10 * 0.18 / 3600)]
+
+
+def test_a_charge_reaches_the_ledger_in_dollars_and_not_in_some_other_unit(stub, tmp_path):
+    stub.reply_chat("{}")
+    client = MetaClient(KEY, spend=SpendCap(tmp_path / "ledger", 1.0), base_url=stub.url, timeout=5)
+
+    complete(client)
+
+    (entry,) = (tmp_path / "ledger").read_text().split()
+    # The ledger counts millionths of a dollar; one of rounding is allowed.
+    assert abs(int(entry) - dollars(len(stub.requests[0]["body"]), 1234) * 1_000_000) <= 1
+
+
+def test_a_client_cannot_be_built_without_a_spend_cap():
+    with pytest.raises(TypeError):
+        MetaClient(KEY)
+
+
+@pytest.mark.parametrize("cap", [None, object(), "ten dollars", 10, SimpleNamespace(charge="free")], ids=repr)
+def test_something_that_cannot_charge_is_not_a_spend_cap(cap):
+    with pytest.raises(ValueError, match="spend cap"):
+        MetaClient(KEY, spend=cap)
+
+
 # ---------------------------------------------------------------- what the client is built from
 
 
 @pytest.mark.parametrize("key", ["", " ", "has space", "new\nline", "tab\there", "é", "x" * 513], ids=repr)
-def test_a_key_that_cannot_go_in_a_header_is_refused(key):
+def test_a_key_that_cannot_go_in_a_header_is_refused(spend, key):
     with pytest.raises(ValueError):
-        MetaClient(key)
+        MetaClient(key, spend=spend)
 
 
-def test_a_refused_key_is_not_echoed_back():
+def test_a_refused_key_is_not_echoed_back(spend):
     secret = "LLM_9_" + "zQ" * 8
 
     with pytest.raises(ValueError) as raised:
-        MetaClient(secret + " trailing")
+        MetaClient(secret + " trailing", spend=spend)
 
     assert secret not in str(raised.value) + repr(raised.value.args)
 
@@ -721,9 +1031,9 @@ def test_a_refused_key_is_not_echoed_back():
     ],
     ids=repr,
 )
-def test_a_base_url_that_is_not_http_or_https_is_refused(url):
+def test_a_base_url_that_is_not_http_or_https_is_refused(spend, url):
     with pytest.raises(ValueError):
-        MetaClient(KEY, base_url=url)
+        MetaClient(KEY, spend=spend, base_url=url)
 
 
 def test_the_default_address_is_meta_s_over_https():
@@ -735,10 +1045,10 @@ def test_the_default_address_is_meta_s_over_https():
 
 
 @pytest.mark.parametrize("name", sorted(CALLS))
-def test_no_error_carries_the_key_the_persons_words_or_what_meta_sent_back(stub, name):
+def test_no_error_carries_the_key_the_persons_words_or_what_meta_sent_back(stub, spend, name):
     # The client that keeps Meta's message is the strict case: the text is in
     # the object, and still must not be in anything that gets printed.
-    client = MetaClient(KEY, base_url=stub.url, timeout=5, keep_detail=True)
+    client = MetaClient(KEY, spend=spend, base_url=stub.url, timeout=5, keep_detail=True)
 
     for status in (400, 401, 402, 429, 500, 503):
         stub.reply(status=status, body=json.dumps({"error": {"message": f"{UPSTREAM} {WORDS} {KEY}", "code": "c"}}).encode())

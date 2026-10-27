@@ -466,3 +466,20 @@ def test_speech_recognition_is_offered_in_seven_of_the_eight_languages():
     assert intake.ASR_LANGUAGES["hi"] == "Hindi"
     assert "ml" not in intake.ASR_LANGUAGES
     assert set(intake.LANGUAGES) == set(intake.ASR_LANGUAGES) | {"ml"}
+
+
+def test_the_speech_keywords_are_a_short_list_of_plain_words():
+    # Meta states no limit on the list, so it stays short.
+    words = intake.SPEECH_KEYWORDS
+
+    assert isinstance(words, tuple)
+    assert 0 < len(words) <= 20
+    assert len(set(words)) == len(words)
+    assert all(isinstance(word, str) and word == word.strip() and 2 <= len(word) <= 40 for word in words)
+
+
+def test_the_speech_keywords_hold_the_money_words_and_every_kind_of_business():
+    # The words a speech model is likeliest to mishear in this app's answers:
+    # the Indian counting words, the loan word, the choices on the form.
+    assert {"lakh", "crore", "EMI"} <= set(intake.SPEECH_KEYWORDS)
+    assert set(intake.CATEGORIES) <= set(intake.SPEECH_KEYWORDS)

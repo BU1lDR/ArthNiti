@@ -127,7 +127,9 @@ def build_router(client, chat_model: str, asr_model: str, hourly_limit: int):
         # The call waits on the network, so it runs on a worker thread: the
         # event loop keeps answering other requests meanwhile.
         try:
-            transcript = await run_in_threadpool(client.transcribe, wav, intake.LANGUAGES[language], asr_model)
+            transcript = await run_in_threadpool(
+                client.transcribe, wav, intake.LANGUAGES[language], asr_model, intake.SPEECH_KEYWORDS
+            )
         except MetaError as error:
             raise _refusal(error) from None
 

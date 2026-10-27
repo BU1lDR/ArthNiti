@@ -7,10 +7,14 @@ is a secret: it is read from the environment only, and no message, repr or log
 line may contain it.
 """
 
+from pathlib import Path
+
 import pytest
 
-from app.core.settings import MAX_HOURLY_LIMIT, SettingsError, load_settings
+from app.core.settings import MAX_HOURLY_LIMIT, MAX_SPEND_CAP_USD, SettingsError, load_settings
 
+
+BACKEND = Path(__file__).resolve().parents[1]
 
 KEY = "LLM_1234567_" + "q" * 24
 
@@ -134,3 +138,69 @@ def test_blank_ai_values_mean_the_default():
     assert settings.ai_model == "muse-spark-1.3"
     assert settings.asr_model == "muse-voice-transcribe-1.0"
     assert settings.ai_hourly_limit == 100
+
+
+# The spend cap (core/spend.py): the owner has a free credit and no budget past it.
+
+
+def test_the_spend_cap_defaults_to_ten_dollars_and_the_ledger_to_a_file_in_the_backend_folder():
+    settings = load_settings({})
+
+    assert settings.ai_spend_cap_usd == 10
+
+    ledger = Path(settings.ai_spend_file)
+    assert ledger.is_absolute()
+    assert ledger.name == ".ai_spend"
+    assert ledger.parent == BACKEND
+
+
+def test_the_most_the_cap_can_be_set_to_is_less_than_the_free_credit():
+    # The credit is $150. A cap at or above it would not be a cap.
+    assert MAX_SPEND_CAP_USD < 150
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["0", "0.0", "-1", "abc", "nan", "inf", "1e1", "1,5", "5 5", ".5", "5.", "0.0000001", "٣", "100.01", "1000"],
+)
+def test_the_spend_cap_is_a_plain_amount_of_dollars_above_zero_and_below_the_most(raw):
+    message = _refused({**ON, "ARTHNITI_AI_SPEND_CAP_USD": raw}, "ARTHNITI_AI_SPEND_CAP_USD")
+
+    assert KEY not in message
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [("1", 1), ("2.50", 2.5), ("0.000001", 0.000001), ("007", 7), (str(MAX_SPEND_CAP_USD), MAX_SPEND_CAP_USD)],
+)
+def test_a_good_spend_cap_is_kept(raw, expected):
+    assert load_settings({**ON, "ARTHNITI_AI_SPEND_CAP_USD": raw}).ai_spend_cap_usd == expected
+
+
+def test_a_bad_spend_cap_is_found_even_while_the_helper_is_off():
+    # Like the model names: the mistake shows up the day it is made.
+    _refused({"ARTHNITI_AI_SPEND_CAP_USD": "abc"}, "ARTHNITI_AI_SPEND_CAP_USD")
+
+
+def test_a_bad_spend_ledger_path_is_found_even_while_the_helper_is_off():
+    _refused({"ARTHNITI_AI_SPEND_FILE": "ledger"}, "ARTHNITI_AI_SPEND_FILE")
+
+
+def test_the_spend_ledger_can_be_put_somewhere_else_by_its_full_path(tmp_path):
+    ledger = str(tmp_path / "ledger")
+
+    assert load_settings({**ON, "ARTHNITI_AI_SPEND_FILE": ledger}).ai_spend_file == ledger
+
+
+@pytest.mark.parametrize("raw", ["ledger", "./ledger", "../ledger", "~/ledger", "sub/ledger"])
+def test_a_spend_ledger_that_is_not_a_full_path_is_refused(raw):
+    # A relative path lands wherever the server was started from, so starting it
+    # from another folder would begin a new ledger at zero.
+    _refused({**ON, "ARTHNITI_AI_SPEND_FILE": raw}, "ARTHNITI_AI_SPEND_FILE", "full path")
+
+
+def test_blank_spend_values_mean_the_default():
+    settings = load_settings({**ON, "ARTHNITI_AI_SPEND_CAP_USD": " ", "ARTHNITI_AI_SPEND_FILE": ""})
+
+    assert settings.ai_spend_cap_usd == 10
+    assert Path(settings.ai_spend_file) == BACKEND / ".ai_spend"

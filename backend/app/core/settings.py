@@ -34,6 +34,13 @@ types to Meta's model API. It is off unless switched on:
                             "muse-voice-transcribe-1.0").
   ARTHNITI_AI_HOURLY_LIMIT  Model calls the whole process makes per hour
                             (default 100), to bound what a public copy can spend.
+  ARTHNITI_AI_SPEND_CAP_USD Dollars the helper may ask Meta to bill in all, as
+                            counted by core/spend.py at prices that err high
+                            (default 10, at most 100).
+  ARTHNITI_AI_SPEND_FILE    The full path of the file that keeps that total
+                            (default backend/.ai_spend). A relative path is
+                            refused: it would start the total again at zero
+                            wherever the server was started from.
 
 A model whose name ends in "-contributor" is refused. On Meta's pricing page
 those let Meta train on the prompts and responses, and this app's prompts hold
@@ -45,6 +52,7 @@ visits could send answers to this API from their browser.
 
 import os
 import re
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -88,6 +96,15 @@ DEFAULT_ASR_MODEL = "muse-voice-transcribe-1.0"
 DEFAULT_HOURLY_LIMIT = 100
 MAX_HOURLY_LIMIT = 100_000
 
+# The owner's free credit is $150. The cap counts only what this app sends, so
+# the most it can be set to stays well under that.
+DEFAULT_SPEND_CAP_USD = 10
+MAX_SPEND_CAP_USD = 100
+
+# In the backend folder and not beside whatever folder the server was started
+# from, so a restart from somewhere else finds the same total.
+DEFAULT_SPEND_FILE = str(Path(__file__).resolve().parents[2] / ".ai_spend")
+
 # Visible ASCII only: the key goes into an Authorization header, and a space,
 # a line break or a non-ASCII character would corrupt or split the header.
 _API_KEY = re.compile(r"^[\x21-\x7e]{1,512}$")
@@ -118,6 +135,8 @@ class Settings(BaseModel):
     ai_model: str = DEFAULT_AI_MODEL
     asr_model: str = DEFAULT_ASR_MODEL
     ai_hourly_limit: int = DEFAULT_HOURLY_LIMIT
+    ai_spend_cap_usd: float = DEFAULT_SPEND_CAP_USD
+    ai_spend_file: str = DEFAULT_SPEND_FILE
 
     @property
     def production(self):
@@ -295,6 +314,37 @@ def _hourly_limit(environ):
     return int(raw)
 
 
+def _spend_cap_usd(environ):
+    raw = _value(environ, "ARTHNITI_AI_SPEND_CAP_USD")
+
+    if not raw:
+        return DEFAULT_SPEND_CAP_USD
+
+    # Plain dollars to the millionth the ledger counts in: not "1e1", "nan" or ".5".
+    if not re.fullmatch(r"[0-9]+(\.[0-9]{1,6})?", raw) or not 0 < float(raw) <= MAX_SPEND_CAP_USD:
+        raise SettingsError(
+            f"ARTHNITI_AI_SPEND_CAP_USD must be an amount of dollars above 0 and at "
+            f"most {MAX_SPEND_CAP_USD}, written like 10 or 2.50, not {raw!r}."
+        )
+
+    return float(raw)
+
+
+def _spend_file(environ):
+    raw = _value(environ, "ARTHNITI_AI_SPEND_FILE")
+
+    if not raw:
+        return DEFAULT_SPEND_FILE
+    if not Path(raw).is_absolute():
+        raise SettingsError(
+            f"ARTHNITI_AI_SPEND_FILE must be a full path, not {raw!r}: a relative "
+            "path lands wherever the server was started from, and the total would "
+            "start again at zero."
+        )
+
+    return raw
+
+
 def load_settings(environ=None):
     environ = os.environ if environ is None else environ
 
@@ -314,4 +364,6 @@ def load_settings(environ=None):
         ai_model=_model(environ, "ARTHNITI_AI_MODEL", DEFAULT_AI_MODEL),
         asr_model=_model(environ, "ARTHNITI_AI_ASR_MODEL", DEFAULT_ASR_MODEL),
         ai_hourly_limit=_hourly_limit(environ),
+        ai_spend_cap_usd=_spend_cap_usd(environ),
+        ai_spend_file=_spend_file(environ),
     )

@@ -58,3 +58,6 @@ screenshots/
 
 # ---- Market data fetch cache and logs ----
 .market-cache/
+
+# ---- The model helper spend ledger (core/spend.py): the owner's running total, never committed ----
+backend/.ai_spend

@@ -168,18 +168,63 @@ def test_production_with_the_helper_on_serves_it(model):
     assert post_transcribe(client).status_code == 200
 
 
+# What a page sends to each route. A recording or a JSON body is more than a
+# browser sends without asking first, so the CORS settings decide whether the
+# helper works at all in a browser and for whom.
+REQUESTS = {
+    "/api/intake/transcribe": lambda: {"params": {"language": "hi"}, "content": wav_bytes(), "headers": {"Content-Type": "audio/wav"}},
+    "/api/intake/extract": lambda: {"json": {"text": TALK, "language": "en"}},
+}
+
+PREFLIGHT = {"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type"}
+
+
+@pytest.mark.parametrize(
+    ("environ", "origin", "other"),
+    [
+        ({}, "http://localhost:5173", "https://evil.example"),
+        (PRODUCTION, "https://advisor.example.org", "http://localhost:5173"),
+    ],
+    ids=["development", "production"],
+)
+@pytest.mark.parametrize("path", sorted(REQUESTS))
+def test_a_browser_on_the_apps_own_page_may_ask_and_then_post_but_one_on_another_page_may_not(model, environ, origin, other, path):
+    client = TestClient(create_app(load_settings({**environ, **AI_ON}), model_client=model))
+
+    asked = client.options(path, headers={"Origin": origin, **PREFLIGHT})
+    assert asked.status_code == 200
+    assert asked.headers["access-control-allow-origin"] == origin
+    assert "POST" in asked.headers["access-control-allow-methods"]
+    assert "content-type" in asked.headers["access-control-allow-headers"].lower()
+    assert "access-control-allow-credentials" not in asked.headers
+
+    request = REQUESTS[path]()
+    request.setdefault("headers", {})["Origin"] = origin
+    sent = client.post(path, **request)
+    assert sent.status_code == 200
+    assert sent.headers["access-control-allow-origin"] == origin
+
+    refused = client.options(path, headers={"Origin": other, **PREFLIGHT})
+    assert refused.status_code == 400
+    assert "access-control-allow-origin" not in refused.headers
+    assert len(model.calls) == 1
+
+
 @pytest.mark.parametrize("environ", [{}, PRODUCTION], ids=["development", "production"])
 def test_the_startup_log_says_the_helper_is_on_and_what_it_sends_but_never_the_key(capture_log, environ):
     records = capture_log("arthniti.startup")
+    settings = load_settings({**environ, **AI_ON})
 
-    create_app(load_settings({**environ, **AI_ON}), model_client=FakeModel())
+    create_app(settings, model_client=FakeModel())
 
     (message,) = [r.getMessage() for r in records if r.levelno == logging.INFO]
 
     assert "ARTHNITI_AI_ENABLED" in message
     assert "/api/intake/transcribe" in message and "/api/intake/extract" in message
-    assert "muse-spark-1.3" in message and "muse-voice-transcribe-1.0" in message
+    assert "muse-spark-1.3 for text, muse-voice-transcribe-1.0 for speech" in message
     assert "100 calls an hour" in message
+    # The owner reads the ceiling and where its total is kept off the first log line.
+    assert "$10.00" in message and settings.ai_spend_file in message
     assert KEY not in " ".join(r.getMessage() for r in records)
 
 
@@ -196,7 +241,7 @@ def test_a_model_client_given_to_an_app_with_the_helper_off_is_refused(model):
         create_app(load_settings({}), model_client=model)
 
 
-def test_with_the_helper_on_and_no_client_given_one_is_built_from_the_key(monkeypatch):
+def test_with_the_helper_on_and_no_client_given_one_is_built_from_the_key_and_the_spend_cap(monkeypatch, tmp_path):
     from app import main
 
     made = []
@@ -206,11 +251,40 @@ def test_with_the_helper_on_and_no_client_given_one_is_built_from_the_key(monkey
             made.append((arguments, keywords))
 
     monkeypatch.setattr(main, "MetaClient", Spy)
+    ledger = tmp_path / "ledger"
 
-    create_app(load_settings(AI_ON))
+    create_app(load_settings({**AI_ON, "ARTHNITI_AI_SPEND_FILE": str(ledger), "ARTHNITI_AI_SPEND_CAP_USD": "0.5"}))
     create_app(load_settings({}))
 
-    assert made == [((KEY,), {})]
+    ((arguments, keywords),) = made
+    assert arguments == (KEY,)
+    assert list(keywords) == ["spend"]
+
+    # The cap it holds is the one in the settings, kept in the file in the settings.
+    keywords["spend"].charge(0.4)
+    assert ledger.read_text().split() == ["400000"]
+
+    with pytest.raises(MetaError) as refused:
+        keywords["spend"].charge(0.2)
+
+    assert refused.value.kind == "spend_cap"
+    assert ledger.read_text().split() == ["400000"]
+
+
+def test_a_ledger_that_cannot_be_used_stops_the_startup_and_not_the_first_call(tmp_path):
+    (tmp_path / "ledger").write_text("not a number\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="ledger"):
+        create_app(load_settings({**AI_ON, "ARTHNITI_AI_SPEND_FILE": str(tmp_path / "ledger")}))
+
+
+def test_an_app_given_a_fake_model_needs_no_ledger(tmp_path):
+    # The fake never reaches Meta, so there is nothing to count: a ledger in a
+    # folder that does not exist would stop the real client and does not stop this.
+    create_app(
+        load_settings({**AI_ON, "ARTHNITI_AI_SPEND_FILE": str(tmp_path / "missing" / "ledger")}),
+        model_client=FakeModel(),
+    )
 
 
 # ---------------------------------------------------------------- transcribe
@@ -225,6 +299,12 @@ def test_a_recording_is_sent_to_the_speech_model_in_the_language_asked_for(model
     assert response.json() == {"transcript": "main silai karti hoon"}
     # The language goes to the model by name, and the bytes are the ones sent.
     assert model.calls == [("transcribe", wav, "Tamil", "muse-voice-transcribe-1.0")]
+
+
+def test_the_speech_model_is_asked_to_favour_the_words_this_form_is_about(model, client):
+    post_transcribe(client)
+
+    assert model.keywords == intake.SPEECH_KEYWORDS
 
 
 def test_the_speech_model_is_the_one_in_the_settings(model):
