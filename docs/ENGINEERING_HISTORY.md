@@ -20,7 +20,7 @@
 **Decided by the owner, 23 September 2026:**
 
 - **Purpose: a portfolio piece, and mainly a product to sell to businesses that serve real users** (B2B — NBFCs, MFIs, SHG federations, CSC operators and the like). So **real people will act on the output**, through a client's staff or directly. That makes correctness, data honesty, DPDP compliance and security requirements, not polish.
-- **Ownership: the project belongs to the owner, Aryan Verma**, and so does the scheme data and its upkeep. The repo is proprietary, not open source — see `LICENSE`. Teammates' contributions (Manjeet, Netra) need a written assignment before any sale; until then that is an open legal item, not a code one.
+- **Ownership: the project belongs to the owner, Aryan Verma**, and so does the scheme data and its upkeep. The repo is proprietary, not open source — see `LICENSE`. Teammates' contributions (Manjeet, Netra) need a written assignment before any sale; until then that is an open legal item, not a code one. *(Superseded on 29 Oct 2026: the owner says the Meta hackathon needs a public, open-source entry, so `LICENSE` is now MIT. The owner states that Manjeet and Netra agree; nothing in writing is on file. See `DATA_SOURCES.md`, "People".)*
 - **The hyperlocal claim stays, backed by real data.** The illustrative market rows were replaced on 24 Sept 2026 with 20 sourced rows for Lucknow and Varanasi, from data.gov.in under GODL-India, and `match_level` stays the honesty marker for how local a figure really is. See "Real market data" below and `DATA_SOURCES.md`.
 - **DPDP compliance is in scope.** In a B2B deployment the client business is the Data Fiduciary and we are its Data Processor.
 

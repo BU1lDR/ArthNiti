@@ -14,7 +14,7 @@ Until 3 Nov IST, "demo path over refactors" applies again to new work. `docs/HAC
 **Decided by the owner:**
 
 - **23 Sept 2026. Purpose: a portfolio piece, and mainly a B2B product** for NBFCs, MFIs, SHG federations, CSC operators and similar. **Real people will act on the output**, so correctness, data honesty, DPDP compliance and security are requirements, not polish.
-- **Ownership: Aryan Verma** owns the project and the scheme data. `LICENSE` is proprietary, which conflicts with the hackathon's open-source rule (see **Legal** under Still open).
+- **Ownership: Aryan Verma** owns the project and the scheme data. `LICENSE` has been MIT since 29 Oct 2026 (the hackathon wants a public, open-source entry); the GODL-India rows, NECC egg prices and `hero-backdrop.jpeg` are outside it (README, **Licence**).
 - **26 Oct 2026. Solo, and entered in the Meta hackathon.** Spend only the free Meta credits ($150), never pay, keep the account balance at ₹0.00: the app's spend cap enforces it for this app's calls (see Data protection).
 - **The hyperlocal claim stays, backed by real data**: 125 sourced market rows for 13 districts from data.gov.in under GODL-India (`DATA_SOURCES.md`). `match_level` is the honesty marker for how local a figure is.
 - **DPDP is in scope.** In a B2B deployment the client is the Data Fiduciary and we are its Data Processor. Never write "compliant", "secure", "anonymous" or "untraceable"; the Rules apply from 13 May 2027. What a deployer needs is in `docs/PROCESSOR_SCHEDULE.md`.
@@ -431,7 +431,7 @@ Also open, stated where they apply: the household definition, market coverage, d
 
 **Meta helper** (the full list is `docs/HACKATHON.md` §8): the owner ran `python -m app.smoke_meta` and `--plan` on 27 Oct 2026: the key works, and both plans passed the checks first time at about 1.1 to 1.2 cents each (`PROCESSOR_SCHEDULE.md` §10.7). Not observed: the speech `keywords`, a real person's speech and the Billing balance since `--plan`. **The plan card has been driven in a browser only against the fake model** (`talk-ui` S16–S22). The helper routes have no authentication, no per-user limit and no consent record (the ledger and the hourly limit are the only brakes), and `/privacy` says nothing about the helper (`PROCESSOR_SCHEDULE.md` §10.5). No `safety_identifier` is sent and zero data retention is not requested. Malayalam has no speech model (typing works).
 
-**Legal:** the hackathon asks for open-source, public entries and `LICENSE` is proprietary. The owner has to choose a licence or ask the organisers; nothing is changed. The September build has commits by Manjeet and Netra and no written assignment on file; the owner's position (26 Oct 2026) is that none is needed, which is a legal question and not a code one. The Official Rules are behind a login and have not been read.
+**Legal:** `LICENSE` became MIT on 29 Oct 2026. The owner states that Manjeet and Netra agree; nothing from either is on file, and a line from each is the safe step. Outside the licence: the NECC egg prices (an e-mail agreement) and `hero-backdrop.jpeg` (no source). The Official Rules are behind a login and unread.
 
 **DPDP** (the full list is `docs/PROCESSOR_SCHEDULE.md` §9):
 
