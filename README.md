@@ -13,7 +13,7 @@ Someone running a small business in a village — a tailor, a weaver, a woman ke
 
 Eight Indian languages, with dialect-aware phrasing layered on top. Thirty real schemes across all seven administrative tiers. Where the deployer switches it on, a person can also say or type their answers instead of filling in the form, and ask for a short plan written in their language around the figures the rules worked out (see [the voice and text helper](#the-voice-and-text-helper-optional)).
 
-**Where it stands.** One person, Aryan Verma, builds and owns this. It began in September 2026 as a six-person college team project for the Smart India Hackathon (SIH) 2026 internal round, held on 14 September, where the team wasn't selected. Since 26 October 2026 it is an individual project, entered in the Meta Global AI Developer Hackathon, Indie Track (26 October to 4 November 2026; submissions are due 4 November, 9:00 PM ET, which is 5 November, 07:30 IST). Beyond the hackathon it stays a portfolio piece and, mainly, a product for businesses that work with real users. It is proprietary; see [LICENSE](LICENSE). This is not open source, even though the repo may be shared. It is still a prototype, not production software, and the rest of this file tries not to pretend otherwise. [docs/HACKATHON.md](docs/HACKATHON.md) says what existed before the hackathon and what was added during it. Anything below about "the demo" or "the round" dates from the team build and is not a current goal.
+**Where it stands.** One person, Aryan Verma, builds and owns this. It began in September 2026 as a six-person college team project for the Smart India Hackathon (SIH) 2026 internal round, held on 14 September, where the team wasn't selected. Since 26 October 2026 it is an individual project, entered in the Meta Global AI Developer Hackathon, Indie Track (26 October to 4 November 2026; submissions are due 4 November, 9:00 PM ET, which is 5 November, 07:30 IST). Beyond the hackathon it stays a portfolio piece and, mainly, a product for businesses that work with real users. It is proprietary; see [LICENSE](LICENSE). This is not open source, even though the repository is public. It is still a prototype, not production software, and the rest of this file tries not to pretend otherwise. [docs/HACKATHON.md](docs/HACKATHON.md) says what existed before the hackathon and what was added during it. Anything below about "the demo" or "the round" dates from the team build and is not a current goal.
 
 ## Two things to know before you read the code
 
@@ -27,7 +27,7 @@ You'll need:
 
 | | What we're on | |
 |---|---|---|
-| Python | 3.14.7 | the pinned dependencies set a floor of 3.10. Only 3.14.6, 3.14.7 and 3.11.9 have actually been run; 3.10 has not |
+| Python | 3.14.7 | the pinned dependencies set a floor of 3.10. Run here: 3.14.6, 3.14.7 and 3.11.9. CI has run 3.10 and 3.14 on Linux (see [CI](#ci)) |
 | Node | 24.18.1 | 24+ really is required — the verifier scripts use a global `WebSocket` |
 | npm | 11.16.0 | |
 | Edge | whatever's current | only for the browser verifiers |
@@ -37,6 +37,7 @@ Nothing to configure to run it locally: the backend starts in development mode a
 `.venv/` and `node_modules/` are gitignored, so a fresh clone has neither. Set both up once, from the repo root:
 
 ```bash
+git clone https://github.com/BU1lDR/ArthNiti.git && cd ArthNiti
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt   # or requirements.txt to only run it
 
@@ -45,7 +46,7 @@ cd frontend && npm install && cd ..
 
 `backend/requirements.txt` is the runtime: FastAPI, uvicorn and everything they pull in, each pinned to an exact version, Starlette included (1.6.0). There are no hashes. `backend/requirements-dev.txt` includes that file and adds pytest and httpx2, which is what the test suite needs.
 
-You never have to *activate* the venv. Every command in this file calls `.venv/Scripts/python.exe` directly, which works from any shell. We're all on Windows and Git Bash, so that's what the snippets assume.
+You never have to *activate* the venv. Every command in this file calls `.venv/Scripts/python.exe` directly, which works from any shell. The snippets assume Windows and Git Bash, which is where all of this was written and run. On macOS or Linux, read `.venv/bin/python` wherever this file says `.venv/Scripts/python.exe`; only the backend tests and the no-server frontend checks have been run on Linux, by CI (see [CI](#ci)).
 
 One thing that looks wrong and isn't: `backend/requirements-dev.txt` asks for **`httpx2`**, not `httpx`. That's the httpx 2.x line published by the pydantic org, and Starlette 1.6 uses it directly. In this venv `import httpx` fails while FastAPI's `TestClient` works fine. Please don't "fix" it.
 
@@ -144,7 +145,7 @@ and in another terminal `cd frontend && VITE_AI_HELPER=true npm run dev`. The sm
 - **backend**: installs `requirements-dev.txt` and runs pytest from `backend/`, on Python 3.10 and 3.14.
 - **frontend**: on Node 24, `npm ci`, lint, build (with a placeholder `https://api.example.invalid` as `VITE_API_BASE_URL`, which a production build requires), `parity4.mjs`, `keycheck.mjs`, `market-lib-test.mjs`, `necc-lib-test.mjs`, `talk-lib-test.mjs` and `app-state-test.mjs`, plus `glyph-audit.mjs`, which only reports and exits 0 whenever it runs. One test in `talk-lib-test.mjs` runs only where the Windows `.venv` exists, so CI skips it.
 
-**It was written without being run.** The machine it was written on has no Linux and no Python 3.10, so nothing in it was tried on either. Whether it passes is shown by the repository's Actions tab, not by this file. The browser gates in `tools/verify/` are not in it: they drive a local Edge at a hardcoded Windows path, so they only run on a Windows machine with Edge installed. There's still no Makefile and no Dockerfile.
+**It has run.** It was written on a machine with no Linux and no Python 3.10, and its first three runs (27 and 28 October 2026) all passed. In the run of 28 October, Python 3.10.22 and 3.14 each ran the whole backend suite on Linux and passed, and the frontend job passed. The Actions tab has every run, and it, not this file, is the evidence for the latest commit. The browser gates in `tools/verify/` are not in it: they drive a local Edge at a hardcoded Windows path, so they only run on a Windows machine with Edge installed. There's still no Makefile and no Dockerfile.
 
 ## The demo path
 
@@ -214,7 +215,7 @@ For a live walkthrough, pick **Food Processing, Handicrafts or Tailoring in Utta
 | `frontend/.env.example` | the `VITE_*` build settings, documented |
 | `frontend/src/index.css` | design tokens, the `.ui-*` system, and the print stylesheet |
 | `tools/` | 34 `.mjs` files, nearly all of them verifiers, plus the two data fetches (market, egg prices) and their maps, and one Python stand-in for the backend (`verify/talk_fake_backend.py`) — [tools/README.md](tools/README.md) explains them |
-| `.github/workflows/ci.yml` | the CI workflow, written without being run (see [CI](#ci)) |
+| `.github/workflows/ci.yml` | the CI workflow (see [CI](#ci)) |
 | `presentation/` | empty, and git does not keep empty folders. Left over from the team build; nothing reads it |
 
 ## How it fits together
@@ -323,11 +324,11 @@ ls tools/*.mjs tools/verify/*.mjs | wc -l       # the script count
 
 Aryan Verma builds and owns this alone from 26 October 2026. The September 2026 SIH build was a team effort: Netra and Anmol on the frontend, Aryan and Manjeet on the backend, Saad and Tripti on presentation, product story and research. Their earlier work is in the git history. Whether reusing it needs their written permission is an open legal question, and the owner's position is that it does not ([DATA_SOURCES.md](DATA_SOURCES.md), "People").
 
-**Which branch to read.** `feature/voice-assistant` is the tip and the one this file describes. The other two pushed branches are earlier points on the same line of commits: `feature/dpdp-compliance` is the September work (the privacy and deployment work, the verifier work and the owner's brand-asset files), and `feature/security-hardening` adds the helper's backend, its spend cap and the network guard. [docs/HACKATHON.md](docs/HACKATHON.md) §2 names the commit that is the hackathon start and gives the `git diff` that shows exactly what was added after it. `main` on GitHub is the old scaffold from the team build, and `before-main` is a fast-forward of it. Neither holds anything this file describes until someone merges `feature/voice-assistant` into `main` or makes it the default branch.
+**Which branch to read.** `main` is the only branch, and it holds everything this file describes. Until 29 October 2026 the work sat on three branches that formed one line of commits: `feature/dpdp-compliance` (the September work: the privacy and deployment work, the verifier work and the owner's brand-asset files), `feature/security-hardening` (the helper's backend, its spend cap and the network guard) and `feature/voice-assistant`, the tip. `main` on GitHub was still the scaffold from the team build. `main` was then moved forward to the tip of that line, which is a fast-forward and adds no merge commit, and every other branch, each one already contained in it, was deleted. [docs/HACKATHON.md](docs/HACKATHON.md) §2 names the commit that is the hackathon start and gives the `git diff` that shows exactly what was added after it.
 
-Compare the `origin/` refs, not your local branch names. A local `main` left over from early backend work can be sitting several commits ahead of `origin/main` and never have been pushed, and then `main...before-main` looks like a genuine divergence. It isn't. Those commits exist on one laptop.
+If you hold a clone from before 29 October, compare `origin/main`, not your local `main`: a local `main` left over from early backend work can sit several commits ahead of the scaffold and never have been pushed. Those commits exist on one laptop.
 
-Never commit to `main`. The commits made on 27 October 2026 are all dated that day, including the ones that hold older work (September, and the morning of 26 October before the hackathon started), so git's dates alone don't separate old work from new. [docs/HACKATHON.md](docs/HACKATHON.md) §2 does.
+Don't commit on `main`; work on a branch cut from it. The commits are dated 27 October 2026 or later, including the ones that hold older work (September, and the morning of 26 October before the hackathon started), so git's dates alone don't separate old work from new. [docs/HACKATHON.md](docs/HACKATHON.md) §2 does.
 
 Gitignored: `.venv`, `node_modules/`, `dist/`, `__pycache__/`, `.env`, `.claude`, `screenshots/`. That last one is where the verifiers dump their PNGs and reports, and it's ignored because it reaches several gigabytes of browser profile data. The scripts themselves are in `tools/` and are tracked.
 
@@ -341,7 +342,7 @@ These are the current limits, written down so nobody overclaims:
 - The non-English wording hasn't been checked by a native speaker, and that now covers 890 keys, the household-check wording, the privacy notice, the 40 `talk.*` keys of the helper and the 20 `plan.*`, 21 `fo.*`, 10 `rp.schedule*`, 6 `mk.egg*`, 24 `fs.*` and 32 `cl.*` keys of the plan, the loan options, the repayment schedule, the egg-price notes, the scheme funding card and the registrations card included. In the funding card, `fs.specialWho`, which lists who counts as a special category under PMEGP, matters most. The non-English notice shouldn't be shown to real users until someone has reviewed it ([docs/PROCESSOR_SCHEDULE.md](docs/PROCESSOR_SCHEDULE.md) §9.1). Parity, placeholders, identical-to-English and the figures are all script-verified; *naturalness* isn't. We've already caught two real mistakes by eye, which suggests there are more.
 - The household income is whatever the reader types, and nothing checks it. Who counts as the household for an unmarried adult (their parents and their parents' unmarried children, themselves included) is our reading of RBI's definition, and nobody has verified it. A reader who types 0 instead of leaving the field blank has to confirm it with a tick, and is then treated as having no income.
 - Nothing here settles whether a deployment meets the DPDP Act. The deploying organisation is the Data Fiduciary and we are its processor. The build gives it a notice, a consent record, a processing log with no answer in it, and production defaults. The organisation still has its own obligations (schedule §7 and §8), and some points need its lawyer (§9.3). The DPDP Rules apply from May 2027.
-- CI was written without being run, on a machine with no Linux and no Python 3.10. The Actions tab is the evidence, this file is not. The browser gates are not in it, because they only run on Windows with Edge installed.
+- CI covers the backend tests on Python 3.10 and 3.14 and the no-server frontend checks, all on Linux. The browser gates are not in it, because they only run on Windows with Edge installed.
 - Dialect coverage is 9 of 30 varieties, each a handful of phrases.
 - The market data covers 13 districts (listed in `DATA_SOURCES.md`) and the egg prices 30 NECC centres. Everywhere else gets an empty market section. The business counts can't be fetched again as they were, because the Udyam list is live. And a price is marked stale when the data is fetched, not when the page loads, so the files need refreshing at least weekly.
 - **The egg prices rest on our reading of NECC's number.** NECC prints it with no unit, and we read it as paise per egg. NECC has not confirmed that, and its agreement to the use was an e-mail, not a licence. Four NECC centres are left out on purpose (Barwala, East Godavari, West Godavari and Mumbai), because each could not be tied to one district.

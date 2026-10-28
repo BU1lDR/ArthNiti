@@ -21,7 +21,7 @@ Until 3 Nov IST, "demo path over refactors" applies again to new work. `docs/HAC
 
 **Still open:** whether an on-screen non-affiliation line comes back or the government look goes, and what `/login` becomes.
 
-**Repo:** `https://github.com/BU1lDR/ArthNiti` (**private** until the owner makes it public for the hackathon; renamed from `SIH_2026` on 26 Oct 2026, and GitHub redirects the old URL). The repo and folder name is ASCII `ArthNiti` because a path cannot reasonably be Devanagari; the product name in the app stays `अर्थNiti` (see `APP_NAME`).
+**Repo:** `https://github.com/BU1lDR/ArthNiti` (**public** as of 28 Oct 2026, switched by the owner, so anything pushed is published at once; renamed from `SIH_2026` on 26 Oct 2026, and GitHub redirects the old URL). The repo and folder name is ASCII `ArthNiti` because a path cannot reasonably be Devanagari; the product name in the app stays `अर्थNiti` (see `APP_NAME`).
 
 > **Ask for explicit confirmation before any action that changes the GitHub repo**: push, PR, branch or tag creation or deletion, releases, settings, visibility, rename. Local commits are fine when requested. Approval for one push does not carry to the next. The earlier team members may still hold clones.
 
@@ -126,7 +126,7 @@ backend/tests/          58 test files, conftest.py and 6 fixture modules (deploy
                         necc, plan, privacy); 2177 tests
 backend/requirements.txt       every runtime dependency pinned, transitive ones too (no hashes)
 backend/requirements-dev.txt   -r requirements.txt + pytest + httpx2 (httpx2 is correct, not a typo)
-.github/workflows/ci.yml       pytest (3.10 + 3.14) + no-server frontend gates. written without being run (no Linux or Python 3.10 here): the Actions tab has the result
+.github/workflows/ci.yml       pytest (3.10 + 3.14) + no-server frontend gates, on Linux; green since its first run (27 Oct 2026): the Actions tab has every run
 frontend/src/
   App.jsx               shell + JourneyBar + LandingPage + NotFoundPage + 12 routes + `*`
   audio/                record.js (microphone to a 16 kHz WAV, released on every exit path), wav.js
@@ -427,7 +427,7 @@ Traps:
 
 **Build and verification:** the verifier gaps (Edge leaks, unrefuted arms, narrow coverage, slow blank-page 2s) are in the history section "Verifier exit codes". The dependencies have no hashes. `backend/venv/` is stale; `.venv` is in use. The print PDF and the `api.js` timeout have not been clicked through by hand. Phones: landscape, real touch and the on-screen keyboard are unverified.
 
-Also open, stated where they apply: the household definition, market coverage, dialect coverage and the translation review, CI written without being run, the Windows-only gates.
+Also open, stated where they apply: the household definition, market coverage, dialect coverage and the translation review, the Windows-only gates.
 
 **Meta helper** (the full list is `docs/HACKATHON.md` §8): the owner ran `python -m app.smoke_meta` and `--plan` on 27 Oct 2026: the key works, and both plans passed the checks first time at about 1.1 to 1.2 cents each (`PROCESSOR_SCHEDULE.md` §10.7). Not observed: the speech `keywords`, a real person's speech and the Billing balance since `--plan`. **The plan card has been driven in a browser only against the fake model** (`talk-ui` S16–S22). The helper routes have no authentication, no per-user limit and no consent record (the ledger and the hourly limit are the only brakes), and `/privacy` says nothing about the helper (`PROCESSOR_SCHEDULE.md` §10.5). No `safety_identifier` is sent and zero data retention is not requested. Malayalam has no speech model (typing works).
 
@@ -446,9 +446,9 @@ Also open, stated where they apply: the household definition, market coverage, d
 
 ## Git
 
-- **History is one line on top of `4a2307e`**, pushed as three branches that sit on it: `feature/dpdp-compliance` (the September DPDP work, the verifier work and the brand-asset files, uncommitted until 27 Oct), `feature/security-hardening` (adds the Meta client, the spend cap and the network guard) and `feature/voice-assistant` (the tip: the `/talk` page, its i18n, the verifiers and the docs). The commit titled "chore: the project as it stood at the hackathon start" is the 12:00 PM ET start of the hackathon on 26 Oct 2026; `docs/HACKATHON.md` §2.3 shows how to diff against it. The other `feature/*` branches are empty placeholders.
-- **The remote has two other branches, `before-main` and `main`.** `origin/main` is still the old scaffold, and the finished code reaches it by a pull request or by changing the default branch, which is the owner's step. Compare `origin/` refs, not local names: local `main` carries unpushed scaffolding commits.
-- Never commit to `main`. **Commit messages carry no Co-Authored-By line and no Claude attribution.**
+- **History is one line on top of `4a2307e`, and `main` is the only branch.** Until 29 Oct 2026 it sat on three branches: `feature/dpdp-compliance` (the September DPDP work, the verifier work and the brand-asset files, uncommitted until 27 Oct), `feature/security-hardening` (the Meta client, the spend cap and the network guard) and `feature/voice-assistant` (the tip). `main` was fast-forwarded to the tip and the others, each an ancestor of it, were deleted. The commit titled "chore: the project as it stood at the hackathon start" is the 12:00 PM ET start of the hackathon on 26 Oct 2026; `docs/HACKATHON.md` §2.3 shows how to diff against it.
+- **New work goes on a new branch cut from `main`.** A clone from before 29 Oct may hold a local `main` with unpushed scaffolding commits: compare `origin/` refs.
+- Never commit on `main` itself: `main` moves only by a push the owner has approved, as a fast-forward. **Commit messages carry no Co-Authored-By line and no Claude attribution.**
 - The brand-asset changes dated 13 Sept (`tools/assetgen.mjs`, `frontend/src/assets/README.md`, two regenerated lockups, and the two `arthniti-wordmark-on-*.png` files) are the owner's and have their own commit. Keep them out of other commits.
 - Ignored: `.venv/`, `venv/`, `node_modules/`, `dist/`, `.env*` except `.env.example`, `.claude/`, `screenshots/` (verifier output, 8 GB) and `.market-cache/`.
 - **Team:** none. Aryan Verma works alone since 26 Oct 2026; the September build had six contributors (`DATA_SOURCES.md`, People).

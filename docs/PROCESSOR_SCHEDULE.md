@@ -2,7 +2,7 @@
 
 This is the technical schedule for an organisation that runs अर्थNiti for its own clients: an NBFC, an MFI, an SHG federation, a CSC operator or similar. It says what the software collects and sends, what it keeps, where it keeps it and for how long, and what it leaves to the organisation and its host. It is written to sit alongside a contract. It is not the contract and it is not legal advice. Items that need a lawyer are marked **Lawyer**.
 
-It describes the code as measured on 27 Sept 2026 (branch `feature/dpdp-compliance`, notice version `2026-09-27.1`), plus the optional AI helper added on 26 and 27 Oct 2026 for the Meta hackathon (`docs/HACKATHON.md`). **The helper is off by default.** Sections 1 to 9 describe the software with the helper off, and say so where the helper changes a statement. Section 10 describes the helper. A statement of the form "the software does X" is backed by the test or live probe named next to it. If the code changes, this file has to change with it.
+It describes the code as measured on 27 Sept 2026 (committed as `57185b9`, notice version `2026-09-27.1`), plus the optional AI helper added on 26 and 27 Oct 2026 for the Meta hackathon (`docs/HACKATHON.md`). **The helper is off by default.** Sections 1 to 9 describe the software with the helper off, and say so where the helper changes a statement. Section 10 describes the helper. A statement of the form "the software does X" is backed by the test or live probe named next to it. If the code changes, this file has to change with it.
 
 Nothing here says that the software, or any deployment of it, complies with the DPDP Act, the DPDP Rules or any other law. That is for the organisation and its lawyer to decide, using the facts below.
 

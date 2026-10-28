@@ -65,29 +65,33 @@ The loan options and the written plan then took the suite from 1,558 to 1,922 te
 
 ### 2.3 How a reviewer can check this
 
-Every commit in the chain is dated 27 or 28 Oct 2026, because the work was done in one working tree and committed afterwards. **Nothing is backdated.** Git history therefore separates the layers by order, not by date. The chain, oldest first:
+Every commit in the chain is dated 27 Oct 2026 or later, because the work was done in one working tree and committed afterwards. **Nothing is backdated.** Git history therefore separates the layers by order, not by date. The chain, oldest first:
 
-| Commit title | Layer | Branch that ends here |
-|---|---|---|
-| feat(dpdp): data-protection work, input caps and verifier changes from September | 1 | |
-| chore(brand): the owner's brand-asset files from 13 Sept | 1 | `feature/dpdp-compliance` |
-| docs: the project becomes a solo entry for the Meta hackathon, named ArthNiti | 2 | |
-| chore: the project as it stood at the hackathon start (`e4708306cab1`) | 2 | |
-| feat(meta): spend cap, network guard and API-efficiency settings for the Meta helper | 3 | `feature/security-hardening` |
-| feat(talk): speak or type your answers, off unless VITE_AI_HELPER is set | 3 | |
-| docs: the hackathon account, the cost controls and what is still unverified | 3 | |
-| data: market rows for 11 more districts, 125 rows in all | 3 | |
-| feat(advisor): loan options and an AI-written, rule-verified plan | 3 | |
-| feat(meta): smoke_meta --plan, two real plan calls under the cap | 3 | |
-| docs: the plan route, the live-run facts and the new counts | 3 | |
-| chore: remove OUR_MVP.md | 3 | `feature/voice-assistant` |
+| Commit title | Layer |
+|---|---|
+| feat(dpdp): data-protection work, input caps and verifier changes from September | 1 |
+| chore(brand): the owner's brand-asset files from 13 Sept | 1 |
+| docs: the project becomes a solo entry for the Meta hackathon, named ArthNiti | 2 |
+| chore: the project as it stood at the hackathon start (`e4708306cab1`) | 2 |
+| feat(meta): spend cap, network guard and API-efficiency settings for the Meta helper | 3 |
+| feat(talk): speak or type your answers, off unless VITE_AI_HELPER is set | 3 |
+| docs: the hackathon account, the cost controls and what is still unverified | 3 |
+| data: market rows for 11 more districts, 125 rows in all | 3 |
+| feat(advisor): loan options and an AI-written, rule-verified plan | 3 |
+| feat(meta): smoke_meta --plan, two real plan calls under the cap | 3 |
+| docs: the plan route, the live-run facts and the new counts | 3 |
+| chore: remove OUR_MVP.md | 3 |
+| feat: repayment schedules, scheme funding, registrations and egg prices | 3 |
+| docs: everything is on main, CI has run, the repo is public | 3 |
+
+Until 29 Oct 2026 this chain was three branches: `feature/dpdp-compliance` ended at the brand-asset commit, `feature/security-hardening` at the spend-cap commit and `feature/voice-assistant` at the tip. `main` now holds the whole chain and the three branches are deleted.
 
 ```
-git log --oneline 4a2307e..feature/voice-assistant       # the chain, newest first
-git diff e4708306cab1..feature/voice-assistant --stat    # everything the hackathon added or changed
+git log --oneline 4a2307e..main                # the chain, newest first
+git diff e4708306cab1..main --stat             # everything the hackathon added or changed
 ```
 
-`e4708306cab1` is the commit titled *"chore: the project as it stood at the hackathon start"*: a snapshot of the tree at 12:00 PM ET on 26 Oct. The commits up to and including it are layers 1 and 2; the eight after it are layer 3.
+`e4708306cab1` is the commit titled *"chore: the project as it stood at the hackathon start"*: a snapshot of the tree at 12:00 PM ET on 26 Oct. The commits up to and including it are layers 1 and 2; the commits after it are layer 3.
 
 That snapshot was reconstructed, not saved. A full copy of the working tree was taken at 8:03 AM ET; every edit made through the editor tools between then and 12:00 PM ET was replayed from the session transcript; a file last written before 12:00 PM ET is taken as it is on disk; the few shell-script edits are accounted for by hand. Replaying the 205 editor calls made after the start on top of the snapshot reproduces 26 of the 28 files they touched byte for byte. The other two (`test_network_guard.py`, `talk-lib-test.mjs`) are new in layer 3 and were changed afterwards by shell commands. The snapshot passes its own backend suite: 1,411 tests, 45 files.
 
@@ -158,7 +162,7 @@ What the app cannot do: the ledger counts only this app's calls, on this machine
 
 Measured on 28 Oct 2026 on the working tree, before it was committed (re-measure with the commands in the README): backend `pytest` 2,177 passed in 58 test files (17.1 s); `node tools/parity4.mjs` 9 of 9 checks over 890 dictionary keys (7,120 values) in 8 languages; `node tools/keycheck.mjs`; `glyph-audit`; ESLint; `node --test` on `talk-lib-test.mjs` (45), `app-state-test.mjs` (41), `market-lib-test.mjs` (185) and `necc-lib-test.mjs` (74); `npm run build:local` with the helper on and off, and the https build. All 15 browser gates exited 0 on the finished tree, once the registrations card was in it (`report.json` says `exit: 0` for each that writes one). `talk-ui` (the `/talk` page and the plan card in a real Edge against a fake Meta: 24 scenarios, 460 checks, 51 s), `drive` (43 page loads and the hydrate check, with the repayment-table, funding-card and registrations-card arms), `error-banner` (32 cases in 8 languages), `scroll-audit` (38 hops), `market-ui` (42 loads), `mobile-audit` (48), `figure-audit` (352 measurements), `lang-layout` (112 loads), `print-audit` (6 renders), `text-align` (33 loads), `field-align` (96), `motion-audit`, `hero-art`, `brand-mark` and `manual-audit`. `refresh-cases` ran too. The plan card is driven by S16 to S22 of `talk-ui` (section 8 says what they do not cover).
 
-The tree was also tried the way a stranger would try it. On 28 Oct 2026 the 249 files that git would commit (nothing ignored, no `.venv`, no `node_modules`, no `.env`) were copied to an empty folder. `npm ci` (151 packages), ESLint and `npm run build:local` passed there, and a build without an https `VITE_API_BASE_URL` refused, as designed. Two new virtual environments were installed from `backend/requirements-dev.txt`, and `pytest` passed all 2,177 tests on Python 3.14.7 and on 3.11.9. `parity4`, `keycheck`, `glyph-audit` and the four `node --test` files passed (344 of the 345 Node tests ran; one skips itself when there is no `.venv` at the repo root). The backend started from the copy and answered the demo input with HTTP 200 and the 10 top-level keys, and the intake route answered 404 with the helper off. Not tried: Python 3.10 (the floor `ci.yml` tests), Linux, and a real `git clone`, since nothing is committed yet.
+The tree was also tried the way a stranger would try it. On 28 Oct 2026 the 249 files that git would commit (nothing ignored, no `.venv`, no `node_modules`, no `.env`) were copied to an empty folder. `npm ci` (151 packages), ESLint and `npm run build:local` passed there, and a build without an https `VITE_API_BASE_URL` refused, as designed. Two new virtual environments were installed from `backend/requirements-dev.txt`, and `pytest` passed all 2,177 tests on Python 3.14.7 and on 3.11.9. `parity4`, `keycheck`, `glyph-audit` and the four `node --test` files passed (344 of the 345 Node tests ran; one skips itself when there is no `.venv` at the repo root). The backend started from the copy and answered the demo input with HTTP 200 and the 10 top-level keys, and the intake route answered 404 with the helper off. Once the work was committed and pushed, a real `git clone` of the public repository (commit `b69a605`, 249 tracked files) was set up the way the README says: a new virtual environment from `backend/requirements-dev.txt` and `pytest` (2,177 passed on Python 3.14.7), then `npm install` (151 packages), ESLint, `npm run build:local`, `parity4`, `keycheck` and the four `node --test` files (185, 74, 45 and 41 tests, none skipped). All passed. `npm install` added one line, `"license": "UNLICENSED"`, to `frontend/package-lock.json`: `package.json` carries a licence field that the lockfile never had, and it goes with the open licence question (section 9). GitHub Actions ran the same commit on Linux: the backend job on Python 3.10.22 and on 3.14 (2,177 passed on each) and the frontend job (the same checks as above, with the one Windows-only test of `talk-lib-test` skipped). Not tried on the clone: starting the servers and the browser gates, which need Edge on Windows.
 
 `test_model_boundary` was checked by planting 12 imports, one at a time (a connection or the model client in a rules module, a rules module in a helper service, a second place that opens a connection, a new file that imports the client): each one made it fail, and every file was put back byte for byte. New modules were also mutation-tested by hand (change a comparison, delete a check, run the tests, expect a failure). The table of results, with the survivors that were fixed by a new test or explained as equivalent, is in `docs/ENGINEERING_HISTORY.md`, section "The Meta hackathon intake helper". The browser gate has thirty-three refuters (a deliberately broken page that the gate must fail): 13 for `/talk` and 20 for the plan card, listed in the header of `tools/verify/talk-ui.mjs`. One of the `/talk` ones survived at first, because the check read the fake backend's call log; the check now watches the page's own requests. A fixed width on the plan card's Write button also survived, because the buttons sit in a row that shrinks them to fit; that refuter was invalid, not the gate, and the listed one uses a minimum width.
 
@@ -190,11 +194,11 @@ Departures from test-first, stated plainly: the original `smoke_meta.py` (layer 
 The Official Rules and the submission form are behind a login. Each box is ticked only when it has been checked.
 
 - [ ] The Official Rules are read: whether work that existed before the start is allowed when it is called out (this file is the call-out), team and IP terms, eligibility, what a submission must contain, and whether AI-assisted coding has to be declared.
-- [ ] A licence is chosen and `LICENSE` says so. The kickoff rules say entries are open source and the repository is public.
+- [ ] A licence is chosen and `LICENSE` says so. The kickoff rules say entries are open source and the repository is public. It is public now, and `LICENSE` is still the proprietary text (GitHub shows no licence for the repository). `frontend/package.json` also says `"license": "UNLICENSED"`: change it with `LICENSE`, then run `npm install` in `frontend/` to refresh the lockfile line.
 - [ ] `python -m app.smoke_meta` has run against the live API with the capped key, and Meta's Usage page shows a cost at or below the ledger's estimate. It has run once in each mode (the default run and `--plan`, both on 27 Oct 2026; the ledger holds $0.0451 and $0.0797 for them), and the Usage page showed ₹0.00 after the first. Not yet looked at: the Usage page after `--plan` (it should show 5 requests in all) and the Billing balance.
 - [ ] `/talk` works end to end against the real API, typed and spoken, and so does the plan card on `/advisory` (server with `ARTHNITI_AI_ENABLED=true`, build with `VITE_AI_HELPER=true`).
-- [ ] The test commands in the README pass on a fresh clone. A copy of the working tree passed on 28 Oct (section 7); repeat it on a real `git clone` once the work is committed and pushed.
-- [ ] The repository is public, the link works, and the default branch shows this work.
+- [x] The test commands in the README pass on a fresh clone. A real `git clone` passed on 28 Oct, and so did CI on Linux with Python 3.10 and 3.14 (section 7). Repeat the clone after the last commit before submitting.
+- [ ] The repository is public, the link works, and the default branch shows this work. The repository was public on 28 Oct; `main` was moved to the tip of the work on 29 Oct. Tick this after opening the link in a window where you are not signed in to GitHub.
 - [ ] The 3-minute video is recorded and uploaded (section 10 is the shot list). It shows the new work as new, says once that the rules engine under it is prior work from September, and claims nothing from layer 1 or 2 as built during the event. If the live API fails while recording, the typed path and the plain form still work.
 - [ ] Submitted by Tue 3 Nov, evening IST.
 

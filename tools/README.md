@@ -454,10 +454,10 @@ which exits 0 whenever it ran and is there to be read. The build step sets `VITE
 this build is never deployed, so it gets a placeholder that cannot resolve
 (`.invalid` is reserved by RFC 2606). parity4 passes in CI only once
 `tools/notice-version.json` is committed with the hash of the committed notice
-text. **None of the browser scripts is in CI.** **CI was written without being run**,
-on a Windows machine with no Linux and no Python 3.10; the Actions tab has the
-result. Two scripts were changed for
-Linux, by reading the code, not by running it there. `keycheck` turns every `\`
+text. **None of the browser scripts is in CI.** CI was written on a Windows
+machine with no Linux and no Python 3.10, and has run on Linux since 27 Oct 2026
+(the Actions tab has every run). Two scripts were changed for Linux by reading
+the code, and both have since run there in CI. `keycheck` turns every `\`
 into `/` on both sides before it compares paths. Before that, its filter that
 skips the four dictionary files matched only Windows paths, so on Linux every key
 a dictionary defines would have counted as used. `glyph-audit` finds `frontend/src`
