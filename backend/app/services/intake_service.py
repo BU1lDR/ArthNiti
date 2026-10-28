@@ -82,6 +82,7 @@ CATEGORIES = (
     "tailoring",
     "agriculture",
     "dairy",
+    "poultry",
     "services",
     "manufacturing",
 )

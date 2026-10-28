@@ -2,6 +2,7 @@ from app.services.risk_service import (
     ASSUMED_ANNUAL_INTEREST_PERCENT,
     calculate_repayment_pressure,
 )
+from app.services.schedule_service import amortization_schedule
 
 # How much of the funding gap can be borrowed, over how long, and still leave the
 # repayment in the low band. This module has no rule of its own: every figure
@@ -68,23 +69,28 @@ def _largest_safe_loan(gap: float, is_safe):
     return low * LOAN_STEP
 
 
-def _option(tenure: int, loan: float, gap: float, risk: dict):
-    monthly_repayment = risk["estimated_new_emi"]
-    total_repayment = monthly_repayment * tenure
+def _option(tenure: int, loan: float, gap: float, risk: dict, monthly_surplus: float):
+    # The totals come from the schedule, so the card and the table beside it add
+    # up to the same figure: the last payment makes up what rounding the
+    # instalment to whole rupees leaves, which twelve equal instalments would not.
+    plan = amortization_schedule(loan, ASSUMED_ANNUAL_INTEREST_PERCENT, tenure)
+    total_emi = risk["total_monthly_emi"]
     return {
         "code": f"term_{tenure}",
         "tenure_months": tenure,
         "loan_amount": loan,
         "remaining_gap": round(gap - loan, 2),
-        "monthly_repayment": monthly_repayment,
-        "total_repayment": total_repayment,
-        # The instalment is rounded to whole rupees, so on a loan of a few rupees
-        # the total can come out under the loan. Interest is never negative.
-        "total_interest": max(round(total_repayment - loan, 2), 0),
+        "monthly_repayment": risk["estimated_new_emi"],
+        "total_repayment": plan["total_repayment"],
+        "total_interest": plan["total_interest"],
+        # The same surplus the pressure figure uses, over the same loan payments:
+        # the pressure figure read the other way up. None when nothing is paid.
+        "dscr": round(monthly_surplus / total_emi, 2) if total_emi > 0 else None,
         "pressure_ratio_percent": risk["pressure_ratio_percent"],
         "risk_level": risk["risk_level"],
         "household_repayment_percent": risk["household_repayment_percent"],
         "household_check": risk["household_check"],
+        "schedule": plan["schedule"],
     }
 
 
@@ -125,7 +131,9 @@ def build_financing_options(
                 funding_gap, lambda amount, tenure=tenure: _is_safe(price(amount, tenure))
             )
             if loan > 0:
-                options.append(_option(tenure, loan, funding_gap, price(loan, tenure)))
+                options.append(
+                    _option(tenure, loan, funding_gap, price(loan, tenure), monthly_surplus)
+                )
 
         covering = [o["code"] for o in options if o["remaining_gap"] == 0]
         if covering:

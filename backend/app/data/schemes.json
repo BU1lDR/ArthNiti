@@ -19,7 +19,8 @@
     "eligibility_rules": [
       "Applicant should be involved in an eligible micro food processing activity.",
       "Individual micro food processing units may receive credit-linked capital subsidy of 35% of eligible project cost, subject to a maximum of Rs.10 lakh per unit.",
-      "Beneficiary contribution should be at least 10% of the project cost."
+      "Beneficiary contribution should be at least 10% of the project cost.",
+      "The Ministry's page for individual units speaks of units that want to upgrade. It does not say whether a new unit can get this subsidy."
     ],
     "support_type": "Credit-linked capital subsidy",
     "documents": [
@@ -29,11 +30,12 @@
       "Bank-related documents",
       "Project report"
     ],
-    "last_verified": "2026-09-01",
+    "last_verified": "2026-10-28",
     "eligibility_codes": [
       "elig.pmfme.activity",
       "elig.pmfme.subsidy",
-      "elig.pmfme.contribution"
+      "elig.pmfme.contribution",
+      "elig.pmfme.upgrade"
     ],
     "document_codes": [
       "doc.identity",
@@ -53,7 +55,11 @@
     "business_categories": [
       "manufacturing",
       "services",
-      "trading"
+      "trading",
+      "food processing",
+      "dairy",
+      "poultry",
+      "beekeeping"
     ],
     "states": [
       "ALL"
@@ -66,7 +72,8 @@
       "The applicant must satisfy the eligibility conditions specified in the current PMEGP guidelines.",
       "Maximum project cost for manufacturing units is Rs.50 lakh.",
       "Maximum project cost for service/trading units is Rs.20 lakh.",
-      "Bank financing and beneficiary contribution are subject to the applicable PMEGP guidelines."
+      "Bank financing and beneficiary contribution are subject to the applicable PMEGP guidelines.",
+      "The 2022 guidelines approve the scheme for the five years 2021-22 to 2025-26. This app has not confirmed that it continues after 31 March 2026."
     ],
     "support_type": "Credit-linked margin money subsidy",
     "documents": [
@@ -76,12 +83,13 @@
       "Educational or training documents where applicable",
       "Bank-related documents"
     ],
-    "last_verified": "2026-09-01",
+    "last_verified": "2026-10-28",
     "eligibility_codes": [
       "elig.pmegp.guidelines",
       "elig.pmegp.maxManufacturing",
       "elig.pmegp.maxService",
-      "elig.pmegp.financing"
+      "elig.pmegp.financing",
+      "elig.pmegp.period"
     ],
     "document_codes": [
       "doc.identity",
@@ -102,6 +110,7 @@
       "manufacturing",
       "trading",
       "services",
+      "food processing",
       "dairy",
       "poultry",
       "beekeeping"
@@ -127,7 +136,7 @@
       "Business/project information",
       "Bank-related documents"
     ],
-    "last_verified": "2026-09-01",
+    "last_verified": "2026-10-28",
     "eligibility_codes": [
       "elig.pmmy.activity",
       "elig.pmmy.shishu",
@@ -205,6 +214,7 @@
       "services",
       "trading",
       "dairy",
+      "poultry",
       "food processing"
     ],
     "states": [
@@ -218,7 +228,8 @@
       "The enterprise must be majority owned and controlled by a woman, or by a person from a Scheduled Caste or Scheduled Tribe community.",
       "The loan size ranges from Rs.10 lakh to Rs.1 crore.",
       "The unit must be new, not an existing or transferred unit.",
-      "Activities allied to agriculture, such as dairy, poultry and food processing, are covered; crop cultivation on its own is not."
+      "Activities allied to agriculture, such as dairy, poultry and food processing, are covered; crop cultivation on its own is not.",
+      "The Department of Financial Services gives the scheme period as up to 31 March 2025. A new scheme was announced in the Union Budget 2025-26. This app has not confirmed that loans are being given now."
     ],
     "support_type": "Bank loan for a first-time enterprise",
     "documents": [
@@ -228,12 +239,13 @@
       "Project report",
       "Bank-related documents"
     ],
-    "last_verified": "2026-09-07",
+    "last_verified": "2026-10-28",
     "eligibility_codes": [
       "elig.standupindia.who",
       "elig.standupindia.amount",
       "elig.common.newUnit",
-      "elig.standupindia.agriAllied"
+      "elig.standupindia.agriAllied",
+      "elig.standupindia.period"
     ],
     "document_codes": [
       "doc.identity",

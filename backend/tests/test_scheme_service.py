@@ -9,7 +9,7 @@ from app.services.scheme_service import (
     serves_state,
 )
 
-# The exact strings the nine buttons on /business send, minus "other" (which
+# The exact strings the ten buttons on /business send, minus "other" (which
 # sends whatever the entrepreneur typed). Several tests below sweep these,
 # because a scheme is only real if one of these values can reach it.
 BUTTON_CATEGORIES = [
@@ -19,6 +19,7 @@ BUTTON_CATEGORIES = [
     "tailoring",
     "agriculture",
     "dairy",
+    "poultry",
     "services",
     "manufacturing",
 ]
@@ -709,3 +710,43 @@ def test_a_multi_state_scheme_is_region_for_every_state_it_names():
     up = by_id("Uttar Pradesh")
     for scheme_id in ("up_myuva", "up_vssy", "odop_up"):
         assert up[scheme_id]["fit_basis"] == "state", scheme_id
+
+
+# --- the allied work the published guidelines name -------------------------
+# PMEGP's guidelines (KVIC, 1 June 2022, para 30) list dairy, poultry and insects
+# including bees as animal husbandry that is allowed, and exclude only meat from
+# food processing. The Department of Financial Services page for Mudra says
+# "non-agricultural, including activities allied to agriculture such as poultry,
+# dairy, beekeeping". The dataset listed neither scheme for those buttons, so a
+# food processor saw neither, and a dairy keeper or a poultry farmer missed PMEGP.
+
+
+def _offered(category, state="Uttar Pradesh", location_type="rural"):
+    return {
+        match["scheme_id"]
+        for match in match_schemes(
+            business_category=category,
+            state=state,
+            location_type=location_type,
+        )
+    }
+
+
+def test_pmegp_is_offered_for_the_allied_work_its_guidelines_allow():
+    for category in ("food processing", "dairy", "poultry", "beekeeping"):
+        assert "pmegp" in _offered(category), category
+
+
+def test_mudra_is_offered_for_food_processing():
+    assert "pmmy" in _offered("food processing")
+
+
+def test_stand_up_india_is_offered_for_poultry_as_its_own_rule_says():
+    assert "standupindia" in _offered("poultry")
+
+
+def test_plain_agriculture_still_reaches_none_of_the_three_priced_schemes():
+    # Not a red test: it passes before the change and is here so that widening
+    # the categories above cannot reach crop farming, which none of the three
+    # funds.
+    assert not {"pmegp", "pmfme", "pmmy"} & _offered("agriculture")

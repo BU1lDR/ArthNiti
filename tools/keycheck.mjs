@@ -53,11 +53,13 @@ const SRC = 'frontend/src'
 const BACKEND_SERVICES = 'backend/app/services'
 const SCHEMES_JSON = 'backend/app/data/schemes.json'
 const MARKET_JSON = 'backend/app/data/market_data.json'
+const NECC_JSON = 'backend/app/data/necc_egg_prices.json'
 const BACKEND_TEXT = 'frontend/src/i18n/backendText.js'
 // The market fetch tool's own inputs. They are read directly rather than only
 // through market_data.json because that file can be empty (no fetch has run),
 // and a code the fetch WILL emit should fail here before any data carries it.
 const MARKET_LIB = 'tools/market-lib.mjs'
+const NECC_LIB = 'tools/necc-lib.mjs'
 const MARKET_NIC_MAP = 'tools/market-nic-map.json'
 const MARKET_COMMODITIES = 'tools/market-commodities.json'
 
@@ -181,19 +183,22 @@ const collectDataCodes = (path) => {
 }
 collectDataCodes(SCHEMES_JSON)
 collectDataCodes(MARKET_JSON)
+collectDataCodes(NECC_JSON)
 
-// 2b. Codes the market fetch tool writes into rows it has not produced yet.
+// 2b. Codes the fetch tools write into rows they have not produced yet.
 //     market-lib.mjs spells every source_code and note_code out as a literal
-//     (SOURCE_EN / NOTE_EN), and the NIC map carries the per-category note_code.
-//     A missing file throws rather than being skipped: an absent input is not
-//     the same as a clean one.
-readFileSync(MARKET_LIB, 'utf8')
-  .split(/\r?\n/)
-  .forEach((line, i) => {
-    for (const m of line.matchAll(/['"]((?:src|mknote)\.[A-Za-z]+)['"]/g)) {
-      noteBackend(m[1], `${MARKET_LIB}:${i + 1}`)
-    }
-  })
+//     (SOURCE_EN / NOTE_EN), necc-lib.mjs spells out its SOURCE_CODE, and the
+//     NIC map carries the per-category note_code. A missing file throws rather
+//     than being skipped: an absent input is not the same as a clean one.
+for (const lib of [MARKET_LIB, NECC_LIB]) {
+  readFileSync(lib, 'utf8')
+    .split(/\r?\n/)
+    .forEach((line, i) => {
+      for (const m of line.matchAll(/['"]((?:src|mknote)\.[A-Za-z]+)['"]/g)) {
+        noteBackend(m[1], `${lib}:${i + 1}`)
+      }
+    })
+}
 for (const [category, entry] of Object.entries(JSON.parse(readFileSync(MARKET_NIC_MAP, 'utf8')).categories)) {
   if (entry.note_code) noteBackend(entry.note_code, `${MARKET_NIC_MAP} (${category}.note_code)`)
 }

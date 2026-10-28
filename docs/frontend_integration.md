@@ -59,7 +59,7 @@ All rupee amounts are numbers between 0 and 1,000,000,000 (₹100 crore). Infini
 
 | Field | Type | Required | Default | Limits and meaning |
 |---|---|---|---|---|
-| `business_category` | string | yes | | 2–100 characters. The UI sends one of `retail`, `food processing`, `handicrafts`, `tailoring`, `agriculture`, `dairy`, `services` or `manufacturing`, or the reader's own words for "Other". It is matched against scheme categories by substring, so keep the values in English |
+| `business_category` | string | yes | | 2–100 characters. The UI sends one of `retail`, `food processing`, `handicrafts`, `tailoring`, `agriculture`, `dairy`, `poultry`, `services` or `manufacturing`, or the reader's own words for "Other". It is matched against scheme categories by substring, so keep the values in English |
 | `state` | string | yes | | 2–60 characters. A state or union territory name, spelled as in `frontend/src/data/indiaLocations.js` |
 | `district` | string | no | `""` | Up to 60 characters. Market figures are returned only for the reader's own district, or state-wide ones for their state |
 | `location_type` | string | no | `"rural"` | 2–20 characters. `rural`, `semi-urban` or `urban`. Some schemes are open only to some of these |
@@ -93,16 +93,18 @@ Any other top-level field is ignored silently.
 
 ## Response
 
-A 200 carries these eight top-level keys:
+A 200 carries these ten top-level keys:
 
 | Section | Keys |
 |---|---|
 | `financial_analysis` | `monthly_profit`, `profit_margin_percent`, `financial_status`, `available_capital`, `monthly_expenses`, `expected_monthly_revenue`, `initial_investment`, `funding_gap` |
 | `risk_analysis` (19) | `pressure_ratio_percent`, `risk_level`, `risk_level_without_new_loan`, `reason`, `reason_code`, `monthly_emi`, `estimated_new_emi`, `total_monthly_emi`, `assumed_interest_rate_percent`, `assumed_tenure_months`, `household_monthly_income`, `household_repayment_percent`, `household_check`, `household_check_without_new_loan`, `household_limit_percent`, `household_microfinance_income_limit`, `household_in_microfinance_range`, `household_reason`, `household_reason_code` |
-| `financing_options` (6) | `status`, `funding_gap`, `assumed_interest_rate_percent`, `household_checked`, `options[]`, `recommended_by_rules`. Every entry of `options` has `code, tenure_months, loan_amount, remaining_gap, monthly_repayment, total_repayment, total_interest, pressure_ratio_percent, risk_level, household_repayment_percent, household_check` |
+| `financing_options` (6) | `status`, `funding_gap`, `assumed_interest_rate_percent`, `household_checked`, `options[]`, `recommended_by_rules`. Every entry of `options` has `code, tenure_months, loan_amount, remaining_gap, monthly_repayment, total_repayment, total_interest, dscr, pressure_ratio_percent, risk_level, household_repayment_percent, household_check, schedule` |
 | `business_analysis` | `business_type`, `initial_investment`, `expected_monthly_revenue`, `monthly_operating_expenses`, `monthly_operating_surplus`, `operating_margin_percent`, `annual_operating_surplus`, `estimated_roi_percent`, `feasibility_status`, `observations[]`, `observation_codes[]` |
-| `market_context` | a list, often empty. Every row has `state, district, business_category, scope, metric, source, source_code, last_verified, provenance{20 keys}, match_level`. A `wholesale_price_per_kg` row adds `commodity, commodity_id, unit, indicative_price, price_low, price_high, n_days, n_markets, last_reported`, and sometimes `stale`. A `registered_units` row adds `count, count_suppressed, share_percent, district_total, nic_classes`, and sometimes `note_code`/`note` |
+| `market_context` | a list, often empty. Every row has `state, district, business_category, scope, metric, source, source_code, last_verified, provenance{20 keys}, match_level`. A `wholesale_price_per_kg` row adds `commodity, commodity_id, unit, indicative_price, price_low, price_high, n_days, n_markets, last_reported`, and sometimes `stale`. A `registered_units` row adds `count, count_suppressed, share_percent, district_total, nic_classes`, and sometimes `note_code`/`note`. An `egg_price` row (poultry, from NECC) has `provenance{14 keys}` and no commodity: it adds `price_kind, centre, unit, indicative_price, last_reported, stale` |
 | `scheme_matches` | a list. Every entry has `name, level, scheme_id, description, support_type, match_score, fit_basis, match_reasons[], match_reason_codes[], eligibility_rules[], documents[], description_code, support_type_code, eligibility_codes[], document_codes[], last_verified` |
+| `scheme_funding` (5) | `status`, `project_cost`, `money_in_hand`, `funding_gap`, `schemes[]`. `schemes` has one entry for each of PMEGP, PMFME and Mudra that the matcher found, in its order, and no other scheme is priced. A `kind: "subsidy"` entry (PMEGP, PMFME) has `scheme_id, kind, terms, limit_kind, limit, limit_applied, cases[]`, and PMEGP adds `area, area_assumed`. Every case has `code, own_percent, own_amount, own_short_by, subsidy_percent, subsidy_amount, bank_amount, net_loan_amount`. A `kind: "loan_band"` entry (Mudra) has `scheme_id, kind, terms, loan_amount, band, band_limit` |
+| `compliance` (2) | `yearly_sales`, `steps[]`. `yearly_sales` is the expected monthly income times 12, and every limit below is tested against it. `steps` is always four entries in this order: `udyam`, `local`, `fssai`, `gst`. Every step has `id`, `need` and `source`. `udyam` adds `schemes_requiring`; `local` adds `place`; `fssai` adds `kind`, `sales_limit`, `food_per_day`, `milk_per_day`, `dairy_exemption`; `gst` adds `state`, `supply`, `goods_limit`, `services_limit`, `limit`, `farm`, `case` |
 | `advisory` | `recommendations[]`, `recommendation_codes[]` |
 | `mvp_summary` | `status, simple_message, message_code, next_step, next_step_code, priority, location_type` |
 
@@ -115,11 +117,26 @@ A 200 carries these eight top-level keys:
 | `household_check`, `household_check_without_new_loan` | `within_limit` / `over_limit` / `not_checked` |
 | `financing_options.status` | `covered` / `partial` / `no_gap` / `no_surplus` / `household_over_limit` / `no_room` |
 | `financing_options.options[].code` | `term_12` / `term_24` / `term_36` / `term_60` |
+| `scheme_funding.status` | `ok` / `no_scheme` / `no_project_cost` |
+| `scheme_funding.schemes[].kind` | `subsidy` / `loan_band` |
+| `scheme_funding.schemes[].terms` | `kvic_2022` / `mofpi_2021` / `dfs_2026` |
+| `scheme_funding.schemes[].area` | `rural` / `urban` |
+| `scheme_funding.schemes[].limit_kind` | `cost` / `subsidy` |
+| `scheme_funding.schemes[].cases[].code` | `general` / `special` / `all` |
+| `scheme_funding.schemes[].band` | `none` / `shishu` / `kishore` / `tarun` / `tarun_plus` / `above_limit` |
+| `compliance.steps[].id` | `udyam` / `local` / `fssai` / `gst` |
+| `compliance.steps[].need` | `free` (udyam) / `ask` (local) / `usually` / `depends` / `not_needed` (fssai, gst) |
+| `compliance.steps[].source` | `udyam_2026` / `fssai_2017` / `cbic_2019`, and `null` for `local` |
+| `compliance.steps[].place` (local) | `panchayat` / `urban_body` |
+| `compliance.steps[].kind` (fssai) | `registration` / `licence`, and `null` when `need` is `not_needed` |
+| `compliance.steps[].supply` (gst) | `goods` / `services` / `mixed` |
+| `compliance.steps[].case` (gst) | `within` / `above` / `between` / `farm_above` |
 | `feasibility_status` | `feasible` / `break_even` / `not_feasible` |
 | `mvp_summary.status` | `good` / `attention_needed` / `review` |
 | `level` (scheme) | `central` / `state` / `regional` / `district` / `sub_district` / `block` / `local_body` |
 | `fit_basis` (scheme) | `state` / `region` / `national` |
-| `metric` (market) | `wholesale_price_per_kg` / `registered_units` |
+| `metric` (market) | `wholesale_price_per_kg` / `registered_units` / `egg_price` |
+| `price_kind` (egg price) | `suggested` / `prevailing` |
 | `match_level` (market) | `district` / `state` |
 
 **Read these before rendering:**
@@ -137,15 +154,36 @@ A 200 carries these eight top-level keys:
   - Each option is the largest loan, in whole thousands of rupees or the whole gap, whose total repayment is `low` and inside the household cap, for 12, 24, 36 or 60 months at the same assumed rate as `estimated_new_emi`. It is priced by the same function as `risk_analysis`, so the 60-month option is the loan `risk_analysis` already prices whenever the gap fits.
   - `options` is empty unless `status` is `covered` (some option has `remaining_gap` 0) or `partial` (none does). The other four statuses say why no loan is offered. A tenure that allows no loan at all is left out of `options`.
   - `recommended_by_rules` is the `code` of the shortest option with `remaining_gap` 0, which costs the least interest, and `null` otherwise.
+  - `schedule` is that loan paid off month by month at the assumed rate: rows of `month, opening_balance, payment, interest, principal, closing_balance`. It is counted in whole paise, so the `payment` column adds up to `total_repayment` and the `interest` column to `total_interest` exactly, and the last `closing_balance` is 0. Every `payment` is `monthly_repayment` (a whole rupee) except the last, which also clears the few rupees that rounding the instalment leaves, so `total_repayment` is **not** `monthly_repayment × tenure_months`. For a gap too small to repay in whole rupees, `schedule` is `[]` and both totals are 0. A result stored before this field existed has no `schedule` and no `dscr`, so the client must tolerate their absence.
+  - `dscr` is the money left each month (`financial_analysis.monthly_profit`) divided by every loan payment a month (`risk_analysis.total_monthly_emi` for that option): the pressure ratio read the other way up, so it says nothing the pressure figure does not. `null` when no loan payment is made. No lender threshold is attached to it, because a lender may count it differently.
   - `household_repayment_percent` is `null` when no income was given (`household_checked` false) or the income is 0. `pressure_ratio_percent` is never `null` here, because a surplus of 0 or less gives `no_surplus` and no options.
   - "Safe" is this app's own line (under 30% of the surplus) plus our reading of the RBI household cap. It is not a lending decision and not a quote.
+- **`scheme_funding` is arithmetic on the terms three schemes have published. It does not check that the reader qualifies, and it is not an offer.**
+  - It is priced on `initial_investment` (`project_cost`, the money needed to start) and `available_capital` (`money_in_hand`), so `funding_gap` is the figure `financial_analysis` already shows. `status` is `no_project_cost` when the investment is 0, `no_scheme` when none of the three was matched (`schemes` is `[]` in both), else `ok`.
+  - In a `subsidy` case, `own_amount` is `own_percent` of the whole project cost, `bank_amount` is the cost less that, `subsidy_amount` is the government money, and `net_loan_amount` is `bank_amount` less `subsidy_amount`, the part left to repay. `own_short_by` is how far `available_capital` falls short of `own_amount` (0 when it covers it).
+  - PMEGP is priced twice, as a `general` and a `special` case, because the app never asks for a social category and the reader reads their own. The subsidy is worked on at most `limit` of the cost (Rs.20 lakh, the lower of the scheme's two ceilings, used for everyone), and `limit_applied` says the cost was over it. `area` is the rate table used. `area_assumed` is true when `location_type` was neither `rural` nor `urban`, and the urban rates, the lower ones, were used.
+  - PMFME has one case, `all`, with the subsidy capped at `limit` (Rs.10 lakh a unit); `limit_applied` says it was.
+  - Mudra has no subsidy and no stated own share. `loan_amount` is the funding gap, `band` is the loan size it falls in and `band_limit` that size's upper limit. `none` means there is no gap; `above_limit` means the gap is past the largest band, and `band_limit` is then that band's limit.
+  - `terms` names the published document the percentages came from, and each has a caveat the client has to print. PMEGP's rules approve the scheme for 2021-22 to 2025-26, and nothing found says it continues after 31 March 2026. The PMFME page is about units that want to upgrade and does not say whether a new unit gets the money. The frontend reuses `elig.pmegp.period` and `elig.pmfme.upgrade` for these, from `terms`.
+  - Amounts can carry paise: print a whole rupee bare and any other with two decimals.
+  - The repayment of `net_loan_amount` is not checked against the reader's surplus, so it can be larger than the loans in `financing_options`. The page says these are estimates.
+  - A result stored before this field existed has no `scheme_funding`, so the client must tolerate its absence. The frontend draws nothing then.
+- **`compliance` lists the registrations to ask about, from three published sources, and decides nothing.** It never says a registration is required, and no fee or eligibility rule is evaluated.
+  - `need` is `usually`, `depends` or `not_needed` for FSSAI and GST, `free` for Udyam (it costs nothing to register) and `ask` for the local office. Print the source beside each step and tell the reader to confirm with the office, because the limits change. `source` names the Udyam portal (read on 28 October 2026), the FSSAI Licensing and Registration Regulations 2011 as compiled by FSSAI on 9 November 2017, and the CBIC booklet "GST: An Update" of 1 June 2019.
+  - **FSSAI:** `kind` is `registration` when `yearly_sales` is at most `sales_limit` (Rs.12 lakh) and `licence` above it. The regulation joins that limit and the daily quantities with "and/or", so the verdict is never firmer than `usually`; print `food_per_day` (kg or litres of food) and `milk_per_day` (litres of milk) beside it. `need` is `not_needed` for handicrafts and tailoring, `usually` when a whole word of the category is a food word, `depends` otherwise. `dairy_exemption` is true when the category holds the word dairy or milk: the regulation exempts a milk producer who is a registered member of a dairy cooperative society and sells all the milk to it.
+  - **GST:** `goods_limit` and `services_limit` are the State's limits (Rs.40 lakh and Rs.20 lakh, or Rs.20 lakh and Rs.10 lakh in the States the booklet names). Registration is mandatory only if sales exceed the limit, so sales equal to it are `within`. `supply` is our own reading of the category. For `mixed` (tailoring, no match, or a match both ways) the booklet gives no rule: `within` is under the lower limit, `above` over the higher, and `between` anywhere in between, where `limit` is `null` and the card tells the reader to ask the GST office. `farm` is true for agriculture, dairy and poultry, and above the limit their case is `farm_above`, because the booklet says only that an agriculturist's own produce can be treated differently.
+  - `udyam.schemes_requiring` counts the matched schemes whose `eligibility_codes` include `elig.common.udyamNeeded`.
+  - Not stated, because no source was read for it: fees, goods sent between States, e-commerce, and whether farming alone can register on Udyam.
+  - Amounts are whole rupees except `yearly_sales`, which can carry paise: print a whole rupee bare and any other with two decimals.
+  - A result stored before this field existed has no `compliance`, so the client must tolerate its absence. The frontend draws nothing then.
 - **`match_score` checks no eligibility rule.** Don't show it as a percentage or a likelihood. Show `fit_basis` instead:
   - `state`: "made for your state";
   - `region`: "for a few states, including yours";
   - `national`: "for all of India".
 
   No rule in `eligibility_rules` is evaluated for the reader.
-- **A `match_level: "state"` market row is a state-wide figure,** not a local one. Say so. Rows are never taken from another district. There is data for 13 districts.
+- **A `match_level: "state"` market row is a state-wide figure,** not a local one. Say so. Rows are never taken from another district. There is data for 13 districts, and egg prices for 30 NECC centres (29 districts and Delhi as a whole).
+- **An `egg_price` row is the price of one egg, in rupees.** NECC prints it as a whole number with no unit; `indicative_price` is our reading of it as paise (`provenance.published_value` is the number as printed and `provenance.unit_reading` says how it is read), and NECC has not confirmed that reading. `price_kind` says whose price it is: `suggested` is a price NECC suggests and `prevailing` is the going price it lists, and neither is a price the reader will always get. `centre` is NECC's own name for the centre (it can differ from the district). NECC allows its prices to be passed on only with its clarification, so print `provenance.clarification` (the same on every egg row) beside the prices, and do not draw an egg row that lacks it or whose `unit` is not `egg`. The frontend does both in `frontend/src/data/marketRows.js`.
 - **Every sentence has a code beside it** (`reason_code`, `observation_codes`, `recommendation_codes`, `message_code` and so on). The English is a fallback. The frontend translates by code, from the dictionaries in `frontend/src/i18n/`. `eligibility_codes` is index-aligned with `eligibility_rules`, and `document_codes` with `documents`.
 - **Nothing in the response is advice a lender has agreed to.** The household check follows our reading of the RBI microfinance direction (2022). It is not a lending decision.
 

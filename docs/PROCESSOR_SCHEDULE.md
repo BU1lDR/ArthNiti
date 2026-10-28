@@ -444,6 +444,8 @@ It is deferred because `market-lib.mjs` and `fetch-market-data.mjs` are frozen. 
 
 The fetch runs offline on the owner's machine and never in a deployment. **Lawyer:** whether the exemption for publicly available data in s. 3(c)(ii) covers it.
 
+**The egg prices are a second static file.** `backend/app/data/necc_egg_prices.json` holds 30 prices from the National Egg Co-ordination Committee (NECC), each with a centre name and a date and nothing else from NECC's public rate sheet. `tools/fetch-necc-prices.mjs` needs no key, runs offline on the owner's machine and never in a deployment, and the backend makes no call to NECC. The file holds no record about any person. NECC's permission to use the prices is an e-mail, not a licence. **Lawyer:** whether that agreement reaches a client who deploys the app (`DATA_SOURCES.md`).
+
 ### 9.3 Lawyer items
 
 - the contract (C1);
@@ -452,6 +454,7 @@ The fetch runs offline on the owner's machine and never in a deployment. **Lawye
 - whether an IP address in a host or proxy log is personal data here (D3);
 - a retention period under 365 days against Rule 8(3) (§3.2);
 - the s. 3(c)(ii) exemption for the market fetch (S17);
+- whether NECC's e-mailed permission for the egg prices reaches a client who deploys the app (§9.2);
 - whether a CSC operator is a Fiduciary or a processor (C8);
 - whether the SPDI Rules 2011 apply before May 2027;
 - the commencement date, 13 or 14 May 2027 (§1);

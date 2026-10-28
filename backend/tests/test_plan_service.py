@@ -277,6 +277,8 @@ def test_words_the_person_typed_for_the_kind_of_work_never_reach_the_model():
         ("Stitching and Tailoring work", "tailoring"),
         ("Food Processing", "food processing"),
         ("dairy", "dairy"),
+        ("poultry", "poultry"),
+        ("Backyard Poultry", "poultry"),
         ("other", "a small business"),
         ("", "a small business"),
     ],

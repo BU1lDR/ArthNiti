@@ -4,6 +4,7 @@ import Button from '../components/Button'
 import { BarGroup, BarRow, UnitChart } from '../components/Charts'
 import { schemeFitItems } from '../components/chartData'
 import Figure from '../components/Figure'
+import { drawableMarketRows, eggKindKey, isEggRow, marketSourceFacts } from '../data/marketRows'
 import { useI18n } from '../i18n/LanguageContext'
 import { useBackendText } from '../i18n/backendText'
 import { APP_NAME } from '../i18n/brand'
@@ -54,7 +55,7 @@ function AnalysisPage() {
   const observations = bt.observations(business)
   const riskReason = bt.riskReason(risk)
   const schemes = Array.isArray(result.scheme_matches) ? result.scheme_matches : []
-  const market = Array.isArray(result.market_context) ? result.market_context : []
+  const market = drawableMarketRows(Array.isArray(result.market_context) ? result.market_context : [])
 
   // "We were not told" and "the answer is zero" are two different things, and two
   // cards on this page used to print the first when it was the second.
@@ -618,12 +619,16 @@ function MarketCard({ row, marketType, t, bt }) {
   // the figure actually describes rather than printing "Not available".
   const place = formatText(row.scope === 'state' ? row.state : row.district, t)
   const isPrice = row.metric === 'wholesale_price_per_kg'
+  const isEgg = isEggRow(row)
   const isCount = row.metric === 'registered_units'
   const source = bt.marketSource(row)
   const note = bt.marketNote(row)
   // The window sentence names four figures. Printed with any one missing it
   // would read "up to Not available", so it is all four or nothing.
   const hasWindow = hasNumber(row.n_days) && row.last_reported && hasNumber(row.price_low) && hasNumber(row.price_high)
+  // The sentence that says whose price it is names the centre and the date, so it
+  // is all of them or nothing, the same as the window sentence above.
+  const kindKey = row.centre && row.last_reported ? eggKindKey(row) : null
 
   return (
     <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-5">
@@ -658,6 +663,31 @@ function MarketCard({ row, marketType, t, bt }) {
           {/* Only ever true or absent. The fetch sets it when the newest report
               is more than a week old, and an old price read as today's is the
               one way this figure misleads. */}
+          {row.stale === true && (
+            <p className="ui-notice ui-notice-warn mt-3 break-words">{t('mk.stale')}</p>
+          )}
+        </div>
+      )}
+
+      {/* The price of ONE egg, which is not a price per kg: none of the mandi
+          sentences above (the per-kg label, the 30-day window, the market count)
+          is printed here. The kind sentence says whose price it is, NECC's
+          suggestion or the going price at its centre; the reading sentence says
+          how the printed whole number became rupees. */}
+      {isEgg && (
+        <div className="mt-4 min-w-0">
+          <p className="text-xl font-bold text-[var(--color-text)]">{formatPrice(row.indicative_price, t)}</p>
+          <p className="mt-1 break-words text-xs font-semibold text-[var(--color-text-muted)]">{t('mk.eggPrice')}</p>
+          {kindKey && (
+            <p className="mt-3 break-words text-sm leading-6 text-[var(--color-text)]">
+              {t(kindKey, { centre: row.centre, date: formatDate(row.last_reported) })}
+            </p>
+          )}
+          {hasNumber(row.provenance?.published_value) && (
+            <p className="mt-1 break-words text-sm leading-6 text-[var(--color-text-muted)]">
+              {t('mk.eggReading', { printed: String(row.provenance.published_value), price: formatPrice(row.indicative_price, t) })}
+            </p>
+          )}
           {row.stale === true && (
             <p className="ui-notice ui-notice-warn mt-3 break-words">{t('mk.stale')}</p>
           )}
@@ -719,9 +749,7 @@ function MarketCard({ row, marketType, t, bt }) {
 // lang="en". Plain text with no link: the outbound government links were removed
 // on 10 Sept 2026 and the URLs inside the sentence are part of the citation.
 function MarketSources({ rows, t }) {
-  const attributions = [...new Set(
-    rows.map((row) => row.provenance?.attribution).filter((text) => typeof text === 'string' && text.trim()),
-  )]
+  const { attributions, clarifications, hasEgg, hasOther } = marketSourceFacts(rows)
 
   return (
     <div className="ui-card-soft mt-5 min-w-0 p-5">
@@ -729,8 +757,22 @@ function MarketSources({ rows, t }) {
       {attributions.map((text) => (
         <p key={text} lang="en" className="mt-2 break-words text-xs leading-5 text-[var(--color-text-muted)]">{text}</p>
       ))}
+      {/* NECC allows its prices to be passed on only with its own clarification, in
+          its own words, so it is printed whole, once, in English, and marked as
+          English like the attribution. Plain text, never inside a <details>. */}
+      {hasEgg && (
+        <>
+          <p className="mt-3 break-words text-xs font-semibold leading-5 text-[var(--color-text)]">{t('mk.eggSays')}</p>
+          {clarifications.map((text) => (
+            <p key={text} lang="en" className="mt-1 break-words text-xs leading-5 text-[var(--color-text-muted)]">{text}</p>
+          ))}
+        </>
+      )}
       <p className="mt-3 break-words text-xs leading-5 text-[var(--color-text-muted)]">{t('mk.notEndorsed', { app: APP_NAME })}</p>
-      <p className="mt-1 break-words text-xs leading-5 text-[var(--color-text-muted)]">{t('mk.warranty')}</p>
+      {/* The government open-data warranty is true of the mandi and Udyam rows and
+          false of NECC's, which has a warranty sentence of its own. */}
+      {hasOther && <p className="mt-1 break-words text-xs leading-5 text-[var(--color-text-muted)]">{t('mk.warranty')}</p>}
+      {hasEgg && <p className="mt-1 break-words text-xs leading-5 text-[var(--color-text-muted)]">{t('mk.eggWarranty')}</p>}
     </div>
   )
 }
@@ -910,7 +952,7 @@ function householdRbiNote(risk, limitText, t) {
 // market row in a category with no picker button still reads sensibly.
 const CHOICE_KEYS = {
   retail: 'cat.retail', 'food processing': 'cat.food', handicrafts: 'cat.handicrafts', tailoring: 'cat.tailoring',
-  agriculture: 'cat.agriculture', dairy: 'cat.dairy', services: 'cat.services', manufacturing: 'cat.manufacturing', other: 'cat.other',
+  agriculture: 'cat.agriculture', dairy: 'cat.dairy', poultry: 'cat.poultry', services: 'cat.services', manufacturing: 'cat.manufacturing', other: 'cat.other',
   village: 'market.village', weekly: 'market.weekly', town: 'market.town', online: 'market.online',
 }
 

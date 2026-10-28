@@ -197,5 +197,7 @@ class UnifiedAnalysisResponse(BaseModel):
     # this is ever given a typed model, declare fit_basis on it: a response_model
     # drops an undeclared key silently, which is how match_level once vanished.
     scheme_matches: list[dict]
+    scheme_funding: dict
+    compliance: dict
     advisory: dict
     mvp_summary: dict

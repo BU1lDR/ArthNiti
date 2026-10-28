@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -48,6 +48,39 @@ class Provenance(BaseModel):
     attribution: str
 
 
+class NeccProvenance(BaseModel):
+    """The same job as Provenance, for a row of egg prices from NECC.
+
+    The two sets of fields share only a few names, so a row's provenance is one
+    or the other, never a mix: a government-data record lacks `sheet`, `month`
+    and the rest, and an egg record lacks `resource_id` and the rest, so each
+    fails the other model and the Union below cannot pick wrongly. Same policy
+    as Provenance: every field the fetch writes is declared and anything else is
+    dropped. test_the_neccprovenance_model_declares_every_provenance_key keeps
+    this list and the guard's PROVENANCE_KEYS the same, in order.
+
+    `clarification` is the wording NECC asked to travel with its prices, and it
+    must reach the client with the price.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    publisher: str
+    page_url: str
+    sheet: str
+    month: str
+    centre_label: str
+    published_value: int
+    unit_reading: str
+    permission: str
+    fetched_at: str
+    method: str
+    crosswalk_version: int
+    script_sha256: str
+    clarification: str
+    attribution: str
+
+
 class MarketContext(BaseModel):
     # Common to every row, whichever metric it carries.
     state: str
@@ -58,7 +91,7 @@ class MarketContext(BaseModel):
     source: str
     source_code: str
     last_verified: str
-    provenance: Provenance
+    provenance: Union[Provenance, NeccProvenance]
 
     # Optional on every row, and always as a pair when present.
     note_code: Optional[str] = None
@@ -75,6 +108,14 @@ class MarketContext(BaseModel):
     n_markets: Optional[int] = None
     last_reported: Optional[str] = None
     stale: Optional[bool] = None
+
+    # metric "egg_price" only. It also uses `unit`, `indicative_price`,
+    # `last_reported` and `stale` above. price_kind is the section of NECC's
+    # sheet the centre is listed in: "suggested" ("NECC Suggested Egg Prices")
+    # or "prevailing" ("Prevailing Prices"). centre is the NECC centre the
+    # price was printed for.
+    price_kind: Optional[str] = None
+    centre: Optional[str] = None
 
     # metric "registered_units" only.
     count: Optional[int] = None

@@ -93,6 +93,9 @@ jobs:
       - name: market fetch maths and guards (no network)
         run: node --test tools/verify/market-lib-test.mjs
 
+      - name: egg-price fetch maths and guards (no network)
+        run: node --test tools/verify/necc-lib-test.mjs
+
       # The two below need no server and no key. One test in talk-lib-test
       # hands a recording to the backend through the Windows virtual
       # environment, so it is skipped here and runs on the owner's machine.

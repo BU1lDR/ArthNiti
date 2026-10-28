@@ -4,6 +4,8 @@ import Button from '../components/Button'
 import { DEPLOYMENT } from '../config/deployment'
 import { firstUnansweredStep, isStarted, useApp } from '../context/AppContext'
 import { BarRow, UnitChart } from '../components/Charts'
+import Compliance from '../components/Compliance'
+import SchemeFunding from '../components/SchemeFunding'
 import { LANGUAGES } from '../i18n/languages'
 import { useI18n } from '../i18n/LanguageContext'
 import { useBackendText } from '../i18n/backendText'
@@ -169,6 +171,10 @@ function AdvisoryPage() {
 
           <FinancingOptions section={result.financing_options} t={t} />
 
+          <SchemeFunding funding={result.scheme_funding} schemes={schemes} />
+
+          <Compliance compliance={result.compliance} />
+
           {/* Only on a build with the helper on, and only for a result whose answers
               were kept: the plan is written for those answers. */}
           {DEPLOYMENT.aiHelper && applicationData.request && <PlanWriter />}
@@ -332,6 +338,9 @@ function FinancingOptions({ section, t }) {
           {hasNumber(section.assumed_interest_rate_percent) && (
             <p className="ui-chart-caption">{t('fo.assumption', { rate: section.assumed_interest_rate_percent })}</p>
           )}
+          {options.some((option) => Array.isArray(option.schedule) && option.schedule.length > 0) && (
+            <p className="ui-chart-caption">{t('fo.scheduleNote', { button: t('ad.makeReport') })}</p>
+          )}
           <details className="ui-disclosure mt-5">
             <summary>{t('fo.how')}</summary>
             <div className="ui-disclosure-body space-y-3">
@@ -367,8 +376,8 @@ function OptionCard({ option, best, t }) {
       <dl className="mt-3 space-y-2 text-sm">
         <OptionRow label={t('fo.loan')} value={formatCurrency(option.loan_amount, t)} />
         <OptionRow label={t('fo.perMonth')} value={formatCurrency(option.monthly_repayment, t)} />
-        <OptionRow label={t('fo.totalBack')} value={formatCurrency(option.total_repayment, t)} />
-        <OptionRow label={t('fo.interest')} value={formatCurrency(option.total_interest, t)} />
+        <OptionRow label={t('fo.totalBack')} value={formatExact(option.total_repayment, t)} />
+        <OptionRow label={t('fo.interest')} value={formatExact(option.total_interest, t)} />
       </dl>
       {hasNumber(option.pressure_ratio_percent) && (
         <p className="mt-3 text-sm text-[var(--color-text-muted)]">
@@ -772,6 +781,15 @@ function formatCurrency(value, t) {
   // on /report and on /finance, so one amount cannot print two ways.
   const amount = Number(value)
   return (amount < 0 ? '-₹' : '₹') + Math.abs(amount).toLocaleString('en-IN')
+}
+
+// The total a loan costs is the sum of a month-by-month table that keeps its paise
+// (the last payment clears what rounding the instalment leaves), so it prints with
+// both decimals, and the card adds up to the table on /report to the paisa.
+function formatExact(value, t) {
+  if (!hasNumber(value)) return t('common.notAvailable')
+  const amount = Number(value)
+  return (amount < 0 ? '-₹' : '₹') + Math.abs(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function formatPercent(value, t) {

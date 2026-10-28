@@ -186,7 +186,13 @@ def test_a_money_field_in_the_text_list_and_a_text_field_in_the_money_list_are_d
 
 @pytest.mark.parametrize(
     ("value", "kept"),
-    [("tailoring", "tailoring"), (" Tailoring ", "tailoring"), ("FOOD PROCESSING", "food processing"), ("dairy", "dairy")],
+    [
+        ("tailoring", "tailoring"),
+        (" Tailoring ", "tailoring"),
+        ("FOOD PROCESSING", "food processing"),
+        ("dairy", "dairy"),
+        ("Poultry", "poultry"),
+    ],
 )
 def test_a_category_is_one_of_the_fixed_choices_whatever_its_case(value, kept):
     result = check(raw(texts=[text("business_category", value, "stitch clothes")]))
@@ -209,6 +215,7 @@ def test_the_categories_are_the_ones_the_business_page_offers():
         "tailoring",
         "agriculture",
         "dairy",
+        "poultry",
         "services",
         "manufacturing",
     )

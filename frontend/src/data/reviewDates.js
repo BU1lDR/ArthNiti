@@ -10,9 +10,9 @@
 // date cannot leave the footer printing the old one. Keep both as plain
 // 'yyyy-mm-dd' string literals.
 
-export const SCHEMES_CHECKED_FROM = '2026-09-01'
+export const SCHEMES_CHECKED_FROM = '2026-09-07'
 
-export const SCHEMES_CHECKED_TO = '2026-09-07'
+export const SCHEMES_CHECKED_TO = '2026-10-28'
 
 // 2026-09-07 -> 07/09/2026: day first, as Indian forms write it, and in Latin
 // digits in every language, like the money figures.

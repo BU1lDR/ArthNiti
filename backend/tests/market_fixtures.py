@@ -390,12 +390,17 @@ def synthetic_market_file(tmp_path, monkeypatch):
     For the tests that have to go through load_json's own cache, which is where
     a shared object could be poisoned. Every cache is dropped on both sides, so
     the real data files are read afresh once the patch is undone.
+
+    The market data is two files since the egg prices came (necc_egg_prices.json,
+    merged in by load_market_data), so the second is written too, with no rows.
+    necc_fixtures.necc_market_file is the one that brings egg rows.
     """
     rows = synthetic_rows()
-    (tmp_path / "market_data.json").write_text(
-        json.dumps(rows, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    for name, content in (("market_data.json", rows), ("necc_egg_prices.json", [])):
+        (tmp_path / name).write_text(
+            json.dumps(content, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
     clear_data_cache()
     monkeypatch.setattr(data_loader, "DATA_DIR", tmp_path)
     yield rows

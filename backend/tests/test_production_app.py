@@ -51,6 +51,8 @@ def test_production_serves_analysis_and_health():
         "business_analysis",
         "market_context",
         "scheme_matches",
+        "scheme_funding",
+        "compliance",
         "advisory",
         "mvp_summary",
     }

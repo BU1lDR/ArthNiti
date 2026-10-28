@@ -4,7 +4,12 @@ from app.core.data_loader import load_json
 
 
 def load_market_data() -> list[dict]:
-    return load_json("market_data.json")
+    # Two files, because two scripts write them: the data.gov.in fetch writes
+    # market_data.json and the NECC fetch writes necc_egg_prices.json. Neither
+    # script touches the other's file. The list is new and the rows in it are
+    # the cached objects, so a caller must treat them as read-only, as with
+    # load_json. A missing egg file is an error, not an empty list.
+    return load_json("market_data.json") + load_json("necc_egg_prices.json")
 
 
 @lru_cache(maxsize=None)

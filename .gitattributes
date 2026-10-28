@@ -3,3 +3,8 @@
 # hashes the same as the copy that wrote backend/app/data/market_data.json.
 tools/market-lib.mjs text eol=lf
 tools/fetch-market-data.mjs text eol=lf
+
+# The egg prices record the same hash (script_sha256 in
+# backend/app/data/necc_egg_prices.json), over these two files.
+tools/necc-lib.mjs text eol=lf
+tools/fetch-necc-prices.mjs text eol=lf

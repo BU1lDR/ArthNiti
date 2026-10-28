@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -85,7 +87,54 @@ def test_a_gap_the_surplus_can_carry_is_covered_at_every_tenure():
     assert all(o["remaining_gap"] == 0 for o in options.values())
     # Every option is safe, so the cheapest is the one that is paid off soonest.
     assert result["recommended_by_rules"] == "term_12"
-    assert options["term_12"]["total_interest"] == 4442 * 12 - 50000
+    # The totals add up the schedule's payments, the last one included: eleven of
+    # 4442 and a twelfth of 4447.58. Twelve of 4442 would leave ₹5.58 of the loan
+    # unpaid, and the card must say what the table adds up to.
+    assert [o["total_repayment"] for o in options.values()] == [
+        53309.58,
+        56487.2,
+        59783.74,
+        66738.18,
+    ]
+    assert [o["total_interest"] for o in options.values()] == [
+        3309.58,
+        6487.2,
+        9783.74,
+        16738.18,
+    ]
+
+
+def test_each_option_carries_the_month_by_month_schedule_of_its_loan():
+    result = build_financing_options(monthly_surplus=40000, monthly_emi=0, funding_gap=50000)
+
+    options = _by_code(result)
+    assert [len(o["schedule"]) for o in options.values()] == [12, 24, 36, 60]
+    assert options["term_12"]["schedule"][0] == {
+        "month": 1,
+        "opening_balance": 50000.0,
+        "payment": 4442.0,
+        "interest": 500.0,
+        "principal": 3942.0,
+        "closing_balance": 46058.0,
+    }
+    assert [o["schedule"][-1]["payment"] for o in options.values()] == [
+        4447.58,
+        2345.2,
+        1648.74,
+        1130.18,
+    ]
+    assert all(o["schedule"][-1]["closing_balance"] == 0 for o in options.values())
+
+
+def test_the_coverage_ratio_is_the_surplus_over_every_loan_payment_a_month():
+    # ₹40,000 left each month, over ₹2,000 already paid to a loan plus the new one:
+    # 40000 / 6442, 40000 / 4354, 40000 / 3661 and 40000 / 3112.
+    with_a_loan = build_financing_options(monthly_surplus=40000, monthly_emi=2000, funding_gap=50000)
+    assert [o["dscr"] for o in with_a_loan["options"]] == [6.21, 9.19, 10.93, 12.85]
+
+    # With no other loan it is 40000 / 4442, 40000 / 2354, 40000 / 1661 and 40000 / 1112.
+    without = build_financing_options(monthly_surplus=40000, monthly_emi=0, funding_gap=50000)
+    assert [o["dscr"] for o in without["options"]] == [9.0, 16.99, 24.08, 35.97]
 
 
 def test_the_loan_is_capped_at_the_largest_amount_that_keeps_repayment_low():
@@ -166,6 +215,10 @@ def test_a_gap_of_a_few_rupees_never_shows_negative_interest():
     option = _by_code(result)["term_12"]
     assert option["monthly_repayment"] == 0
     assert option["total_interest"] == 0
+    # Nothing is paid, so there is no schedule and nothing to divide the surplus by.
+    assert option["total_repayment"] == 0
+    assert option["schedule"] == []
+    assert option["dscr"] is None
 
 
 def test_a_household_income_that_was_not_given_is_not_checked():
@@ -205,6 +258,19 @@ def test_the_sixty_month_option_is_the_loan_the_main_analysis_already_prices():
     assert option["risk_level"] == risk["risk_level"]
 
 
+def test_a_real_request_with_a_gap_of_five_rupees_reaches_the_empty_schedule():
+    # ₹150,000 of investment against ₹149,995 of savings: a gap too small to repay.
+    result = _analysis(available_capital=149995)
+
+    assert result["financial_analysis"]["funding_gap"] == 5
+    options = result["financing_options"]["options"]
+    assert options
+    for option in options:
+        assert option["schedule"] == []
+        assert option["total_repayment"] == 0
+        assert option["dscr"] is None
+
+
 def test_every_option_in_a_sweep_of_real_requests_is_safe_and_consistent():
     seen = set()
     for capital in (0, 20000, 100000, 600000):
@@ -221,7 +287,7 @@ def test_every_option_in_a_sweep_of_real_requests_is_safe_and_consistent():
                             monthly_emi=emi,
                             household_monthly_income=income,
                         )
-                        _check_options(result)
+                        _check_options(result, emi)
                         seen.add(result["financing_options"]["status"])
 
     # A branch no real request can reach is a branch nobody has tested.
@@ -235,7 +301,11 @@ def test_every_option_in_a_sweep_of_real_requests_is_safe_and_consistent():
     }
 
 
-def _check_options(result):
+def _decimal_sum(rows, key):
+    return sum(Decimal(str(row[key])) for row in rows)
+
+
+def _check_options(result, emi):
     gap = result["financial_analysis"]["funding_gap"]
     section = result["financing_options"]
     options = section["options"]
@@ -257,6 +327,20 @@ def _check_options(result):
             loan, 12, option["tenure_months"]
         )
         assert option["total_interest"] >= 0
+
+        # The table beside the card adds up to the card, to the paisa.
+        rows = option["schedule"]
+        assert 1 <= len(rows) <= option["tenure_months"]
+        assert rows[0]["opening_balance"] == loan
+        assert rows[0]["payment"] == option["monthly_repayment"]
+        assert rows[-1]["closing_balance"] == 0
+        assert _decimal_sum(rows, "principal") == Decimal(str(loan))
+        assert _decimal_sum(rows, "payment") == Decimal(str(option["total_repayment"]))
+        assert _decimal_sum(rows, "interest") == Decimal(str(option["total_interest"]))
+
+        # The surplus the pressure figure uses, over every loan payment a month.
+        surplus = result["financial_analysis"]["monthly_profit"]
+        assert option["dscr"] == round(surplus / (emi + option["monthly_repayment"]), 2)
 
     # A longer tenure never allows a smaller loan.
     loans = [o["loan_amount"] for o in options]
@@ -288,3 +372,7 @@ def test_the_financing_options_reach_the_client_through_the_response_model():
     section = response.json()["financing_options"]
     assert section["status"] == "covered"
     assert [o["code"] for o in section["options"]] == ["term_12", "term_24", "term_36", "term_60"]
+    first = section["options"][0]
+    assert [row["month"] for row in first["schedule"]] == list(range(1, 13))
+    assert first["schedule"][0]["opening_balance"] == 100000
+    assert first["dscr"] > 0

@@ -38,13 +38,20 @@
 //   S14  leaving the page releases the microphone, also when the browser was still asking
 //   S15  the consent lock holds from Stop until the recording is sent; a recording that
 //        cannot be finished is reported, sends nothing and unlocks
+//   S16  the plan card on /advisory at rest: its own consent tick, nothing sent; helper off: no card
+//   S17  one plan, written through the four real pages: the request, what the model is shown,
+//        the card, the stored plan, a reload, an edited answer
+//   S18  a plan in English, then Hindi, then English
+//   S19  a refused plan and every other way the request can fail
+//   S20  Cancel while the plan is being written
+//   S21  a plan in each of the 8 languages
+//   S22  360 px phone: the plan card at rest and with a plan
 //
-// NOT covered here: the written plan on /advisory. No browser has driven its card yet.
-// Its route and its state are tested by pytest (test_plan_service, test_advisor_route,
-// test_advisor_log_privacy) and app-state-test only. The page-side probes for it
-// (planProbe, planFailure, planSnapshot) are in this file and unused, and the scenarios
-// that would call them (the card at rest, its own consent tick, one plan, a plan in Hindi
-// then English, the ways to fail, 360 px, all 8 languages) are not written.
+// S16-S22 reach /advisory the way a reader does, by typing the answers into /business,
+// /location and /finance, because the card only exists once there is a result. The plan
+// the fake model returns is good_plan(language) from backend/tests/plan_fixtures.py, and
+// what the model was shown is read from the fake's log. Meta's real wording is not tested
+// here: that is `python -m app.smoke_meta --plan`.
 //
 
 // Exit 0: nothing found. 1: a finding. 2: the run could not measure (wrong working
@@ -72,6 +79,34 @@
 //   TalkPage.jsx  delete the setStarting(false) before onWav(wav)                   -> S15  [2]
 //   TalkPage.jsx  delete the `else onError('talk.errRecording')`                    -> S15  [1]
 //   TalkPage.jsx  call onWav(wav) whatever wav is                                   -> S15  [1]
+// S16-S22, run on 28 Oct 2026 (PlanWriter in AdvisoryPage.jsx, unless another file is named):
+//   AdvisoryPage.jsx  drop `DEPLOYMENT.aiHelper &&` where PlanWriter is mounted      -> S16  [1]
+//   AdvisoryPage.jsx  setConsentMissing(!consent) becomes setConsentMissing(false)   -> S16  [2]
+//   AdvisoryPage.jsx  `if (!consent) {` becomes `if (false) {` (send without the tick) -> S16  [3]
+//   AdvisoryPage.jsx  the setError('') that starts write() becomes setError(error)   -> S19  [1], S20  [4]
+//   AdvisoryPage.jsx  requestPlan(request, language, ...) always asks for 'en'       -> S18  [3], S21  [14]
+//   AdvisoryPage.jsx  requestPlan(..., false): send_to_meta false                    -> S17  [2, the route says 422 and the scenario stops]
+//   AdvisoryPage.jsx  justWritten.current = true becomes false                       -> S17  [1]
+//   AdvisoryPage.jsx  setConsent(false) after a plan becomes setConsent(true)        -> S17  [1]
+//   AdvisoryPage.jsx  report an abort as an error (no isAbortError test)             -> S20  [2]
+//   AdvisoryPage.jsx  the Cancel button does nothing                                 -> S20  [3]
+//   AdvisoryPage.jsx  Write not disabled while the request is out                    -> S20  [1]
+//   AdvisoryPage.jsx  the consent box not disabled while the request is out          -> S20  [1]
+//   api.js            429 maps to the generic error, not to plan.errBusy             -> S19  [1]
+//   api.js            skip the isPlan() test on a 200                                -> S19  [1]
+//   AppContext.jsx    applyEdit keeps the plan when an answer changes                -> S17  [1]
+//   plan_service.py   put "It is in Lucknow." into the facts the model is sent       -> S17  [1]
+//   plan_service.py   put a number into those facts                                  -> S17  [1]
+//   AdvisoryPage.jsx  one sentence of the card at 10 px                              -> S22  [5]
+//   AdvisoryPage.jsx  min-w-[520px] on the Write button                              -> S22  [5]
+//   AdvisoryPage.jsx  a 20 px high label round the consent box                       -> S22  [5]
+// A fixed width on the Write button (w-[520px]) survived: the buttons sit in a flex row
+// and shrink to fit it. min-width cannot be shrunk, so that is the refuter listed.
+// The first Cancel refuter exited 2: the plan then arrived, the button read "again", and
+// the last step faulted on a "Write my plan" that was no longer there. S20 now stops
+// there, so the finding is exit 1. waitForRender() (more than 40 characters in #main)
+// cannot tell the page being left from the one being entered after a client-side
+// move, which cost two false starts; S16-S22 wait on the h1 (h1Now) instead.
 // The first run of the S2 refuter exited 2, not 1: the page no longer showed the
 // consent error and waitSnap called that a fault in the instrument. A state the
 // page owes the reader is now awaited with settleSnap, so its absence is a finding.
@@ -226,10 +261,10 @@ const USED_KEYS = [
   'talk.errBusy', 'talk.errUnclear', 'talk.errRecording', 'talk.errGeneric', 'talk.langNoSpeech',
   'talk.finding', 'talk.listening', 'talk.recording', 'talk.filledTitle', 'talk.said', 'nf.title',
   'cat.tailoring', 'cat.retail', 'area.rural', ...Object.values(FIELD_LABEL_KEYS),
-  'finance.submit', 'ad.notReady', 'ad.planTitle', 'fo.title',
+  'business.submit', 'location.submit', 'finance.submit', 'ad.title', 'ad.notReady', 'ad.planTitle', 'fo.title', 'res.changedTitle',
   'plan.eyebrow', 'plan.title', 'plan.intro', 'plan.sendsText', 'plan.consent', 'plan.write', 'plan.writing',
   'plan.again', 'plan.otherLanguage', 'plan.aiLabel', 'plan.stepsTitle', 'plan.cautionsTitle', 'plan.fixedCaution',
-  'plan.how', 'plan.errUnavailable', 'plan.errBusy', 'plan.errNoPlan', 'plan.errGeneric',
+  'plan.how', 'plan.howText', 'plan.howLimit', 'plan.errUnavailable', 'plan.errBusy', 'plan.errNoPlan', 'plan.errGeneric',
 ]
 for (const key of USED_KEYS) {
   if (typeof STRINGS?.en?.[key] !== 'string') refuse(`${key} is not in the en dictionary, so there is no text to look for. Run node tools/keycheck.mjs.`)
@@ -577,7 +612,7 @@ function mobileProbe(rootSelector = '#main', ancestor = '') {
 // navigation takes it away: install it after the last load. `status` is 'rejected' for a
 // request the page abandoned or lost.
 function planProbe() {
-  const probe = { requests: [], at: 0 }
+  const probe = { requests: [], at: 0, failNext: null }
   window.__plan = probe
   const realFetch = window.fetch
   window.fetch = function (input, init) {
@@ -593,7 +628,13 @@ function planProbe() {
       reply: null,
     }
     probe.requests.push(entry)
-    return realFetch.call(this, input, init).then(
+    // planFailure() asked for the next plan request to be answered from in here.
+    const failure = url.includes('/api/advisor/plan') ? probe.failNext : null
+    if (failure) probe.failNext = null
+    const answer = !failure ? realFetch.call(this, input, init)
+      : failure.how === 'reject' ? Promise.reject(new TypeError('Failed to fetch'))
+        : Promise.resolve(new Response(failure.body, { status: failure.status, headers: { 'content-type': 'application/json' } }))
+    return answer.then(
       (response) => {
         entry.status = response.status
         // Read from a copy, so the app still gets its own.
@@ -610,17 +651,10 @@ function planProbe() {
 }
 
 // The next request to the plan route is answered from inside the page, the way a proxy
-// or a dropped connection would answer it, and never leaves the page. `how` is 'reject'
-// or 'reply' (with a status and a body). It takes itself away after one use.
+// or a dropped connection would answer it, and never leaves the page (the probe still
+// records it). `how` is 'reject' or 'reply' (with a status and a body). It is used once.
 function planFailure(how, status, body) {
-  const realFetch = window.fetch
-  window.fetch = function (input, init) {
-    const url = String(input && input.url ? input.url : input)
-    if (!url.includes('/api/advisor/plan')) return realFetch.call(this, input, init)
-    window.fetch = realFetch
-    if (how === 'reject') return Promise.reject(new TypeError('Failed to fetch'))
-    return Promise.resolve(new Response(body, { status, headers: { 'content-type': 'application/json' } }))
-  }
+  window.__plan.failNext = { how, status, body }
 }
 
 // The plan card on /advisory, as plain data. Runs in the page. `card` is null when the
@@ -853,6 +887,141 @@ async function recordFor(ms) {
   await sleep(ms)
   await press(en('talk.stop'))
 }
+
+// --- the plan card: what S16-S22 share ----------------------------------------
+// The card is reached by walking the four real pages, so the request it sends is the
+// one a reader's answers make and not one this file builds. JOURNEY is what is typed;
+// PLAN_REQUEST is the 12 fields FinancePage must make of it. The village is typed too:
+// it is local to the tab and must never reach the model.
+const JOURNEY = {
+  businessName: 'Rahul Tailors', initialInvestment: '50000', monthlyRevenue: '20000',
+  monthlyOperatingExpenses: '5000', existingDebt: '30000', village: 'Chinhat',
+  availableCapital: '10000', monthlyExpenses: '8000', monthlyEmi: '1500', householdIncome: '25000',
+}
+const PLAN_REQUEST = {
+  business_category: 'tailoring', state: 'Uttar Pradesh', district: 'Lucknow',
+  available_capital: 10000, monthly_expenses: 8000, expected_monthly_revenue: 20000, monthly_emi: 1500,
+  household_monthly_income: 25000, initial_investment: 50000, monthly_operating_expenses: 5000,
+  existing_debt: 30000, location_type: 'rural',
+}
+const PLAN_URL = API + '/api/advisor/plan'
+const PLAN_PREFIXES = ['plan', 'fo', 'ad', 'talk', 'nav', 'common', 'cat', 'area', 'notice', 'consent', 'errf']
+// A plan the route must refuse: it has a number of its own. The rest is the English plan
+// the fake returns by default (backend/tests/plan_fixtures.py), so the digit is the only
+// thing wrong with it (pytest's verify_plan refuses it for "digit" and nothing else).
+const DIGIT_PLAN = {
+  summary: 'Your business earns {{profit}} each month after costs, but you still need {{gap}} to start it, for 3 months.',
+  steps: [
+    'Think about a loan of {{loan}} over {{tenure}} months, with a monthly repayment of {{repayment}}.',
+    'Ask the nearest office about {{scheme_a}} before you borrow.',
+    'Keep a written record of what you earn and spend each month.',
+  ],
+  cautions: ['These figures are estimates, so check them with a lender before you decide.'],
+}
+
+const ownName = (code) => LANGUAGES.find((l) => l.code === code).endonym
+const rupees = (n) => (n < 0 ? '-' : '') + '₹' + Math.abs(n).toLocaleString('en-IN')
+// JSON with the keys in order, so two objects can be compared as text.
+const canon = (value) => JSON.stringify(value, (key, v) =>
+  (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1))) : v))
+const pathNow = () => inPage(() => location.pathname)
+
+// A line of the plan as the route sent it, in the form planSnapshot reports it.
+const lineOf = (parts) => ({
+  text: norm(parts.map((p) => p.v).join('')),
+  fills: parts.filter((p) => p.t === 'fill').map((p) => norm(p.v)),
+  plain: parts.filter((p) => p.t === 'text').map((p) => norm(p.v)),
+})
+const linesOf = (reply) => [reply.summary, ...reply.steps, ...reply.cautions]
+// Whether the card shows the plan the route sent: every line, in order, in the plan's
+// language, bold where the rules filled a figure in and plain where the AI wrote.
+const showsPlan = (card, reply) => {
+  const shown = [card.summary, ...card.steps, ...card.cautions]
+  const sent = linesOf(reply).map(lineOf)
+  return shown.length === sent.length
+    && shown.every((line, i) => line && line.lang === reply.language && canon({ text: line.text, fills: line.fills, plain: line.plain }) === canon(sent[i]))
+}
+// The figures of each line, in no particular order: the word order of another language
+// moves a blank around inside its line but not out of it.
+const fillSets = (reply) => linesOf(reply).map((parts) => lineOf(parts).fills.sort())
+
+// The page's own heading. The address changes first and the page follows, so a client-side
+// move is over when the heading is another one, not when the address is (and not when
+// #main has text, which the page being left also has: waitForRender cannot tell).
+const h1Now = () => inPage(() => window.__t.norm(document.querySelector('#main h1')?.innerText ?? ''))
+
+// Press a button that moves to another page, and wait until it has.
+async function submitTo(label, path) {
+  const left = await h1Now()
+  const state = await press(label)
+  if (state !== 'clicked') throw new Fault(`the button "${norm(label)}" was ${state}`)
+  const end = Date.now() + 10000
+  while ((await pathNow()) !== path || (await h1Now()) === left) {
+    if (Date.now() > end) {
+      const said = await inPage(() => [...document.querySelectorAll('#main [role=alert]')].map((el) => el.innerText))
+      throw new Fault(`"${norm(label)}" did not reach ${path}; the page is ${await pathNow()} and says ${JSON.stringify(said)}`)
+    }
+    await sleep(60)
+  }
+}
+
+// The real four forms, from /business to a result on /analysis.
+async function journey(base = ON) {
+  await open(base, '/business')
+  await type('input[name="businessName"]', JOURNEY.businessName)
+  await press(en('cat.tailoring'), true)
+  await type('input[name="initialInvestment"]', JOURNEY.initialInvestment)
+  await type('input[name="monthlyRevenue"]', JOURNEY.monthlyRevenue)
+  await type('input[name="monthlyOperatingExpenses"]', JOURNEY.monthlyOperatingExpenses)
+  await type('input[name="existingDebt"]', JOURNEY.existingDebt)
+  await submitTo(en('business.submit'), '/location')
+  await choose('select[name="state"]', 'Uttar Pradesh')
+  await waitSnap('the districts of the state', 4000, Boolean, () => has('select[name="district"] option[value="Lucknow"]'))
+  await choose('select[name="district"]', 'Lucknow')
+  await type('input[name="village"]', JOURNEY.village)
+  await submitTo(en('location.submit'), '/finance')
+  await type('input[name="availableCapital"]', JOURNEY.availableCapital)
+  await type('input[name="monthlyExpenses"]', JOURNEY.monthlyExpenses)
+  await type('input[name="monthlyEmi"]', JOURNEY.monthlyEmi)
+  await type('input[name="householdIncome"]', JOURNEY.householdIncome)
+  await tick('#consent-notice')
+  await submitTo(en('finance.submit'), '/analysis')
+  if (!(await stored())?.data?.result) throw new Fault('the journey ended on /analysis with no result stored')
+}
+
+// Client-side, by the first link there is: the page is left as it is, so the probes
+// installed in it are not lost.
+async function toAdvisory() {
+  const found = await inPage(() => {
+    const link = document.querySelector('#main a[href="/advisory"]') ?? document.querySelector('a[href="/advisory"]')
+    if (link) link.click()
+    return Boolean(link)
+  })
+  if (!found) throw new Fault(`there is no link to /advisory on ${await pathNow()}`)
+  await waitSnap('the page /advisory', 8000, (h1) => h1 === norm(en('ad.title')), h1Now)
+}
+
+async function startOnAdvisory(base = ON) {
+  await journey(base)
+  await toAdvisory()
+  await inPage(planProbe)
+}
+
+const planSnap = () => inPage(planSnapshot)
+const planRequests = () => inPage(() => window.__plan.requests)
+const planView = async () => ({ ...(await planSnap()), requests: await planRequests() })
+
+// Press the card's button and wait until the request is over and the card is idle again.
+async function writePlan(label) {
+  const before = (await planRequests()).length
+  const state = await press(label)
+  if (state !== 'clicked') throw new Fault(`the plan button "${norm(label)}" was ${state}`)
+  return waitSnap('the plan request to end', 30000,
+    (v) => v.requests.length > before && v.requests.at(-1).done !== null && v.card?.status === '', planView)
+}
+
+// The language picker in the utility bar: the one select with a Malayalam option.
+const chooseLanguage = (code) => choose('select:has(option[value="ml"])', code)
 
 // --- the scenarios ------------------------------------------------------------
 async function s0() {
@@ -1371,6 +1540,288 @@ async function s15() {
   expect('Record is back and enabled', buttonOf(s, en('talk.record'))?.disabled === false)
 }
 
+// --- S16-S22: the written plan on /advisory -------------------------------------
+// The card is the one place the reader's answers go to a third party after the form, so
+// it is driven the way a reader drives it: through the four real pages, with the fake in
+// Meta's place. What the model is shown is read from the fake, which logs all of it.
+
+async function s16() {
+  await startOnAdvisory()
+  let v = await planView()
+  expect('(sanity) /advisory shows the loan options and the rules own plan above the card', v.path === '/advisory' && v.headings.includes(norm(en('fo.title'))) && v.headings.includes(norm(en('ad.planTitle'))), { path: v.path, headings: v.headings })
+  expect('helper on: the plan card is there', v.card !== null, v.headings)
+  if (!v.card) return
+
+  const card = v.card
+  expect('the card has its eyebrow and its title', card.eyebrow === norm(en('plan.eyebrow')) && card.title === norm(en('plan.title')), [card.eyebrow, card.title])
+  expect('before a plan it says what the plan is', canon(card.paragraphs) === canon([norm(en('plan.eyebrow')), norm(en('plan.intro'))]), card.paragraphs)
+  expect('and what is sent, before the tick', canon(card.asks) === canon([norm(en('plan.sendsText'))]), card.asks)
+  expect('the consent box starts unticked, enabled and required', card.consent.checked === false && card.consent.disabled === false && card.consent.required === 'true', card.consent)
+  expect('with no error on it', card.consent.invalid === null && card.consent.describedby === null && card.alerts.length === 0, card)
+  expect('its label is the consent sentence', card.consent.label.startsWith(norm(en('plan.consent'))), [card.consent.label, norm(en('plan.consent'))])
+  expect('the one button is Write, and it is enabled', canon(card.buttons) === canon([{ text: norm(en('plan.write')), disabled: false }]), card.buttons)
+  expect('the status line is in the page for the first message, and empty', card.statusElements === 1 && card.status === '', card)
+  expect('no plan is shown', card.summary === null && card.steps.length === 0 && card.cautions.length === 0 && card.how === null && card.h3.length === 0, card)
+  expect('nothing was sent from the page', (await planRequests()).length === 0)
+  expect('and nothing reached the model', (await fake.calls()).length === 0)
+  let leaks = await inPage(leakScan, PLAN_PREFIXES)
+  expect('no leaked key, placeholder or stringified nothing', leaks.length === 0, leaks.join(' | '))
+
+  // The tick is asked for, not assumed.
+  const pressed = await press(en('plan.write'))
+  expect('(sanity) Write was pressed without the tick', pressed === 'clicked', pressed)
+  v = await settleSnap(3000, (x) => x.card?.alerts.some((a) => a.id === 'plan-consent-error'), planView)
+  const refusal = v.card?.alerts.find((a) => a.id === 'plan-consent-error')
+  expect('Write without the tick says the tick is needed', refusal?.text === norm(en('talk.consentRequired')), v.card?.alerts)
+  expect('and marks the box invalid and described by that message', v.card?.consent.invalid === 'true' && v.card?.consent.describedby === 'plan-consent-error', v.card?.consent)
+  expect('and moves focus to the box', v.card?.focus === 'plan-consent', v.card?.focus)
+  expect('and sends nothing', (await planRequests()).length === 0 && (await fake.calls()).length === 0)
+  expect('and the card is not left busy', v.card?.status === '' && v.card?.buttons[0]?.disabled === false, v.card)
+
+  await tick('#plan-consent')
+  v = await planView()
+  expect('ticking the box takes the message and the marks away', v.card.alerts.length === 0 && v.card.consent.invalid === null && v.card.consent.describedby === null && v.card.consent.checked === true, v.card)
+
+  // Built without the helper, the page is the rules alone.
+  await startOnAdvisory(OFF)
+  v = await planView()
+  expect('(sanity) the helper-off build shows the rules own plan', v.path === '/advisory' && v.headings.includes(norm(en('ad.planTitle'))), { path: v.path, headings: v.headings })
+  expect('helper off: no plan card and no consent box', v.card === null && !(await has('#plan-consent')), v.headings)
+  expect('and nothing was sent', (await planRequests()).length === 0 && (await fake.calls()).length === 0)
+  leaks = await inPage(leakScan, PLAN_PREFIXES)
+  expect('helper off: no leaked key either', leaks.length === 0, leaks.join(' | '))
+}
+
+async function s17() {
+  await startOnAdvisory()
+  const saved = (await stored()).data
+  expect('(sanity) the four pages made the 12 answers they should', canon(saved.request) === canon(PLAN_REQUEST), saved.request)
+  const profit = saved.result?.financial_analysis?.monthly_profit
+  const gap = saved.result?.financial_analysis?.funding_gap
+  expect('(sanity) and a result with the profit and the gap the plan is filled from', profit === 12000 && gap === 40000, { profit, gap })
+
+  await tick('#plan-consent')
+  const v = await writePlan(en('plan.write'))
+  const call = v.requests.at(-1)
+  expect('exactly one request left the page, a POST to the plan route', v.requests.length === 1 && call.method === 'POST' && call.url === PLAN_URL, v.requests.map((r) => `${r.method} ${r.url}`))
+  expect('the plan request was answered with 200', call.status === 200, { status: call.status, reply: call.reply })
+  expect('the card shows a plan', Boolean(v.card?.summary), v.card)
+  if (call.status !== 200 || !v.card?.summary) return
+
+  const reply = JSON.parse(call.reply)
+  expect('the request is JSON', call.contentType === 'application/json', call.contentType)
+  expect('and carries exactly the 12 answers, the language and the tick', canon(JSON.parse(call.body)) === canon({ answers: PLAN_REQUEST, language: 'en', send_to_meta: true }), call.body)
+  expect('the route wrote the plan on its first try, in English', reply.attempts === 1 && reply.language === 'en', { attempts: reply.attempts, language: reply.language })
+
+  // What the model was given. The fake logs all of it.
+  const calls = await fake.calls()
+  expect('the model was asked once, for English', calls.length === 1 && calls[0].call === 'plan' && calls[0].language === 'en', calls.map((c) => `${c.call}:${c.language}`))
+  const given = calls[0]?.text ?? ''
+  const digits = given.match(/\p{Nd}+/gu) ?? []
+  expect('what the model was given has no digit in it, so no figure', digits.length === 0, digits)
+  const names = (saved.result?.scheme_matches ?? []).map((m) => m.name)
+  expect('(sanity) the result names schemes that could have leaked', names.length > 0, names)
+  const leaked = ['Lucknow', 'Uttar Pradesh', JOURNEY.businessName, 'Rahul', 'Tailors', JOURNEY.village, ...names].filter((word) => given.toLowerCase().includes(word.toLowerCase()))
+  expect('and no name, place or scheme from the answers', leaked.length === 0, leaked)
+  expect('(sanity) it was told the kind of business and the setting, so the check had something to find', given.includes('tailoring') && given.includes('village') && given.length > 300, given.slice(0, 300))
+
+  const card = v.card
+  expect('the heading takes focus: a plan just written is where a keyboard lands', card.titleFocused === true, card.focus)
+  expect('the card says an AI wrote it, and carries the fixed caution', card.paragraphs.includes(norm(en('plan.aiLabel'))) && card.paragraphs.includes(norm(en('plan.fixedCaution'))), card.paragraphs)
+  expect('the intro and the other-language note are gone', !card.paragraphs.includes(norm(en('plan.intro'))) && !card.paragraphs.includes(norm(en('plan.otherLanguage', { language: ownName('en') }))), card.paragraphs)
+  expect('the summary, steps and cautions are what the route sent, line for line, in English', showsPlan(card, reply), { shown: [card.summary, ...card.steps, ...card.cautions], sent: linesOf(reply).map(lineOf) })
+  expect('the summary carries the rules own profit and gap, from the result', canon(card.summary.fills) === canon([rupees(profit), rupees(gap)]), card.summary.fills)
+  const wording = [card.summary, ...card.steps, ...card.cautions].flatMap((line) => line.plain)
+  expect('the AI own words hold no digit', wording.every((run) => !/\p{Nd}/u.test(run)), wording)
+  expect('3 steps and 1 caution, under their titles', card.steps.length === 3 && card.cautions.length === 1 && canon(card.h3) === canon([norm(en('plan.stepsTitle')), norm(en('plan.cautionsTitle'))]), { steps: card.steps.length, cautions: card.cautions.length, h3: card.h3 })
+  expect('how this plan was made is closed, with both its paragraphs', card.how?.open === false && card.how.title === norm(en('plan.how')) && canon(card.how.text) === canon([norm(en('plan.howText')), norm(en('plan.howLimit'))]), card.how)
+  expect('the consent box is unticked again', card.consent.checked === false && card.consent.disabled === false, card.consent)
+  expect('the button now offers another plan, naming the language', canon(card.buttons) === canon([{ text: norm(en('plan.again', { language: ownName('en') })), disabled: false }]), card.buttons)
+  expect('no error, and the status line is empty', card.alerts.length === 0 && card.status === '', card)
+  const leaks = await inPage(leakScan, PLAN_PREFIXES)
+  expect('no leaked key, placeholder or stringified nothing', leaks.length === 0, leaks.join(' | '))
+
+  const kept = (await stored()).data.plan
+  expect('the plan is stored as the route sent it', Boolean(kept) && kept.language === 'en' && canon([kept.summary, kept.steps, kept.cautions]) === canon([reply.summary, reply.steps, reply.cautions]), kept)
+
+  // A reload keeps the plan and does not write another.
+  await open(ON, '/advisory', { keep: true })
+  await inPage(planProbe)
+  const again = await planView()
+  expect('after a reload the same plan is there', Boolean(again.card?.summary) && showsPlan(again.card, reply), again.card)
+  expect('and the heading is not grabbed by a plan that was already there', again.card?.titleFocused === false, again.card?.focus)
+  await sleep(400)
+  expect('and nothing was asked for again', (await planRequests()).length === 0 && (await fake.calls()).length === 1)
+
+  // Changing an answer throws the plan away with the result it belonged to.
+  await open(ON, '/finance', { keep: true })
+  await type('input[name="monthlyExpenses"]', '8001')
+  const edited = await settleSnap(3000, (d) => d.result === null, async () => (await stored()).data)
+  expect('changing an answer clears the result, the request and the plan', edited.result === null && edited.request === null && edited.plan === null, { result: edited.result === null, request: edited.request === null, plan: edited.plan === null })
+  await toAdvisory()
+  const emptied = await planSnap()
+  expect('/advisory then says the answers changed and shows no plan card', emptied.card === null && emptied.headings.includes(norm(en('res.changedTitle'))), emptied.headings)
+}
+
+async function s18() {
+  await startOnAdvisory()
+  await tick('#plan-consent')
+  let v = await writePlan(en('plan.write'))
+  const english = JSON.parse(v.requests.at(-1).reply)
+  expect('(sanity) the first plan is English, and shown', english.language === 'en' && Boolean(v.card?.summary) && showsPlan(v.card, english), v.card)
+
+  await chooseLanguage('hi')
+  v = await settleSnap(3000, (x) => x.card?.title === norm(T('hi', 'plan.title')), planView)
+  expect('in Hindi the card is Hindi', v.card?.title === norm(T('hi', 'plan.title')), v.card?.title)
+  expect('the plan stays as it was written, in English', Boolean(v.card?.summary) && showsPlan(v.card, english), v.card)
+  expect('and a note says so, in Hindi, naming English', v.card.paragraphs.includes(norm(T('hi', 'plan.otherLanguage', { language: ownName('en') }))), v.card.paragraphs)
+  expect('the button offers a plan in Hindi', canon(v.card.buttons) === canon([{ text: norm(T('hi', 'plan.again', { language: ownName('hi') })), disabled: false }]), v.card.buttons)
+  expect('switching the language kept the result and asked for nothing', (await stored()).data.result !== null && (await planRequests()).length === 1 && (await fake.calls()).length === 1)
+
+  await tick('#plan-consent')
+  v = await writePlan(T('hi', 'plan.again', { language: ownName('hi') }))
+  const last = v.requests.at(-1)
+  const hindi = last.status === 200 ? JSON.parse(last.reply) : null
+  expect('a plan written now is asked for, and comes back, in Hindi', JSON.parse(last.body).language === 'hi' && hindi?.language === 'hi', { status: last.status, language: hindi?.language })
+  if (!hindi) return
+  expect('every line is Hindi, as the route sent it', Boolean(v.card?.summary) && showsPlan(v.card, hindi), v.card)
+  expect('with the same figures as the English plan, line for line', canon(fillSets(hindi)) === canon(fillSets(english)), { hindi: fillSets(hindi), english: fillSets(english) })
+  expect('and no note about another language', !v.card.paragraphs.includes(norm(T('hi', 'plan.otherLanguage', { language: ownName('en') }))) && !v.card.paragraphs.includes(norm(T('hi', 'plan.otherLanguage', { language: ownName('hi') }))), v.card.paragraphs)
+
+  await chooseLanguage('en')
+  v = await settleSnap(3000, (x) => x.card?.title === norm(en('plan.title')), planView)
+  expect('back in English the Hindi plan stays, with a note naming Hindi', Boolean(v.card?.summary) && showsPlan(v.card, hindi) && v.card.paragraphs.includes(norm(en('plan.otherLanguage', { language: ownName('hi') }))), v.card)
+  expect('and the result is still there', (await stored()).data.result !== null)
+}
+
+async function s19() {
+  await startOnAdvisory()
+  // Each case: how to break the next try, and what must follow. `calls` is how many
+  // times the model was asked (the route tries a plan the checks refuse twice).
+  const cases = [
+    { what: 'a plan with a number of its own', prepare: () => fake.set({ plan: DIGIT_PLAN }), status: 502, key: 'plan.errNoPlan', calls: 2 },
+    { what: 'the model being rate limited', prepare: () => fake.set({ fail: 'rate_limited' }), status: 429, key: 'plan.errBusy', calls: 1 },
+    { what: 'a model reply that cannot be used', prepare: () => fake.set({ fail: 'bad_output' }), status: 502, key: 'plan.errNoPlan', calls: 2 },
+    { what: 'a dropped connection', prepare: () => inPage(planFailure, 'reject'), status: 'rejected', key: 'plan.errUnavailable', calls: 0 },
+    { what: 'a server error with nothing in it', prepare: () => inPage(planFailure, 'reply', 500, '{}'), status: 500, key: 'plan.errGeneric', calls: 0 },
+    { what: 'the model refusing the key', prepare: () => fake.set({ fail: 'auth' }), status: 503, key: 'plan.errUnavailable', calls: 1 },
+    { what: 'a 200 that is not a plan', prepare: () => inPage(planFailure, 'reply', 200, '{"nope":true}'), status: 200, key: 'plan.errGeneric', calls: 0 },
+  ]
+  for (const c of cases) {
+    await fake.reset()
+    await c.prepare()
+    await tick('#plan-consent')
+    const v = await writePlan(en('plan.write'))
+    const call = v.requests.at(-1)
+    const errors = (v.card?.alerts ?? []).filter((a) => a.id === '').map((a) => a.text)
+    expect(`${c.what}: the page says ${c.key}`, canon(errors) === canon([norm(en(c.key))]), v.card?.alerts)
+    expect(`${c.what}: the answer was ${c.status}`, call.status === c.status, call.status)
+    expect(`${c.what}: the model was asked ${c.calls} time(s)`, (await fake.calls()).length === c.calls, (await fake.calls()).length)
+    expect(`${c.what}: no plan is shown or stored`, v.card?.summary === null && (await stored()).data.plan === null, v.card)
+    expect(`${c.what}: Write is back and the status line empty`, canon(v.card?.buttons) === canon([{ text: norm(en('plan.write')), disabled: false }]) && v.card?.status === '', v.card)
+    if (c.status === 502 && c.calls === 2 && c.key === 'plan.errNoPlan' && c.what.includes('number')) {
+      expect(`${c.what}: its number never reached the page`, !(await inPage(() => document.body.innerText.includes('for 3 months'))))
+    }
+  }
+
+  await fake.reset()
+  await tick('#plan-consent')
+  const v = await writePlan(en('plan.write'))
+  expect('with the fault gone the same button gives a plan', Boolean(v.card?.summary) && v.card.alerts.length === 0, v.card)
+}
+
+async function s20() {
+  await startOnAdvisory()
+  await tick('#plan-consent')
+
+  // An error from an earlier try is cleared when the next one starts.
+  await fake.set({ fail: 'rate_limited' })
+  let v = await writePlan(en('plan.write'))
+  expect('(sanity) a refused try shows its error', v.card?.alerts.some((a) => a.text === norm(en('plan.errBusy'))), v.card?.alerts)
+
+  await fake.set({ fail: null, delay: 4 })
+  await press(en('plan.write'))
+  v = await waitSnap('the plan to be on its way', 8000, (x) => x.requests.length === 2 && x.card?.status !== '', planView)
+  expect('while the plan is written the card says so', v.card.status === norm(en('plan.writing')), v.card.status)
+  expect('the error of the last try is gone', v.card.alerts.length === 0, v.card.alerts)
+  expect('Write is off and Cancel is offered', canon(v.card.buttons) === canon([{ text: norm(en('plan.write')), disabled: true }, { text: norm(en('talk.cancel')), disabled: false }]), v.card.buttons)
+  expect('the consent box is locked while the request is out', v.card.consent.disabled === true, v.card.consent)
+
+  await press(en('talk.cancel'))
+  v = await waitSnap('the card to be idle again', 6000, (x) => x.card?.status === '' && x.requests[1]?.done !== null, planView)
+  expect('Cancel ends the wait without an error', v.card.alerts.length === 0, v.card.alerts)
+  expect('the page abandoned the request', v.requests[1].status === 'rejected', v.requests[1].status)
+  expect('no plan, and Write is back with the box unlocked', v.card.summary === null && canon(v.card.buttons) === canon([{ text: norm(en('plan.write')), disabled: false }]) && v.card.consent.disabled === false, v.card)
+  await sleep(4500)
+  v = await planView()
+  expect('a plan the backend finishes after that is not picked up', v.card.summary === null && v.card.alerts.length === 0 && (await stored()).data.plan === null, v.card)
+
+  await fake.set({ delay: 0 })
+  // A Cancel that did nothing lets the plan arrive, and its button then reads "again":
+  // the checks above have said so, and a missing button would make this a fault.
+  if (v.card?.summary) return
+  await tick('#plan-consent')
+  v = await writePlan(en('plan.write'))
+  expect('a try after Cancel gives a plan', Boolean(v.card?.summary) && v.card.alerts.length === 0, v.card)
+}
+
+async function s21() {
+  await startOnAdvisory()
+  let english = null
+  for (const lang of LANGS) {
+    if (lang !== 'en') {
+      await chooseLanguage(lang)
+      await settleSnap(3000, (x) => x.card?.title === norm(T(lang, 'plan.title')), planView)
+    }
+    await tick('#plan-consent')
+    const v = await writePlan(english === null ? T(lang, 'plan.write') : T(lang, 'plan.again', { language: ownName(lang) }))
+    const call = v.requests.at(-1)
+    const reply = call.status === 200 ? JSON.parse(call.reply) : null
+    expect(`${lang}: the plan comes back, in this language`, reply?.language === lang, { status: call.status, language: reply?.language })
+    if (!reply) continue
+    english ??= reply
+    expect(`${lang}: the request asked for it`, JSON.parse(call.body).language === lang, call.body)
+    expect(`${lang}: every line is as the route sent it, in ${lang}`, Boolean(v.card?.summary) && showsPlan(v.card, reply), v.card)
+    expect(`${lang}: the same figures as the English plan, line for line`, canon(fillSets(reply)) === canon(fillSets(english)), { here: fillSets(reply), english: fillSets(english) })
+    expect(`${lang}: 3 steps, 1 caution, under their titles`, v.card.steps.length === 3 && v.card.cautions.length === 1 && canon(v.card.h3) === canon([norm(T(lang, 'plan.stepsTitle')), norm(T(lang, 'plan.cautionsTitle'))]), { steps: v.card.steps.length, cautions: v.card.cautions.length, h3: v.card.h3 })
+    expect(`${lang}: the title, the AI label and the fixed caution`, v.card.title === norm(T(lang, 'plan.title')) && v.card.paragraphs.includes(norm(T(lang, 'plan.aiLabel'))) && v.card.paragraphs.includes(norm(T(lang, 'plan.fixedCaution'))), { title: v.card.title, paragraphs: v.card.paragraphs })
+    expect(`${lang}: the consent sentence and the button`, v.card.consent.label.startsWith(norm(T(lang, 'plan.consent'))) && canon(v.card.buttons) === canon([{ text: norm(T(lang, 'plan.again', { language: ownName(lang) })), disabled: false }]), { label: v.card.consent.label, buttons: v.card.buttons })
+    const leaks = await inPage(leakScan, PLAN_PREFIXES)
+    expect(`${lang}: no leaked key, placeholder or stringified nothing`, leaks.length === 0, leaks.join(' | '))
+  }
+}
+
+async function s22() {
+  // The journey is not what is under test: walk it at desktop size, then shrink.
+  await startOnAdvisory()
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 360, height: 740, deviceScaleFactor: 2, mobile: true })
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
+  const measure = async (what) => {
+    const probe = await inPage(mobileProbe, '#plan-consent', 'section')
+    expect(`${what}: nothing sticks out past the right edge`, probe.overflow.length === 0 && probe.scrollWidth <= probe.vw + 1, probe)
+    expect(`${what}: every tap target is at least 44 px`, probe.taps.length === 0, probe.taps)
+    expect(`${what}: no text under 12 px`, probe.small.length === 0, probe.small)
+  }
+  try {
+    await measure('en, at rest')
+    await chooseLanguage('hi')
+    await settleSnap(3000, (x) => x.card?.title === norm(T('hi', 'plan.title')), planView)
+    await measure('hi, at rest')
+    await tick('#plan-consent')
+    await writePlan(T('hi', 'plan.write'))
+    await measure('hi, with a plan')
+    await chooseLanguage('en')
+    await settleSnap(3000, (x) => x.card?.title === norm(en('plan.title')), planView)
+    await measure('en, with a Hindi plan and the note about its language')
+    await tick('#plan-consent')
+    await writePlan(en('plan.again', { language: ownName('en') }))
+    await measure('en, with a plan')
+  } finally {
+    await cdp.send('Emulation.clearDeviceMetricsOverride')
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false })
+  }
+}
+
 // --- main ---------------------------------------------------------------------
 async function main() {
   for (const [what, port] of [['the debugging port', DEBUG_PORT], ['the fake backend', FAKE_PORT], ['Vite (helper on)', VITES.on], ['Vite (helper off)', VITES.off], ['Vite (age box)', VITES.age]]) {
@@ -1431,6 +1882,13 @@ async function main() {
   await run('S13', 'a recorder that will not start leaves the microphone off', s13)
   await run('S14', 'leaving the page releases the microphone', s14)
   await run('S15', 'the consent lock holds until the recording is sent', s15)
+  await run('S16', 'the plan card at rest: its own consent tick, nothing sent', s16)
+  await run('S17', 'one plan: the request, what the model sees, the card, the stored plan', s17)
+  await run('S18', 'a plan in English, then Hindi, then English', s18)
+  await run('S19', 'a refused plan and every way to fail', s19)
+  await run('S20', 'Cancel while the plan is being written', s20)
+  await run('S21', 'a plan in each of the 8 languages', s21)
+  await run('S22', '360 px phone: the plan card at rest and with a plan', s22)
 
   cdp.ws.close()
   cleanup()

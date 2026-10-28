@@ -24,6 +24,7 @@ export const CATEGORY_LABELS = {
   tailoring: 'cat.tailoring',
   agriculture: 'cat.agriculture',
   dairy: 'cat.dairy',
+  poultry: 'cat.poultry',
   services: 'cat.services',
   manufacturing: 'cat.manufacturing',
 }

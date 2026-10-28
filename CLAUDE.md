@@ -33,7 +33,7 @@ This file loads into every session and every subagent. **The long-form history �
 
 - **Never read that file whole.** List its sections with `grep -n "^## \|^### " docs/ENGINEERING_HISTORY.md` and read only the one you need, using offset and limit. Where it disagrees with this file, this file wins, and its counts are not maintained.
 - A code comment that says "see CLAUDE.md" for a long explanation points at a section of the history file.
-- **Do not grow this file back.** Put a dated narrative ("what happened on X, and why") in the history file and keep only the resulting rule here. The original aim was under 40 KB; it was 42 KB before the hackathon sections and is about 48 KB now (`wc -c CLAUDE.md`), so trim before you add.
+- **Do not grow this file back.** Put a dated narrative ("what happened on X, and why") in the history file and keep only the resulting rule here. The original aim was under 40 KB; it was 42 KB before the hackathon sections. `wc -c CLAUDE.md` gives the size now, so trim before you add.
 - Don't read a source file over about 300 lines in one go. Grep, then read a range. Redirect long command output to a file under `D:/tmp` and read the part you need.
 
 ---
@@ -66,14 +66,14 @@ The analysis has **no model**: every number, risk band, scheme match and sentenc
 - **Intake** (`/talk`): Muse Voice Transcribe turns a recording into text and Muse Spark proposes form answers from it. Each answer carries the person's own words, `validate_extraction` drops one whose words are not in the transcript, and nothing reaches the form before the person has seen it.
 - **The written plan** (`/advisory`, `POST /api/advisor/plan`): Muse Spark writes a short plan in the reader's language around `{{blanks}}` that the rules fill. It is shown no figure, name or place: only the rules' verdict words, their advice sentences (one with a digit in it is left out), and the kind and level of each matched scheme. `verify_plan` refuses a reply with a digit in any script, a number word, a link, an abbreviation, the wrong script or an unknown blank; the route tries at most twice and otherwise shows no plan.
 
-**A model never computes a figure, a risk band, a scheme match or the advice.** Say "AI-assisted intake" and "AI-written, rule-verified plan", **never "AI-driven advice"**. Detail: `docs/HACKATHON.md` §3–§6.
+**A model never computes a figure, a risk band, a scheme match or the advice.** `tests/test_model_boundary.py` pins it in the imports: a module under `services/` other than the helper's two can import neither the Meta client, those two services nor anything that opens a connection. Say "AI-assisted intake" and "AI-written, rule-verified plan", **never "AI-driven advice"**. Detail: `docs/HACKATHON.md` §3–§6.
 
 ---
 
 ## Running it
 
 ```bash
-# Backend, from ./backend (venv at ./.venv, Python 3.14.6; floor 3.10)
+# Backend, from ./backend (venv at ./.venv, Python 3.14.7; floor 3.10)
 ../.venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 # Frontend, from ./frontend
 npm run dev      # Vite, port 5173, binds [::1]: use http://localhost:5173
@@ -116,12 +116,14 @@ backend/app/
   services/             all business logic: pure functions, no classes, no I/O. intake_service.py
                         builds the helper's prompt and validates the model's answers; plan_service.py
                         does the same for the written plan; options_service.py prices the 12, 24, 36
-                        and 60 month loans; the call is in core/
+                        and 60 month loans, schedule_service.py their schedules, structuring_service.py
+                        what PMEGP, PMFME and Mudra ask for and pay, compliance_service.py the
+                        registrations to ask about; the call is in core/
   data/                 schemes.json (30 schemes, 7 tiers), market_data.json (125 rows),
-                        market_data.provenance.json
+                        market_data.provenance.json, necc_egg_prices.json (30 rows)
   gen_schemes.py        the SOURCE of schemes.json; test_gen_schemes.py holds the two equal
-backend/tests/          52 test files, conftest.py and 5 fixture modules (deployment, intake, market,
-                        plan, privacy); 1922 tests
+backend/tests/          58 test files, conftest.py and 6 fixture modules (deployment, intake, market,
+                        necc, plan, privacy); 2177 tests
 backend/requirements.txt       every runtime dependency pinned, transitive ones too (no hashes)
 backend/requirements-dev.txt   -r requirements.txt + pytest + httpx2 (httpx2 is correct, not a typo)
 .github/workflows/ci.yml       pytest (3.10 + 3.14) + no-server frontend gates. written without being run (no Linux or Python 3.10 here): the Actions tab has the result
@@ -136,13 +138,14 @@ frontend/src/
                         backendStrings.js, schemeStrings.js
   data/                 indiaLocations.js (36 states/UTs, 768 districts), limits.js, reviewDates.js,
                         talkAnswers.js (helper answers to form fields), planShape.js (what a stored
-                        plan must look like)
+                        plan must look like), marketRows.js (which market rows may be drawn)
   pages/                11 page components
   components/           Button, BrandMark, BrandWordmark, Figure, HelperFilledBanner, InstructionManual,
-                        ShortNotice, Charts, chartData.js
+                        SchemeFunding, Compliance, ShortNotice, Charts, chartData.js
   services/api.js       the only module that touches the network
   index.css             design tokens + the .ui-* system + @media print
-tools/                  verifiers (tools/verify/), parity4, keycheck, notice-version.json, market fetch;
+tools/                  verifiers (tools/verify/), parity4, keycheck, notice-version.json, the market
+                        and egg-price fetches;
                         screenshots/ is output only
 ```
 
@@ -150,7 +153,7 @@ tools/                  verifiers (tools/verify/), parity4, keycheck, notice-ver
 
 CORS is `ARTHNITI_CORS_ORIGINS`, a list of exact origins (https-only and required in production; `*` refused in both modes). Unset in development, it is the loopback regex `http://(localhost|127\.0\.0\.1)(:\d+)?`. Credentials off, GET and POST, `Content-Type` only.
 
-**Routes:** `/` → optional `/login` → `/profile` → `/business` → `/location` → `/finance` → `/analysis`, `/schemes`, `/advisory`, `/report` (print view), plus `/privacy` (the full notice), `/talk` (the helper; with `VITE_AI_HELPER` off it falls to `*`) and `*` → `NotFoundPage`. `/login` asks only for a name, authenticates nothing and has no password. Nothing guards the journey order, so `/finance` can be submitted empty and gets a 422, which `api.js` renders as a sentence. The analysis call fires on the `/finance` submit, and only with the consent box ticked. `/advisory` also shows the loan options (12, 24, 36 and 60 months) and, with the helper on, the plan card.
+**Routes:** `/` → optional `/login` → `/profile` → `/business` → `/location` → `/finance` → `/analysis`, `/schemes`, `/advisory`, `/report` (print view), plus `/privacy` (the full notice), `/talk` (the helper; with `VITE_AI_HELPER` off it falls to `*`) and `*` → `NotFoundPage`. `/login` asks only for a name, authenticates nothing and has no password. Nothing guards the journey order, so `/finance` can be submitted empty and gets a 422, which `api.js` renders as a sentence. The analysis call fires on the `/finance` submit, and only with the consent box ticked. `/advisory` also shows the loan options (12, 24, 36 and 60 months) and, with the helper on, the plan card; `/report` prints each option's month-by-month schedule.
 
 ### Chrome
 
@@ -193,12 +196,12 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 
 | File | Keys × 8 | Holds |
 |---|---|---|
-| `strings.js` | 222 | chrome, landing, the four form steps, `notice.*`, `consent.*`, `errf.*` |
-| `resultStrings.js` | 343 | result pages, `/login`, `/privacy`, `/404`, the helper page (`talk.*`, 40 keys), the loan-options card (`fo.*`, 20) and the plan card (`plan.*`, 20), the enum→label targets (`st.*`, `risk.*`, `lvl.*`, `lvlnote.*`) |
-| `backendStrings.js` | 59 | sentences a **Python service composes** (`adv.*`, `obs.*`, `rsn.*`, `sum.*`, `nxt.*`, `why.*`, `src.*`, `cmd.*`, `mknote.*`) |
-| `schemeStrings.js` | 188 | prose **typed into schemes.json** (`sdata.*`, `elig.*`, `doc.*`, `scat.*`) |
+| `strings.js` | 223 | chrome, landing, the four form steps, `notice.*`, `consent.*`, `errf.*` |
+| `resultStrings.js` | 416 | result pages, `/login`, `/privacy`, `/404`, the helper page (`talk.*`, 40 keys), the loan-options card (`fo.*`, 21), the schedule table (`rp.schedule*`, 10), the scheme-funding card (`fs.*`, 24), the registrations card (`cl.*`, 32) and the plan card (`plan.*`, 20), the enum→label targets (`st.*`, `risk.*`, `lvl.*`, `lvlnote.*`) |
+| `backendStrings.js` | 60 | sentences a **Python service composes** (`adv.*`, `obs.*`, `rsn.*`, `sum.*`, `nxt.*`, `why.*`, `src.*`, `cmd.*`, `mknote.*`) |
+| `schemeStrings.js` | 191 | prose **typed into schemes.json** (`sdata.*`, `elig.*`, `doc.*`, `scat.*`) |
 
-**812 keys, 6,496 strings** (measured 27 Oct 2026). No key may be defined in two files, so **the per-file counts must add up to the total exactly**. A difference of one means a number is wrong.
+**890 keys, 7,120 strings** (measured 28 Oct 2026). No key may be defined in two files, so **the per-file counts must add up to the total exactly**. A difference of one means a number is wrong.
 
 - **`node tools/parity4.mjs`** runs 9 checks and exits 1 on a failure: every `en` key in every language; no duplicate key; no key in two files; no non-English value identical to English; placeholders and digit runs match English; no non-ASCII digits; `schemeStrings` figures match `schemes.json`; the notice hash (see Data protection). `DIGIT_ALLOW`/`SOURCE_ALLOW` entries carry a reason, and one no longer needed fails the run. **`node tools/keycheck.mjs`** checks that every key the code uses exists and flags leaked keys, untranslated codes and unmapped enums (6 keys are unreferenced, on purpose). Run both after touching a dictionary.
 - **`t(key)`** falls back from the dialect to the language to `en` to **the key itself**, so a typo shows up on the page as a dotted name. **`tBackend(code, english)`** falls back to the backend's English and never prints a code.
@@ -228,7 +231,7 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 - **Every number is capped:** `le=MAX_RUPEES, allow_inf_nan=False`, and `employees` `le=MAX_EMPLOYEES`, on all five request models, and every `str` field has a `max_length` from `limits.py` (`test_string_limits.py`). `test_input_bounds.py` reads the routes from OpenAPI and fails if `limits.py` and `limits.js` disagree.
 - **A 422 `detail` is a list of `{type, loc, msg}`** (`_public_error` strips `input` and `ctx`). `loc` must stay, because `readError` in `api.js` names the field from its last element through `FIELD_LABELS`. **Each label echoes the wording of the question** that collects the field ("the money you already have", never "available capital"). The `errf.*` translations follow the same rule.
 
-**Response: 8 top-level keys** (`analysis_service.py`): `financial_analysis`, `risk_analysis` (19 keys), `business_analysis`, `market_context` (a list), `scheme_matches` (a list of 16-key entries), `advisory`, `financing_options` (6 keys) and `mvp_summary` (7 keys).
+**Response: 10 top-level keys** (`analysis_service.py`): `financial_analysis`, `risk_analysis` (19 keys), `business_analysis`, `market_context` (a list), `scheme_matches` (a list of 16-key entries), `scheme_funding` (5 keys), `compliance` (2 keys), `advisory`, `financing_options` (6 keys) and `mvp_summary` (7 keys).
 
 - **`docs/frontend_integration.md` lists every key and enum. Update it with any change to them.**
 - Contract tests subscript the keys, so a *removed* key fails and an *added* one passes silently. To confirm the current set, call the service and print the keys.
@@ -260,6 +263,19 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 
 - For each tenure of 12, 24, 36 and 60 months: the largest loan towards the funding gap (whole thousands, or the whole gap) that `calculate_repayment_pressure` still calls `low` and that keeps the household check off `over_limit`, at the same assumed 12% a year. A tenure that allows no loan is left out.
 - `recommended_by_rules` is the shortest tenure that covers the whole gap, else `None`. `status` is `covered`, `partial`, `no_gap`, `no_surplus`, `household_over_limit` or `no_room`. It is a calculation at an assumed rate, never a quote.
+- Each option carries `schedule` (`schedule_service.amortization_schedule`: integer paise, the instalment is rounded to a whole rupee and the last payment clears the remainder, so `total_repayment` ≠ `monthly_repayment × tenure`) and `dscr` (`monthly_profit ÷ total_monthly_emi`: the pressure ratio the other way up, `None` when no EMI is paid, no lender cut-off cited). `/report` draws the table and `/advisory` prints the totals with `formatExact` (two decimals; same sign rule as the four formatters).
+
+**Scheme funding** (`structuring_service.py`, the `scheme_funding` key: arithmetic on three small tables that each cite their source)
+
+- Priced for PMEGP, PMFME and Mudra only, and only when the matcher found them (Stand-Up India's margin figures conflict: a status sentence, no sum). `project_cost` is `initial_investment`; own money is a share of the **whole** cost; `net_loan_amount` = cost − own − subsidy. PMEGP prices `general` and `special` both (the app never asks the person's category), caps the subsidy base at ₹20 lakh for everyone, and gives a place that is neither `rural` nor `urban` the urban rates with `area_assumed`. Mudra has no subsidy: `band` follows the funding gap. The rates and their sources are in `docs/frontend_integration.md` and `docs/HACKATHON.md` §2.2.
+- `terms` (`kvic_2022`, `mofpi_2021`, `dfs_2026`) selects the caveats `SchemeFunding.jsx` prints. Never say a scheme is open. No eligibility rule is evaluated and the repayment is not tested against the household, so a net loan can exceed the loan-options cards: the card says "estimate, not an offer".
+- `SchemeFunding.jsx` draws only what the backend sent and leaves out a scheme with no name in `scheme_matches` or a band it has no words for. `drive.mjs` checks it on `/advisory` and `/report`.
+
+**Compliance** (`compliance_service.py`, the `compliance` key: `{yearly_sales, steps}`; no request field, so no `SENT_FIELDS` or notice change)
+
+- Four steps in this order: `udyam`, `local`, `fssai`, `gst`. `need` is `free`, `ask`, `usually`, `depends` or `not_needed`, never "required". `yearly_sales` is `expected_monthly_revenue × 12`, the person's own figure.
+- FSSAI: sales up to ₹12 lakh (and 100 kg or litres a day, 500 litres of milk) is a registration, above it a licence; "usually", because the source says "and/or". GST: goods ₹40 lakh (₹20 lakh in 10 States), services ₹20 lakh (₹10 lakh in 4); exactly the limit is `within`; both or neither word is `mixed`, which gives `between` and "ask". The sources and their dates are in `DATA_SOURCES.md`; the limits are as published in 2017 and 2019 and **not checked against later amendments**.
+- Not stated, because no source was read: fees, a farmer's own produce (only "can be treated differently"), goods between States, online sales, Udyam for farming alone. The food, goods and services lookups are whole-word tables of our own, never `CATEGORY_SYNONYMS`. `Compliance.jsx` draws only what the backend sent; `drive.mjs` checks it with its own copy of the mapping and a pass for a result stored without the key.
 
 **Household check** (RBI Master Direction on microfinance loans, 2022, paras 5.1–5.3 and 3.1; Annex I)
 
@@ -294,7 +310,8 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 **Market context**
 
 - The lookup takes the reader's own district's `scope:"district"` rows first, then that state's `scope:"state"` rows (as `match_level:"state"`), then `[]`. **Another district's row is never returned.** Don't widen the fallback; grow `tools/market-crosswalk.json` and fetch again.
-- **All 125 rows are `scope:"district"`, for 13 districts in 12 states** (measured 27 Oct 2026): Lucknow and Varanasi (UP, fetched 24 Sept) and 11 added on 27 Oct (Coimbatore, Warangal, Ernakulam, Mysuru, Pune, Jaipur, Indore, Ludhiana, Nadia, Guntur, Gaya). Agriculture gets up to 3 mandi prices per district (the median over the last 30 reporting days, with a P10–P90 range; Guntur has none and Gaya one). The other 7 category buttons get one Udyam count each (Lucknow tailoring: 5,826 of 249,493), suppressed under 10. There are no poultry rows, and every other district shows the empty state.
+- **All 125 rows are `scope:"district"`, for 13 districts in 12 states** (measured 27 Oct 2026): Lucknow and Varanasi (UP, fetched 24 Sept) and 11 added on 27 Oct (Coimbatore, Warangal, Ernakulam, Mysuru, Pune, Jaipur, Indore, Ludhiana, Nadia, Guntur, Gaya). Agriculture gets up to 3 mandi prices per district (the median over the last 30 reporting days, with a P10–P90 range; Guntur has none and Gaya one). The other 7 category buttons get one Udyam count each (Lucknow tailoring: 5,826 of 249,493), suppressed under 10. Every other district shows the empty state, except for eggs (next).
+- **Egg prices** (`necc_egg_prices.json`, merged in by `load_market_data()`): 30 rows for the Poultry / Eggs button from the daily sheet of the National Egg Co-ordination Committee (NECC), 16 states, fetched 28 Oct 2026. 29 are `scope:"district"`; Delhi's is the one `scope:"state"` row. NECC is not under GODL: it agreed by e-mail (keep the owner's contact details out of the repo). Each row carries the first three sentences of NECC's clarification, the pages print them once, and `drawableMarketRows` (`marketRows.js`) refuses to draw an egg row without them. **The unit is our reading** (whole numbers, no unit; 640 is taken as 640 paise an egg, ₹6.40) and unconfirmed, so the page prints NECC's number beside it. The `Average` column is never read. 4 of 34 centres are skipped on purpose (`tools/necc-crosswalk.json`). A price goes stale in 8 days: refetch before a demo. `plan_service` sends Meta no egg row.
 
 ### The scheme dataset
 
@@ -304,8 +321,9 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 - `/schemes` groups cards by tier with `lvl.*` and `lvlnote.*` headings. `/analysis` and `/report` show flat lists with a `sch.runBy` badge.
 - **Field-name trap:** the file key is `business_categories`, and `_scheme_index()` renames it to `categories`, stored as an ordered tuple because the matcher does a substring test. `target_segment` exists on every scheme and nothing reads it.
 - **To change the dataset, edit `SPEC` or `LOCATION_TYPES` in `gen_schemes.py` and run it from `./backend`.** Hand edits to `schemes.json` fail `test_gen_schemes.py`. New codes need all 8 `schemeStrings.js` entries added by hand; keycheck reports any that are missing.
+- **`last_verified`:** `EXISTING_VERIFIED` in `gen_schemes.py` puts PMFME, PMEGP, PMMY and Stand-Up India at 2026-10-28 (their official pages were read again for the funding card) and every other scheme at 2026-09-07. `reviewDates.js` prints the earliest and latest in the footer, and `test_review_dates.py` keeps them equal.
 - **No single input reaches all 7 tiers; the maximum is 6.** States with their own scheme and states reached by a regional scheme do not overlap.
-- **Demo-safe input:** tailoring, handicrafts or food processing in UP / Lucknow gives 14–16 schemes across 6 tiers, both UP fit labels (so the chart renders) and a district market row. Agriculture gives 11 schemes plus 3 mandi prices.
+- **Demo-safe input:** tailoring, handicrafts or food processing in UP / Lucknow gives 14, 14 and 18 schemes across 6 tiers, both UP fit labels (so the chart renders) and a district market row. Agriculture gives 11 schemes plus 3 mandi prices; poultry gives 15, all national (no fit chart) plus the NECC egg price.
 
 ### Data protection
 
@@ -337,7 +355,7 @@ Everything lives in **`sessionStorage['sih-application']` as `{v: STORAGE_VERSIO
 **Frontend: code**
 
 - Function components, no TypeScript, no prop types. Helper components go at the bottom of the page file that uses them.
-- **Formatters are duplicated per page on purpose, so they drift.** A negative amount prints as `-₹5,000` (sign before the symbol) in all four copies: `AnalysisPage`, `AdvisoryPage`, `ReportPage` and `FinancePage`'s `rupees`. Change one, change all four. (`TalkPage`'s `valueText` is a fifth copy that only ever prints non-negative amounts.)
+- **Formatters are duplicated per page on purpose, so they drift.** A negative amount prints as `-₹5,000` (sign before the symbol) in all four copies: `AnalysisPage`, `AdvisoryPage`, `ReportPage` and `FinancePage`'s `rupees`. Change one, change all four. (`TalkPage`'s `valueText` is a fifth copy that only ever prints non-negative amounts, `SchemeFunding`'s `money` a sixth that mirrors `ReportPage`'s, and `Compliance`'s `money` a seventh.)
 - **Guard numbers with `hasNumber(value)`, never with `Number.isFinite` alone.** `Number(null)` is 0, so a backend `None` would render as a confident `0%`. Five numeric fields can be null: `pressure_ratio_percent`, `estimated_roi_percent`, `profit_margin_percent`, `operating_margin_percent` and `household_repayment_percent`. Also `household_in_microfinance_range` (a boolean), for which only a strict `true`/`false` prints. A real 0 still prints as 0.
 - **Every UI string goes through `t()`.** Decorative glyphs get `aria-hidden="true"` (`glyph-audit` expects exactly 3 documented hits).
 - ESLint's `preserve-caught-error` requires `{ cause }` when rethrowing.
@@ -368,25 +386,25 @@ Deliberately not added, and still decided: a charting library, an i18n library, 
 
 ```bash
 python -m pip install -r backend/requirements-dev.txt
-cd backend && ../.venv/Scripts/python.exe -m pytest tests -q      # 1922 passed, ~16s
+cd backend && ../.venv/Scripts/python.exe -m pytest tests -q      # 2177 passed, ~17s
 ```
 
-- **The backend is tested with pytest.** The frontend has no test framework; `node --test` covers three pure modules (below) and the browser gates cover the pages. Some tests pin user-visible wording, so edit them together with a copy change.
+- **The backend is tested with pytest.** The frontend has no test framework; `node --test` covers four pure modules (below) and the browser gates cover the pages. Some tests pin user-visible wording, so edit them together with a copy change.
 - **When you add a branch, add a test proving a real request can reach it**, a sweep through `run_unified_analysis`, and not only a unit call.
 - Market tests bring their own rows from `tests/market_fixtures.py`; Meta tests use the fake model client in `tests/intake_fixtures.py`.
 - `conftest.py` pins `ARTHNITI_ENV=development`, clears the other `ARTHNITI_*` variables and `MODEL_API_KEY`, and blocks any connection that is not to this machine and any write to the real ledger (`test_network_guard.py`; it covers blocking sockets, not asyncio on Windows). Build a production app with `create_app(load_settings({...}))`.
 - Verifiers that submit `/finance` tick the consent box first.
 
-**No server needed:** `node tools/parity4.mjs`, `node tools/keycheck.mjs`, `node tools/verify/glyph-audit.mjs`, and `node --test` on `tools/verify/market-lib-test.mjs` (185 tests), `talk-lib-test.mjs` (45, the answer mapping and the WAV encoder) and `app-state-test.mjs` (41, the stored state). The two newer ones load JSX through Vite's `ssrLoadModule`.
+**No server needed:** `node tools/parity4.mjs`, `node tools/keycheck.mjs`, `node tools/verify/glyph-audit.mjs`, and `node --test` on `tools/verify/market-lib-test.mjs` (185 tests), `talk-lib-test.mjs` (45, the answer mapping and the WAV encoder), `app-state-test.mjs` (41, the stored state) and `necc-lib-test.mjs` (74, the egg-price parser and checks). The two before the last load JSX through Vite's `ssrLoadModule`.
 
 **Backend up:**
 
 - `node tools/verify/refresh-cases.mjs` regenerates the `case_*.json` fixtures. Run it after any change to services, schemas or data. The fixtures are untracked and go stale silently.
 
-**Vite up** (`http://localhost:5173`): the browser gates. `drive` (8 passes / 41 loads: leaked keys, `null%`, `NaN`, raw enums, the fit label), `mobile-audit`, `print-audit`, `text-align`, `field-align`, `lang-layout`, `motion-audit`, `hero-art`, `brand-mark`, `manual-audit` (it includes the no-pill check), `market-ui` (it starts its own Vite on 5179), and `error-banner`, `scroll-audit` and `figure-audit`, which also need the backend. **`talk-ui`** needs neither: it starts its own backend (8012, `tools/verify/talk_fake_backend.py` with a fake model client, so it never reaches Meta), three Vites (5182–5184) and Edge (CDP 9379, fake microphone), runs scenarios S0–S15 of `/talk` (`--only=S15` runs one) and kills all of it by PID. Each gate has its own CDP port and Edge profile, and `tools/README.md` says what each checks. They drive Edge at a hardcoded Windows path, so they are Windows-only and not in CI.
+**Vite up** (`http://localhost:5173`): the browser gates. `drive` (9 passes / 43 loads: leaked keys, `null%`, `NaN`, raw enums, the fit label), `mobile-audit`, `print-audit`, `text-align`, `field-align`, `lang-layout`, `motion-audit`, `hero-art`, `brand-mark`, `manual-audit` (it includes the no-pill check), `market-ui` (it starts its own Vite on 5179), and `error-banner`, `scroll-audit` and `figure-audit`, which also need the backend. **`talk-ui`** needs neither: it starts its own backend (8012, `tools/verify/talk_fake_backend.py` with a fake model client, so it never reaches Meta), three Vites (5182–5184) and Edge (CDP 9379, fake microphone), runs scenarios S0–S22 (S0–S15 drive `/talk`, S16–S22 the plan card; `--only=S15` runs one) and kills all of it by PID. Each gate has its own CDP port and Edge profile, and `tools/README.md` says what each checks. They drive Edge at a hardcoded Windows path, so they are Windows-only and not in CI.
 
 - **`--broken` must exit 1:** `scroll-audit`, `text-align`, `field-align`, `market-ui`, `figure-audit` (`=split|over|tiny`) and `motion-audit`.
-- **Exit 2 is an instrument fault, never a finding or a pass:** a crash, the wrong cwd, a server or Edge down or lost, a page with nothing to measure, a refuter that missed, or a seed the app discards (it measures clean as a blank page). The seeding scripts refuse a `SEED_VERSION` outside `READABLE_VERSIONS` and fail an empty result route as `UNSEEDED`. `drive` seeds v2 on purpose, for its hydrate check. Only `market-lib-test` (`node --test`) exits 1 on a crash. Details: `tools/README.md` § Exit codes. A `report.json` starts with `exit`; a run stopped by a thrown fault leaves none.
+- **Exit 2 is an instrument fault, never a finding or a pass:** a crash, the wrong cwd, a server or Edge down or lost, a page with nothing to measure, a refuter that missed, or a seed the app discards (it measures clean as a blank page). The seeding scripts refuse a `SEED_VERSION` outside `READABLE_VERSIONS` and fail an empty result route as `UNSEEDED`. `drive` seeds v2 on purpose, for its hydrate check. Only the four `node --test` files exit 1 on a crash. Details: `tools/README.md` § Exit codes. A `report.json` starts with `exit`; a run stopped by a thrown fault leaves none.
 - **Reports only:** `hero-geom`, `hero-vibrance` and `load-perf`'s timings. `load-perf` needs `npm run preview` on 4173 and exits 1 only when the app does not mount.
 - `art-contrast.mjs` is retired (it exits 2). **Port 9369 is kept free for one-off probes.**
 
@@ -399,19 +417,19 @@ Traps:
 - Edge's `--user-data-dir` must be an absolute path. Create your own target through `Target.createTarget`.
 - Keep `process.exitCode = 2` first in every verifier, and never `process.exit()` just after a `fetch()` (Node 24 aborts, 127); use `crashExit()`.
 
-`tools/fetch-market-data.mjs` refetches the market rows. It is a dry run unless `--write` is passed, and it reads the key from `.env`. `script_sha256` hashes `market-lib.mjs` + `fetch-market-data.mjs`, which `.gitattributes` pins to LF, so don't edit either without refetching.
+`tools/fetch-market-data.mjs` refetches the market rows. It is a dry run unless `--write` is passed, and it reads the key from `.env`. `script_sha256` hashes `market-lib.mjs` + `fetch-market-data.mjs`, which `.gitattributes` pins to LF, so don't edit either without refetching. `tools/fetch-necc-prices.mjs` does the same for the egg prices with `necc-lib.mjs` (no key; `--from FILE` reads a saved page and refuses `--write`).
 
 ---
 
 ## Still open
 
-**Advice and data:** a household income of 0 needs a tick and then gives "do not take a new loan"; the household income is self-reported; the pressure figure errs high when another earner pays their own loan; **no eligibility rule is evaluated anywhere** (`sc.eligUnchecked` says so on the page); `stale` is decided at fetch time; the Udyam counts cannot be reproduced; the scheme rules have no re-check schedule (the footer date and `test_review_dates.py` are the only guard); there is no helpline number.
+**Advice and data:** a household income of 0 needs a tick and then gives "do not take a new loan"; the household income is self-reported; the pressure figure errs high when another earner pays their own loan; **no eligibility rule is evaluated anywhere** (`sc.eligUnchecked` says so on the page); `stale` is decided at fetch time; the Udyam counts cannot be reproduced; the egg-price unit is unconfirmed and NECC's permission is an e-mail (`DATA_SOURCES.md`); the scheme rules have no re-check schedule (the footer date and `test_review_dates.py` are the only guard); the funding card rests on three pages with a gap each and does not test affordability, and the registrations card's limits are the 2017 and 2019 figures, not checked against later amendments (`docs/HACKATHON.md` §8); there is no helpline number.
 
 **Build and verification:** the verifier gaps (Edge leaks, unrefuted arms, narrow coverage, slow blank-page 2s) are in the history section "Verifier exit codes". The dependencies have no hashes. `backend/venv/` is stale; `.venv` is in use. The print PDF and the `api.js` timeout have not been clicked through by hand. Phones: landscape, real touch and the on-screen keyboard are unverified.
 
 Also open, stated where they apply: the household definition, market coverage, dialect coverage and the translation review, CI written without being run, the Windows-only gates.
 
-**Meta helper** (the full list is `docs/HACKATHON.md` §8): the owner ran `python -m app.smoke_meta` and `--plan` on 27 Oct 2026. Observed: the key is valid; `json_schema` output, `reasoning_effort: "low"`, `prompt_cache_key` and `max_completion_tokens` 8000 are accepted; both plans (English, Hindi) passed the checks on the first try, in 10.6 s and 11.9 s, at about 1.1 to 1.2 cents each (`PROCESSOR_SCHEDULE.md` §10.7). Still as documented and not observed: the speech `keywords`, a real person's speech and the Billing balance (the Usage page showed ₹0.00 after the first smoke test, and has not been checked since `--plan`). **The plan card has not been driven in a browser** (`talk-ui` has no plan scenario), and the `plan.*` and `fo.*` wording in the 7 other languages is machine-written. The helper routes have no authentication, no per-user limit and no consent record (the ledger and the hourly limit are the only brakes), and `/privacy` says nothing about the helper (`PROCESSOR_SCHEDULE.md` §10.5). No `safety_identifier` is sent and zero data retention is not requested. Malayalam has no speech model (typing works) and Meta has no text-to-speech. `talk.errRecording` says "speak for less than a minute" even for a recording that was too short.
+**Meta helper** (the full list is `docs/HACKATHON.md` §8): the owner ran `python -m app.smoke_meta` and `--plan` on 27 Oct 2026: the key works, and both plans passed the checks first time at about 1.1 to 1.2 cents each (`PROCESSOR_SCHEDULE.md` §10.7). Not observed: the speech `keywords`, a real person's speech and the Billing balance since `--plan`. **The plan card has been driven in a browser only against the fake model** (`talk-ui` S16–S22). The helper routes have no authentication, no per-user limit and no consent record (the ledger and the hourly limit are the only brakes), and `/privacy` says nothing about the helper (`PROCESSOR_SCHEDULE.md` §10.5). No `safety_identifier` is sent and zero data retention is not requested. Malayalam has no speech model (typing works).
 
 **Legal:** the hackathon asks for open-source, public entries and `LICENSE` is proprietary. The owner has to choose a licence or ask the organisers; nothing is changed. The September build has commits by Manjeet and Netra and no written assignment on file; the owner's position (26 Oct 2026) is that none is needed, which is a legal question and not a code one. The Official Rules are behind a login and have not been read.
 

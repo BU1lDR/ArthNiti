@@ -23,12 +23,23 @@
 // must stay plain text — the outbound government links were removed on
 // 10 Sept 2026 and an <a> creeping back in is the regression to catch.
 //
+// The NECC egg rows are a different source with its own conditions, so they get
+// their own checks. The price must read exactly as the row says and never as a
+// per-kilo mandi price; it must say whether NECC suggests it or lists it as the
+// going price, and how we read a number NECC prints with no unit; and the
+// sources block must carry NECC's clarification word for word, in English, once,
+// because NECC asks that it go wherever its prices go. A row without that
+// clarification, or whose unit is not the egg, must not be shown at all (the
+// `egg` case seeds two such rows and the page must print neither). The warranty
+// sentence follows the rows: "government open data" is true of the mandi and
+// Udyam rows and false of NECC's, so a page of egg rows alone must not print it.
+//
 // It starts its own Vite on 5179 (strict, IPv4) unless --url= is given, and its
 // own Edge on 9373. Both are killed by PID tree on every exit path. It never
 // kills msedge or node by image name: other gates, and the reader's own
 // browser, may be running.
 //
-//   node tools/verify/market-ui.mjs             40 loads, exit 1 on any finding
+//   node tools/verify/market-ui.mjs             42 loads, exit 1 on any finding
 //   node tools/verify/market-ui.mjs --broken    one DOM defect per honesty check; exits 1
 //                                               only if every defect is caught by its
 //                                               own check, 2 if any is missed or there
@@ -172,6 +183,15 @@ const { rowIdentity, validateRow } = await import('../market-lib.mjs')
 if (typeof rowIdentity !== 'function' || typeof validateRow !== 'function') {
   throw new Error('tools/market-lib.mjs no longer exports rowIdentity and validateRow')
 }
+// The egg rows are held to their own fetch's validator, and the clarification the
+// page must print is read from the file that writes it, so the two cannot drift.
+const necc = await import('../necc-lib.mjs')
+for (const name of ['validateRow', 'attributionOf']) {
+  if (typeof necc[name] !== 'function') throw new Error(`tools/necc-lib.mjs no longer exports ${name}`)
+}
+for (const name of ['CLARIFICATION', 'PUBLISHER', 'NECC_URL', 'SHEET', 'UNIT_READING', 'PERMISSION', 'METHOD']) {
+  if (typeof necc[name] !== 'string' || !necc[name]) throw new Error(`tools/necc-lib.mjs no longer exports ${name}`)
+}
 if (!existsSync(CASE_FILE)) {
   console.error('market-ui: screenshots/verify/case_good.json is missing.')
   console.error('Run `node tools/verify/refresh-cases.mjs` with the backend up, then re-run this.')
@@ -261,6 +281,7 @@ const SOURCE_EN = {
   'src.agmarknetMandi': 'Daily mandi prices reported to Agmarknet, published on data.gov.in',
   'src.udyamList': 'Udyam registrations, published on data.gov.in',
   'src.udyamAggregate': "The Ministry of MSME's district counts of Udyam registrations, published on data.gov.in",
+  'src.necc': 'Daily egg prices published by the National Egg Co-ordination Committee (NECC)',
 }
 const NOTE_EN = {
   'mknote.ourGrouping': 'We chose which kinds of registered work to count in this figure.',
@@ -271,7 +292,7 @@ const NOTE_EN = {
 // COMMODITY_KEYS / CHOICE_KEYS, so a map entry pointing at the wrong key fails
 // here instead of defining its own expectation.
 const COMMODITY_KEY = { wheat: 'cmd.wheat', potato: 'cmd.potato' }
-const CATEGORY_KEY = { tailoring: 'cat.tailoring', handicrafts: 'cat.handicrafts', services: 'cat.services', 'food processing': 'cat.food' }
+const CATEGORY_KEY = { tailoring: 'cat.tailoring', handicrafts: 'cat.handicrafts', services: 'cat.services', 'food processing': 'cat.food', poultry: 'cat.poultry' }
 
 const GODL = 'Published under Government Open Data License - India: https://www.data.gov.in/Godl.'
 const agmarknet = (ddmm) =>
@@ -322,6 +343,40 @@ const common = (over) => ({
 })
 const AGMARK_PROV = { id: '35985678-0d79-46b4-9ed6-6f13308a1d24', title: 'Variety-wise Daily Market Prices Data of Commodity', page: 'https://www.data.gov.in/resource/variety-wise-daily-market-prices-data-commodity', price: true }
 const UDYAM_PROV = { id: '8b68ae56-84cf-4728-a0a6-1be11028dea7', title: 'List of MSME Registered Units under UDYAM', page: 'https://www.data.gov.in/resource/list-msme-registered-units-under-udyam' }
+
+// An NECC egg row, shaped as tools/necc-lib.mjs writes it. `published` is the
+// whole number NECC prints, so the price is that over 100. No contact details:
+// the row carries none, and the validator below refuses a row that does.
+const NECC_MONTH = '2026-10'
+const NECC_DAY = '2026-10-28'
+const eggRow = ({ state, district = '', centre, label, kind, published, reported, stale = false }) => ({
+  state, district,
+  business_category: 'poultry', scope: district === '' ? 'state' : 'district', match_level: district === '' ? 'state' : 'district',
+  metric: 'egg_price', price_kind: kind, centre, unit: 'egg',
+  indicative_price: published / 100, last_reported: reported, stale,
+  source_code: 'src.necc', source: SOURCE_EN['src.necc'], last_verified: NECC_DAY,
+  provenance: {
+    publisher: necc.PUBLISHER, page_url: necc.NECC_URL, sheet: necc.SHEET, month: NECC_MONTH, centre_label: label,
+    published_value: published, unit_reading: necc.UNIT_READING, permission: necc.PERMISSION,
+    fetched_at: `${NECC_DAY}T09:30:00+05:30`, method: necc.METHOD, crosswalk_version: 1,
+    script_sha256: '0'.repeat(64), clarification: necc.CLARIFICATION, attribution: necc.attributionOf(NECC_MONTH, NECC_DAY),
+  },
+})
+// Three kinds of egg card: a district row NECC suggests (₹6.15), a district row
+// NECC lists as the going price, 13 days old and so stale, with a trailing zero
+// to keep (₹5.50), and the one state-scope row, Delhi, also with a trailing zero.
+const EGG_ROWS = [
+  eggRow({ state: 'Karnataka', district: 'Bengaluru Urban', centre: 'Bengaluru', label: 'Bengaluru (CC)', kind: 'suggested', published: 615, reported: '2026-10-28' }),
+  eggRow({ state: 'Telangana', district: 'Hyderabad', centre: 'Hyderabad', label: 'Hyderabad', kind: 'prevailing', published: 550, reported: '2026-10-15', stale: true }),
+  eggRow({ state: 'Delhi', centre: 'Delhi', label: 'Delhi (CC)', kind: 'suggested', published: 640, reported: '2026-10-28' }),
+]
+// Rows the page must refuse. Neither would pass the fetch's validator, which is
+// the point: they stand for a payload the fetch did not write.
+const BAD_EGG_ROWS = [
+  eggRow({ state: 'Andhra Pradesh', district: 'Chittoor', centre: 'Chittoor', label: 'Chittoor', kind: 'suggested', published: 633, reported: '2026-10-28' }),
+  { ...eggRow({ state: 'Jharkhand', district: 'Ranchi', centre: 'Ranchi', label: 'Ranchi (CC)', kind: 'suggested', published: 610, reported: '2026-10-28' }), unit: 'kg' },
+]
+BAD_EGG_ROWS[0].provenance.clarification = ''
 
 const ROWS = [
   // Fractional: 26.9 must render as ₹26.90.
@@ -381,16 +436,23 @@ const ROWS = [
     source_code: 'src.udyamList', source: SOURCE_EN['src.udyamList'],
     provenance: provenance({ ...UDYAM_PROV, query: 'filters[State]=UTTAR PRADESH', attribution: udyamList('21/09'), nic: NIC_MAP.version, periodEnd: '2026-09-22' }),
   }),
+  // Last, so the first attributions stay the Agmarknet and Udyam ones.
+  ...EGG_ROWS,
 ]
 
 // The fixture is held to the fetch's own validator, so a row shape the fetch
 // could never write cannot pass here and then fail on real data. match_level
-// is added by the service, not stored in the file.
+// is added by the service, not stored in the file. An egg row goes to NECC's
+// validator, which is the one that wrote it.
 {
   const problems = []
   for (const row of ROWS) {
     const { match_level: _level, ...stored } = row
-    for (const e of validateRow(stored, { commodities: COMMODITIES.commodities, nicMap: NIC_MAP })) problems.push(`${rowIdentity(stored)}: ${e}`)
+    if (row.metric === 'egg_price') {
+      for (const e of necc.validateRow(stored)) problems.push(`${row.state} / ${row.district || 'the whole state'} (egg): ${e}`)
+    } else {
+      for (const e of validateRow(stored, { commodities: COMMODITIES.commodities, nicMap: NIC_MAP })) problems.push(`${rowIdentity(stored)}: ${e}`)
+    }
   }
   if (problems.length) {
     console.error('market-ui: the synthetic rows fail validateRow:\n  ' + problems.join('\n  '))
@@ -413,14 +475,21 @@ const FORM = {
   },
   finance: { availableCapital: '150000', monthlyExpenses: '15000', monthlyEmi: '3000' },
 }
-// nomarket: the same rows, but the reader ticked no market type on /location.
-// The where-you-sell line must then be absent from every card, not printed
-// with an empty value.
+// nomarket: the rows with no egg price, and the reader ticked no market type on
+// /location. The where-you-sell line must then be absent from every card, not
+// printed with an empty value, and a page with no egg price must print none of
+// the egg sentences.
+const MANDI_ROWS = ROWS.filter((row) => row.metric !== 'egg_price')
 const CASES = {
   rows: { ...FORM, result: { ...CASE_GOOD, market_context: ROWS } },
   empty: { ...FORM, result: { ...CASE_GOOD, market_context: [] } },
-  nomarket: { ...FORM, location: { ...FORM.location, marketType: [] }, result: { ...CASE_GOOD, market_context: ROWS } },
+  nomarket: { ...FORM, location: { ...FORM.location, marketType: [] }, result: { ...CASE_GOOD, market_context: MANDI_ROWS } },
+  // egg: the egg rows on their own, so a page of them can be shown to print no
+  // sentence about government open data, and the two rows the page must refuse.
+  egg: { ...FORM, result: { ...CASE_GOOD, market_context: [...EGG_ROWS, ...BAD_EGG_ROWS] } },
 }
+// The rows each case must put on the page. The bad egg rows are in none of them.
+const SHOWN = { rows: ROWS, nomarket: MANDI_ROWS, egg: EGG_ROWS, empty: [] }
 
 // What the where-you-sell line must read on /analysis in the rows case: the
 // label of each market type ticked on /location, in the page's language,
@@ -439,23 +508,28 @@ const VIEWPORTS = {
 }
 // case, viewport, languages. 8 × 2 × 2 routes = 32 loads with rows, then the
 // empty market section in two scripts on both routes = 4 more, then the rows
-// with no market type ticked, the same way = 4 more. 40 loads.
+// with no market type ticked, the same way = 4 more, then the egg rows alone in
+// English on both routes = 2 more. 42 loads.
 const PASSES = [
   ['rows', VIEWPORTS.desktop, LANGS],
   ['rows', VIEWPORTS.phone, LANGS],
   ['empty', VIEWPORTS.desktop, ['en', 'hi']],
   ['nomarket', VIEWPORTS.desktop, ['en', 'hi']],
+  ['egg', VIEWPORTS.desktop, ['en']],
 ]
 
 // Same prefix set as drive.mjs, cmd|mknote|src and the notice prefixes included. A t() key that exists
 // in no dictionary prints as itself, so a leaked key is found verbatim.
 const RAW_KEY = /\b(?:common|nav|res|st|risk|f|an|ch|mk|sc|sch|ad|rp|login|nf|landing|profile|business|location|finance|money|cat|market|area|greeting|cmd|mknote|src|privacy|notice|consent|errf|form)\.[a-zA-Z_][a-zA-Z0-9_]*/g
 const BAD_TOKENS = ['null%', 'NaN', 'undefined', '[object Object]', 'Infinity', '₹null', '₹NaN', '₹undefined']
-const RAW_ENUMS = ['wholesale_price_per_kg', 'registered_units', 'count_suppressed', 'match_level', 'src.', 'mknote.', 'cmd.']
+// 'egg_price' and not 'suggested' or 'prevailing': NECC's own clarification, which
+// the page prints, contains the word "suggested".
+const RAW_ENUMS = ['wholesale_price_per_kg', 'registered_units', 'count_suppressed', 'egg_price', 'match_level', 'src.', 'mknote.', 'cmd.']
 
 // --- what each row must print, in one language ------------------------------
 function expectRow(row, lang) {
   const isPrice = row.metric === 'wholesale_price_per_kg'
+  const isEgg = row.metric === 'egg_price'
   const place = row.scope === 'state' ? row.state : row.district
   const name = isPrice ? T(lang, COMMODITY_KEY[row.commodity_id]) : T(lang, CATEGORY_KEY[row.business_category])
   const source = TB(lang, row.source_code, row.source)
@@ -472,6 +546,17 @@ function expectRow(row, lang) {
     e.high = money(row.price_high)
     e.priceWindow = T(lang, 'mk.priceWindow', { n: row.n_days.toLocaleString('en-IN'), date: ymd(row.last_reported), low: e.low, high: e.high })
     e.priceMarkets = T(lang, 'mk.priceMarkets', { markets: row.n_markets.toLocaleString('en-IN') })
+  } else if (isEgg) {
+    // One egg, not a kilo: no mk.price, window or market count. The sentence
+    // that says whose price it is depends on price_kind, and the other kind's
+    // sentence, with the same values, must not appear.
+    const sentence = { suggested: 'mk.eggSuggested', prevailing: 'mk.eggPrevailing' }
+    const kindLine = (kind) => T(lang, sentence[kind], { centre: row.centre, date: ymd(row.last_reported) })
+    e.price = money(row.indicative_price)
+    e.label = T(lang, 'mk.eggPrice')
+    e.kind = kindLine(row.price_kind)
+    e.otherKind = kindLine(row.price_kind === 'suggested' ? 'prevailing' : 'suggested')
+    e.reading = T(lang, 'mk.eggReading', { printed: String(row.provenance.published_value), price: e.price })
   } else {
     e.countLine = row.count_suppressed
       ? T(lang, 'mk.countSuppressed', { district: place })
@@ -647,6 +732,8 @@ const probe = (want) => `(() => {
     if (!card) return { found: false, matches: matches.length }
     return { found: true, matches: matches.length, text: card.innerText, paras: [...card.querySelectorAll('p')].map((p) => norm(p.textContent)) }
   })
+  // Rows the page must refuse: true for each one a card was drawn for.
+  const badFound = (want.badHeadings || []).map((heading) => heads.some((el) => norm(el.textContent) === heading))
   const sourceHeads = heads.filter((el) => norm(el.textContent) === want.sourcesHeading)
   const block = sourceHeads[0] && sourceHeads[0].parentElement
   const sources = block ? {
@@ -689,6 +776,7 @@ const probe = (want) => `(() => {
   return {
     text: document.body.innerText,
     cards,
+    badFound,
     sources,
     scrollWidth: doc.scrollWidth,
     clientWidth: vw,
@@ -748,6 +836,27 @@ const breakPage = (want) => `(() => {
     return done
   }
 
+  const sourcesHead = heads.find((el) => norm(el.textContent) === want.sourcesHeading)
+  const sourcesBlock = sourcesHead ? sourcesHead.parentElement : null
+
+  if (want.caseName === 'egg') {
+    // The rows the page must refuse, drawn by hand as a copy of a fresh card
+    // under each refused row's heading. A stale card is not copied, so the
+    // page-wide stale count stays what it should be.
+    const from = cardOf(want.cloneFrom)
+    for (const heading of want.badHeadings) {
+      const copy = from ? from.cloneNode(true) : null
+      const h = copy ? copy.querySelector('h3') : null
+      if (h) { h.textContent = heading; from.after(copy) }
+      mark('a card drawn for a row the page must refuse', 'EGG-UNSAFE', h, heading)
+    }
+    mark('government open-data warranty on a page of egg rows', 'EGG-GOVDATA', addPara(sourcesBlock, want.warranty))
+    const clarification = paraIn(sourcesBlock, want.clarification)
+    if (clarification) clarification.setAttribute('lang', 'hi')
+    mark("NECC's English clarification marked as Hindi", 'EGG-CLARIFICATION-LANG', clarification)
+    return done
+  }
+
   const c = want.cards
   const wheat = cardOf(c.wheat.heading)
   const potato = cardOf(c.potato.heading)
@@ -774,6 +883,20 @@ const breakPage = (want) => `(() => {
     mark('market types dropped from where-you-sell', 'WHERE-SELL', swapText(wheat, want.places, ''), c.wheat.heading)
   }
 
+  // The egg cards, in the case that has them. Two defects on one card are two
+  // different elements with two different kinds.
+  if (want.eggs) {
+    const bengaluru = cardOf(c.bengaluru.heading)
+    const hyderabad = cardOf(c.hyderabad.heading)
+    const delhi = cardOf(c.delhi.heading)
+    mark('per-kilo mandi sentence on an egg price', 'EGG-UNIT', addPara(bengaluru, want.priceLabel), c.bengaluru.heading)
+    mark("the other kind's sentence in place of its own", 'EGG-KIND', swapText(bengaluru, c.bengaluru.kind, c.bengaluru.otherKind), c.bengaluru.heading)
+    mark('reading of the unit removed', 'EGG-READING', removeEl(paraIn(hyderabad, c.hyderabad.reading)), c.hyderabad.heading)
+    mark('stale warning removed from an egg price', 'STALE', removeEl(paraIn(hyderabad, want.stale)), c.hyderabad.heading)
+    mark('egg price label removed', 'EGG-LABEL', removeEl(paraIn(delhi, c.delhi.label)), c.delhi.heading)
+    mark('egg price loses its trailing zero', 'EGG-PRICE', swapText(delhi, c.delhi.price, c.delhi.shortPrice), c.delhi.heading)
+  }
+
   let truncated = false
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -781,8 +904,7 @@ const breakPage = (want) => `(() => {
   }
   mark('fractional price loses its trailing zero', 'PRICE-TRUNCATED', truncated)
 
-  const head = heads.find((el) => norm(el.textContent) === want.sourcesHeading)
-  const block = head ? head.parentElement : null
+  const block = sourcesBlock
   if (block) {
     const a = document.createElement('a')
     a.href = 'https://example.invalid/'
@@ -791,6 +913,13 @@ const breakPage = (want) => `(() => {
   }
   mark('link inside the sources block', 'SOURCES-LINK', block)
   mark('warranty line removed', 'WARRANTY', removeEl(paraIn(block, want.warranty)))
+  if (want.eggs) {
+    mark('egg warranty line removed', 'EGG-WARRANTY', removeEl(paraIn(block, want.eggWarranty)))
+    mark("NECC's clarification removed", 'EGG-CLARIFICATION', removeEl(paraIn(block, want.clarification)))
+    mark('lead-in to the clarification removed', 'EGG-SAYS', removeEl(paraIn(block, want.eggSays)))
+  } else {
+    mark('egg warranty on a page with no egg price', 'EGG-STRAY', addPara(block, want.eggWarranty))
+  }
   mark('non-endorsement line removed', 'NOT-ENDORSED', removeEl(paraIn(block, want.notEndorsed)))
   const first = paraIn(block, want.attributions[0])
   if (first) first.after(first.cloneNode(true))
@@ -816,16 +945,27 @@ function brokenTargets(caseName, lang, sourcesHeading) {
     notEndorsed: T(lang, 'mk.notEndorsed', { app: APP_NAME }),
     whereSell: T(lang, 'mk.whereSell'),
     places: marketPlaces(lang),
-    attributions: [...new Set(ROWS.map((r) => r.provenance.attribution))],
+    attributions: [...new Set(SHOWN[caseName].map((r) => r.provenance.attribution))],
+    priceLabel: T(lang, 'mk.price'),
+    eggs: SHOWN[caseName].some((r) => r.metric === 'egg_price'),
+    eggWarranty: T(lang, 'mk.eggWarranty'),
+    eggSays: T(lang, 'mk.eggSays'),
+    clarification: necc.CLARIFICATION,
   }
   if (caseName === 'empty') return want
+  if (caseName === 'egg') {
+    const fresh = EGG_ROWS.find((r) => r.stale !== true)
+    want.badHeadings = BAD_EGG_ROWS.map((row) => expectRow(row, lang).heading)
+    want.cloneFrom = expectRow(fresh, lang).heading
+    return want
+  }
   const e = (pick) => expectRow(ROWS.find(pick), lang)
   const wheat = e((r) => r.commodity_id === 'wheat')
   const potato = e((r) => r.commodity_id === 'potato')
   const tailoring = e((r) => r.business_category === 'tailoring')
   const handicrafts = e((r) => r.business_category === 'handicrafts')
   const services = e((r) => r.business_category === 'services')
-  const state = e((r) => r.scope === 'state')
+  const state = e((r) => r.scope === 'state' && r.metric !== 'egg_price')
   if (want.attributions.length < 2) throw new Error('--broken needs two distinct attributions for the ATTRIBUTION-LANG defect')
   if (!handicrafts.note || state.note || potato.row.stale !== true) throw new Error('--broken needs a noted handicrafts row, an unnoted state row and a stale potato row')
   want.cards = {
@@ -839,6 +979,18 @@ function brokenTargets(caseName, lang, sourcesHeading) {
       inventedShare: T(lang, 'mk.countShare', { share: '12.5', total: '45,424', district: services.row.district }),
     },
     state: { heading: state.heading, checked: state.checked, borrowedNote: handicrafts.note },
+  }
+  if (want.eggs) {
+    const egg = (state) => expectRow(EGG_ROWS.find((r) => r.state === state), lang)
+    const bengaluru = egg('Karnataka')
+    const hyderabad = egg('Telangana')
+    const delhi = egg('Delhi')
+    if (bengaluru.row.stale || delhi.row.stale || hyderabad.row.stale !== true || !delhi.price.endsWith('0')) {
+      throw new Error('--broken needs a fresh Bengaluru row, a stale Hyderabad row and a Delhi price that ends in a zero')
+    }
+    want.cards.bengaluru = { heading: bengaluru.heading, kind: bengaluru.kind, otherKind: bengaluru.otherKind }
+    want.cards.hyderabad = { heading: hyderabad.heading, reading: hyderabad.reading }
+    want.cards.delhi = { heading: delhi.heading, label: delhi.label, price: delhi.price, shortPrice: delhi.price.slice(0, -1) }
   }
   return want
 }
@@ -877,15 +1029,18 @@ function checkLoad({ caseName, lang, vp, route, pageErrors, got }) {
 
   // Per card. Absence is judged per <p> against the whole template, so a
   // sentence that belongs to a neighbouring row cannot satisfy or trip it.
+  const shown = SHOWN[caseName]
   const priceLabel = T(lang, 'mk.price')
+  const priceWindowRe = templateRegex(lookup(lang, 'mk.priceWindow'))
+  const priceMarketsRe = templateRegex(lookup(lang, 'mk.priceMarkets'))
   const stale = T(lang, 'mk.stale')
   const multi = T(lang, 'mk.countMulti')
   const whereSell = T(lang, 'mk.whereSell')
   const places = marketPlaces(lang)
   const shareRe = templateRegex(lookup(lang, 'mk.countShare'))
-  const allNotes = ROWS.filter((r) => r.note_code).map((r) => TB(lang, r.note_code, r.note))
+  const allNotes = shown.filter((r) => r.note_code).map((r) => TB(lang, r.note_code, r.note))
 
-  const expected = ROWS.map((row) => expectRow(row, lang))
+  const expected = shown.map((row) => expectRow(row, lang))
   expected.forEach((e, i) => {
     const card = got.cards[i]
     const row = e.row
@@ -920,6 +1075,19 @@ function checkLoad({ caseName, lang, vp, route, pageErrors, got }) {
       if (!has(e.priceWindow)) add('PRICE-WINDOW', `${who}: missing "${e.priceWindow}"`)
       if (!has(e.priceMarkets)) add('PRICE-MARKETS', `${who}: missing "${e.priceMarkets}"`)
       if (has(stale) !== (row.stale === true)) add('STALE', `${who}: mk.stale ${row.stale ? 'missing' : 'shown on a fresh price'}`)
+    } else if (row.metric === 'egg_price') {
+      // The price of one egg, which is a different thing from a mandi price per
+      // kilo: its figure stands alone, it says whose price it is and how the
+      // unit was read, and it carries none of the per-kilo sentences.
+      if (!hasPara(e.price)) add('EGG-PRICE', `${who}: no element reading exactly "${e.price}"`)
+      if (!hasPara(e.label)) add('EGG-LABEL', `${who}: mk.eggPrice missing`)
+      if (!hasPara(e.kind)) add('EGG-KIND', `${who}: missing "${e.kind}"`)
+      if (hasPara(e.otherKind)) add('EGG-KIND', `${who}: the other kind's sentence printed: "${e.otherKind}"`)
+      if (!hasPara(e.reading)) add('EGG-READING', `${who}: missing "${e.reading}"`)
+      if (has(priceLabel) || card.paras.some((p) => priceWindowRe.test(p) || priceMarketsRe.test(p))) {
+        add('EGG-UNIT', `${who}: a per-kilo mandi sentence printed on the price of an egg`)
+      }
+      if (has(stale) !== (row.stale === true)) add('STALE', `${who}: mk.stale ${row.stale ? 'missing' : 'shown on a fresh price'}`)
     } else {
       if (!has(e.countLine)) add(row.count_suppressed ? 'SUPPRESSED' : 'COUNT', `${who}: missing "${e.countLine}"`)
       if (row.count_suppressed && card.paras.some((p) => templateRegex(lookup(lang, 'mk.count')).test(p))) {
@@ -939,13 +1107,22 @@ function checkLoad({ caseName, lang, vp, route, pageErrors, got }) {
     }
   })
 
-  // Page-wide price and stale checks.
-  const truncated = text.match(/₹26\.9(?!\d)/)
-  if (truncated) add('PRICE-TRUNCATED', '"₹26.9" printed without its trailing zero')
-  if (!text.includes('₹26.90')) add('PRICE-FIGURE', '"₹26.90" not on the page')
-  if (!figureRegex('₹26').test(text)) add('PRICE-FIGURE', 'a standalone "₹26" not on the page')
+  // The two rows the page must refuse have no card, whatever else is on it.
+  for (const [i, drawn] of (got.badFound || []).entries()) {
+    if (drawn) add('EGG-UNSAFE', `${expectRow(BAD_EGG_ROWS[i], lang).heading}: a card for a row without the unit or the clarification`)
+  }
+
+  // Page-wide price and stale checks. The mandi figures are in the rows case
+  // only; a page of egg rows has none to find.
+  if (shown.some((r) => r.metric === 'wholesale_price_per_kg')) {
+    const truncated = text.match(/₹26\.9(?!\d)/)
+    if (truncated) add('PRICE-TRUNCATED', '"₹26.9" printed without its trailing zero')
+    if (!text.includes('₹26.90')) add('PRICE-FIGURE', '"₹26.90" not on the page')
+    if (!figureRegex('₹26').test(text)) add('PRICE-FIGURE', 'a standalone "₹26" not on the page')
+  }
+  const wantStale = shown.filter((r) => r.stale === true).length
   const staleCount = count(text, stale)
-  if (staleCount !== 1) add('STALE-COUNT', `mk.stale appears ${staleCount} times, want 1`)
+  if (staleCount !== wantStale) add('STALE-COUNT', `mk.stale appears ${staleCount} times, want ${wantStale}`)
 
   // The sources block.
   const s = got.sources
@@ -956,7 +1133,7 @@ function checkLoad({ caseName, lang, vp, route, pageErrors, got }) {
   if (s.headings !== 1) add('SOURCES-HEADING', `"${sourcesHeading}" appears as ${s.headings} headings`)
   if (s.links) add('SOURCES-LINK', `${s.links} <a> element(s) inside the sources block`)
   if (s.inDetails) add('SOURCES-IN-DETAILS', 'the sources block sits inside a <details>, which prints collapsed')
-  for (const attribution of [...new Set(ROWS.map((r) => r.provenance.attribution))]) {
+  for (const attribution of [...new Set(shown.map((r) => r.provenance.attribution))]) {
     const n = count(text, attribution)
     if (n !== 1) add('ATTRIBUTION', `appears ${n} times, want 1: "${attribution.slice(0, 70)}…"`)
     const para = s.paras.find((p) => p.text === attribution)
@@ -967,8 +1144,33 @@ function checkLoad({ caseName, lang, vp, route, pageErrors, got }) {
   if (!s.text.includes(notEndorsed)) add('NOT-ENDORSED', `missing "${notEndorsed}"`)
   if (!s.text.includes(APP_NAME)) add('NOT-ENDORSED', `${APP_NAME} not in the sources block`)
   if (text.includes('{app}')) add('NOT-ENDORSED', 'a literal {app} reached the page')
+  // mk.warranty says the figures come from government open data, which an egg
+  // price does not: it is owed to the other rows only, and a page of egg rows
+  // alone must not print it. The egg rows carry their own warranty sentence and
+  // NECC's clarification, which the page must reproduce word for word, once, in
+  // English, whatever the page's language.
   const warranty = T(lang, 'mk.warranty')
-  if (!s.text.includes(warranty)) add('WARRANTY', `missing "${warranty}"`)
+  const eggWarranty = T(lang, 'mk.eggWarranty')
+  const eggSays = T(lang, 'mk.eggSays')
+  if (shown.some((r) => r.metric !== 'egg_price')) {
+    if (!s.text.includes(warranty)) add('WARRANTY', `missing "${warranty}"`)
+  } else if (s.text.includes(warranty)) {
+    add('EGG-GOVDATA', 'the sentence about government open data printed on a page of egg rows alone')
+  }
+  if (shown.some((r) => r.metric === 'egg_price')) {
+    if (!s.paras.some((p) => p.text === eggWarranty)) add('EGG-WARRANTY', `not its own <p> in the sources block: "${eggWarranty}"`)
+    const says = s.paras.filter((p) => p.text === eggSays).length
+    if (says !== 1) add('EGG-SAYS', `"${eggSays}" is ${says} <p> elements in the sources block, want 1`)
+    const n = count(text, necc.CLARIFICATION)
+    if (n !== 1) add('EGG-CLARIFICATION', `NECC's clarification appears ${n} times, want 1`)
+    const para = s.paras.find((p) => p.text === necc.CLARIFICATION)
+    if (!para) add('EGG-CLARIFICATION', "NECC's clarification is not its own <p> in the sources block")
+    else if (para.lang !== 'en') add('EGG-CLARIFICATION-LANG', `lang="${para.lang}" on NECC's English clarification, want "en"`)
+  } else {
+    for (const stray of [eggWarranty, eggSays, necc.CLARIFICATION]) {
+      if (text.includes(stray)) add('EGG-STRAY', `"${stray.slice(0, 60)}…" printed on a page with no egg price`)
+    }
+  }
 
   return found
 }
@@ -1069,7 +1271,8 @@ async function main() {
           true;
         `)
 
-        const headings = ROWS.map((row) => expectRow(row, lang).heading)
+        const headings = SHOWN[caseName].map((row) => expectRow(row, lang).heading)
+        const badHeadings = caseName === 'egg' ? BAD_EGG_ROWS.map((row) => expectRow(row, lang).heading) : []
         const sourcesHeading = T(lang, 'mk.sourcesHeading')
         const breakWant = BROKEN ? brokenTargets(caseName, lang, sourcesHeading) : null
 
@@ -1107,7 +1310,7 @@ async function main() {
           let broke = []
           if (BROKEN) broke = await cdp.evaluate(breakPage({ ...breakWant, route }))
 
-          const got = await cdp.evaluate(probe({ headings, sourcesHeading }))
+          const got = await cdp.evaluate(probe({ headings, badHeadings, sourcesHeading }))
           writeFileSync(`${OUT}/${tag}.txt`, got.text)
           const problems = checkLoad({ caseName, lang, vp, route, pageErrors: [...cdp.pageErrors], got })
 
@@ -1128,7 +1331,7 @@ async function main() {
           const status = BROKEN ? (caught === verdicts.length ? 'ok  ' : 'MISS') : problems.length ? 'FAIL' : 'ok  '
           console.log(
             `${status}  ${tag.padEnd(26)} ${String(got.text.length).padStart(5)}c` +
-              (caseName !== 'empty' ? ` cards=${got.cards.filter((c) => c.found).length}/${ROWS.length}` : '') +
+              (caseName !== 'empty' ? ` cards=${got.cards.filter((c) => c.found).length}/${SHOWN[caseName].length}` : '') +
               (BROKEN ? ` caught ${caught}/${verdicts.length}` : '') +
               (!BROKEN && problems.length ? '  ' + problems.map((p) => p.kind).join(' ') : ''),
           )

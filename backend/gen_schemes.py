@@ -129,6 +129,7 @@ SPEC = [
             ("elig.pmfme.activity", "Applicant should be involved in an eligible micro food processing activity."),
             ("elig.pmfme.subsidy", "Individual micro food processing units may receive credit-linked capital subsidy of 35% of eligible project cost, subject to a maximum of Rs.10 lakh per unit."),
             ("elig.pmfme.contribution", "Beneficiary contribution should be at least 10% of the project cost."),
+            ("elig.pmfme.upgrade", "The Ministry's page for individual units speaks of units that want to upgrade. It does not say whether a new unit can get this subsidy."),
         ],
         ["doc.identity", "doc.address", "doc.businessDetails", "doc.bank", "doc.projectReport"],
         "https://www.mofpi.gov.in/en/pmfme/shgs-fpos-co-operatives-individual-micro-food-enterprise",
@@ -136,7 +137,10 @@ SPEC = [
     (
         "pmegp",
         "Prime Minister's Employment Generation Programme (PMEGP)",
-        "central", ["ALL"], [MFG, SVC, TRD],
+        # FP, DRY, PLT and BEE follow the guidelines' own para 30 (KVIC, 1 June
+        # 2022): only meat is excluded from food processing, and dairy, poultry
+        # and insects including bees are named as animal husbandry that is allowed.
+        "central", ["ALL"], [MFG, SVC, TRD, FP, DRY, PLT, BEE],
         "New micro-enterprises",
         "A credit-linked subsidy programme supporting eligible new micro-enterprises in manufacturing and service/trading activities.",
         "Credit-linked margin money subsidy",
@@ -145,6 +149,7 @@ SPEC = [
             ("elig.pmegp.maxManufacturing", "Maximum project cost for manufacturing units is Rs.50 lakh."),
             ("elig.pmegp.maxService", "Maximum project cost for service/trading units is Rs.20 lakh."),
             ("elig.pmegp.financing", "Bank financing and beneficiary contribution are subject to the applicable PMEGP guidelines."),
+            ("elig.pmegp.period", "The 2022 guidelines approve the scheme for the five years 2021-22 to 2025-26. This app has not confirmed that it continues after 31 March 2026."),
         ],
         ["doc.identity", "doc.address", "doc.projectReport", "doc.education", "doc.bank"],
         "https://www.kviconline.gov.in/pmegpeportal/",
@@ -152,7 +157,10 @@ SPEC = [
     (
         "pmmy",
         "Pradhan Mantri MUDRA Yojana (PMMY)",
-        "central", ["ALL"], [MFG, TRD, SVC, DRY, PLT, BEE],
+        # FP is an inference: the Department of Financial Services page says the
+        # loans are for non-agricultural activities and names poultry, dairy and
+        # beekeeping as allied ones; it does not name food processing.
+        "central", ["ALL"], [MFG, TRD, SVC, FP, DRY, PLT, BEE],
         "Micro enterprises",
         "Provides collateral-free institutional credit to eligible micro enterprises for income-generating activities.",
         "Collateral-free business loan",
@@ -187,9 +195,9 @@ SPEC = [
         "standupindia",
         "Stand-Up India",
         # No AGR: the scheme's own rule below says crop cultivation on its own
-        # is not covered, so the Agriculture button must not list it. Dairy and
-        # food processing are the allied activities that rule names.
-        "central", ["ALL"], [MFG, SVC, TRD, DRY, FP],
+        # is not covered, so the Agriculture button must not list it. Dairy,
+        # poultry and food processing are the allied activities that rule names.
+        "central", ["ALL"], [MFG, SVC, TRD, DRY, PLT, FP],
         "First-time women, Scheduled Caste and Scheduled Tribe entrepreneurs",
         "Bank loans between Rs.10 lakh and Rs.1 crore for a first enterprise set up by a woman entrepreneur, or by an entrepreneur from a Scheduled Caste or Scheduled Tribe community.",
         "Bank loan for a first-time enterprise",
@@ -198,6 +206,7 @@ SPEC = [
             ("elig.standupindia.amount", "The loan size ranges from Rs.10 lakh to Rs.1 crore."),
             "elig.common.newUnit",
             ("elig.standupindia.agriAllied", "Activities allied to agriculture, such as dairy, poultry and food processing, are covered; crop cultivation on its own is not."),
+            ("elig.standupindia.period", "The Department of Financial Services gives the scheme period as up to 31 March 2025. A new scheme was announced in the Union Budget 2025-26. This app has not confirmed that loans are being given now."),
         ],
         ["doc.identity", "doc.address", "doc.caste", "doc.projectReport", "doc.bank"],
         "https://www.standupmitra.in/",
@@ -612,9 +621,10 @@ SPEC = [
     ),
 ]
 
-# The three original schemes keep their own verification date. Everything added
-# on 7 Sept 2026 carries that date, and the UI prints it on every card.
-EXISTING_VERIFIED = {"pmfme": "2026-09-01", "pmegp": "2026-09-01", "pmmy": "2026-09-01"}
+# Everything added on 7 Sept 2026 carries that date, and the UI prints it on every
+# card. The four schemes the funding calculation prices or describes had their
+# official pages read again on 28 Oct 2026 and carry that date instead.
+EXISTING_VERIFIED = dict.fromkeys(("pmfme", "pmegp", "pmmy", "standupindia"), "2026-10-28")
 LAST_VERIFIED = "2026-09-07"
 
 # The kind of place each scheme serves. Every scheme not listed here is open

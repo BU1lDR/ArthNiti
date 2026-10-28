@@ -4,6 +4,8 @@ from app.services.options_service import build_financing_options
 from app.services.business_service import calculate_business_analysis
 from app.services.market_service import get_market_context
 from app.services.scheme_service import match_schemes
+from app.services.structuring_service import build_scheme_funding
+from app.services.compliance_service import build_compliance
 from app.services.advisory_service import generate_advice
 from app.services.mvp_service import build_mvp_summary
 
@@ -33,6 +35,8 @@ def run_unified_analysis(
     - Business feasibility analysis
     - Hyperlocal market context
     - Government scheme matching
+    - What the matched schemes ask the reader to put in, and what they pay
+    - The registrations to ask about (Udyam, the local office, FSSAI, GST)
     - Advisory generation
     - Low-literacy-friendly MVP summary
 
@@ -96,6 +100,28 @@ def run_unified_analysis(
         location_type=location_type,
     )
 
+    # 5b. For the PMEGP, PMFME and Mudra matches only: the own money each asks
+    # for, the subsidy it pays and what is left to borrow, from the terms the
+    # schemes publish (structuring_service). Priced from the same two figures as
+    # the funding gap, so the Mudra loan is the gap the analysis already shows.
+    scheme_funding = build_scheme_funding(
+        project_cost=initial_investment,
+        money_in_hand=available_capital,
+        location_type=location_type,
+        matched_scheme_ids=[match["scheme_id"] for match in scheme_matches],
+    )
+
+    # 5c. The registrations to ask about (Udyam, the local office, FSSAI, GST),
+    # from published limits tested against the expected yearly sales: the monthly
+    # sales asked for, times 12 (compliance_service).
+    compliance = build_compliance(
+        business_category=business_category,
+        state=state,
+        location_type=location_type,
+        yearly_sales=round(expected_monthly_revenue * 12, 2),
+        scheme_matches=scheme_matches,
+    )
+
     # 6. Advisory generation
     advisory = generate_advice(
         financial_status=financial_analysis["financial_status"],
@@ -125,6 +151,8 @@ def run_unified_analysis(
         "business_analysis": business_analysis,
         "market_context": market_context,
         "scheme_matches": scheme_matches,
+        "scheme_funding": scheme_funding,
+        "compliance": compliance,
         "advisory": advisory,
         "mvp_summary": mvp_summary,
     }

@@ -124,6 +124,7 @@ describe('the labels', () => {
       'tailoring',
       'agriculture',
       'dairy',
+      'poultry',
       'services',
       'manufacturing',
     ])
@@ -139,7 +140,7 @@ describe('the labels', () => {
 
   test('they are the buttons the pages show, with the keys the pages use', () => {
     const categories = buttons('frontend/src/pages/BusinessPage.jsx', 'categories').filter(([value]) => value !== 'other')
-    assert.equal(categories.length, 8)
+    assert.equal(categories.length, 9)
     assert.deepEqual(Object.entries(CATEGORY_LABELS), categories)
     const areas = buttons('frontend/src/pages/LocationPage.jsx', 'locationTypes')
     assert.equal(areas.length, 3)

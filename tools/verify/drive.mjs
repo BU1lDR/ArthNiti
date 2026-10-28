@@ -20,8 +20,11 @@
 // measure: the working directory is wrong, a fixture is missing, AppContext no
 // longer reads the seed version, the dictionaries define no dotted key to take
 // prefixes from, FIT_KEYS is gone from backendText.js or has no entry this can
-// read, a key the checks need (a cleared, not-ready or fit label) is not in
-// resultStrings.js, the page cannot import deployment.js or it no longer
+// read, a schedule heading with no table under it on /report, a result fixture
+// with no compliance steps (it predates the card: regenerate it with
+// refresh-cases.mjs), a compliance step, need, case, kind, place or source the
+// card check has no wording for, a key the checks need (a cleared, not-ready,
+// fit, schedule or compliance label) is not in resultStrings.js, the page cannot import deployment.js or it no longer
 // exports what is read from it, the dev server is down or went away mid-run (a
 // navigation failed, or a page that never filled is Edge's own error page or
 // answered other than 2xx), a scheme heading sits in no card or in a box that
@@ -205,6 +208,11 @@ const FORMS = {
 // answers are `good`'s, because the flag only ever arises once there are answers.
 FORMS.cleared = structuredClone(FORMS.good)
 
+// Answered and submitted before the compliance card and the scheme funding card
+// existed: good's answers, and good's response without those two keys (RESULTS.old,
+// below). Both result pages must leave the cards out and carry on.
+FORMS.old = structuredClone(FORMS.good)
+
 const RESULTS = {
   good: JSON.parse(readFileSync('screenshots/verify/case_good.json', 'utf8')),
   nulls: JSON.parse(readFileSync('screenshots/verify/case_nulls.json', 'utf8')),
@@ -215,6 +223,16 @@ const RESULTS = {
   // Null because the edit discarded it. What it USED to be is good's response,
   // which is what the cleared checks look for and must not find.
   cleared: null,
+}
+RESULTS.old = structuredClone(RESULTS.good)
+delete RESULTS.old.compliance
+delete RESULTS.old.scheme_funding
+// The three real responses must carry compliance steps, or the card check would pass by
+// finding nothing to draw. A fixture that predates the card is a stale instrument.
+for (const name of ['good', 'nulls', 'empty']) {
+  if (!RESULTS[name].compliance?.steps?.length) {
+    throw new Error(`screenshots/verify/case_${name}.json has no compliance steps: regenerate it with tools/verify/refresh-cases.mjs against the current backend`)
+  }
 }
 
 // Extra fields in the seeded payload, beside the answers and the result.
@@ -332,7 +350,7 @@ const CLEARED_KEYS = ['res.changedTitle', 'res.changedButton']
 // undefined, and text.includes(undefined) looks for the word "undefined", so a
 // renamed key would turn the "must not appear" half of a check (WRONG EMPTY
 // STATE, WRONG FIT LABEL) into a pass.
-for (const key of [...CLEARED_KEYS, ...Object.values(NOT_READY_KEYS), ...Object.values(FIT_KEYS)]) {
+for (const key of [...CLEARED_KEYS, ...Object.values(NOT_READY_KEYS), ...Object.values(FIT_KEYS), 'rp.scheduleTitle', 'fs.title', 'fs.caption']) {
   if (typeof RESULT_STRINGS.en[key] !== 'string') throw new Error(`${key} is not defined in resultStrings.js en`)
 }
 // The result the edit threw away. Its scheme names render in English in every
@@ -358,7 +376,7 @@ const cardProbe = (names) => `(() => {
   document.querySelectorAll('details').forEach((d) => { d.open = true })
   const names = ${JSON.stringify(names)}
   const wanted = new Set(names)
-  const heads = [...document.querySelectorAll('h2, h3')]
+  const heads = [...document.querySelectorAll('h2, h3')].filter((el) => !el.closest('[data-scheme-funding]'))
   return names.map((name) => {
     const h = heads.find((el) => el.textContent.trim() === name)
     if (!h) return { found: false }
@@ -368,7 +386,140 @@ const cardProbe = (names) => `(() => {
     return held > 1 ? { found: true, card: false, held } : { found: true, card: true, text: card.innerText }
   })
 })()`
-const ALL_ROUTES = ['/', '/login', '/profile', '/business', '/location', '/finance', ...RESULT_ROUTES, '/privacy', '/no-such-page']
+// Runs in the page. /report draws the schedule of whichever loan its menu names and
+// does no arithmetic, so this picks one the way a person does (the menu's own change
+// event), waits for React to draw it, and returns the table's rows as text. `menu`
+// says whether the menu was there, `rows` is null when no table is.
+const scheduleProbe = (months) => `(async () => {
+  const menu = document.getElementById('schedule-term')
+  if (menu) {
+    menu.value = ${JSON.stringify(String(months))}
+    menu.dispatchEvent(new Event('change', { bubbles: true }))
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  const table = document.querySelector('[aria-labelledby="schedule-for"] table')
+  return { menu: Boolean(menu), rows: table ? [...table.tBodies[0].rows].map((row) => [...row.cells].map((cell) => cell.innerText.trim())) : null }
+})()`
+// Digits are Latin in every language, so a printed figure reads back as whole paise.
+const toPaise = (text) => Number(text.replace(/[^\d]/g, ''))
+const inPaise = (rupees) => Math.round(rupees * 100)
+const exactRupees = (rupees) => '₹' + rupees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+// --- the scheme funding card ----------------------------------------------------
+// /advisory and /report draw one card for the schemes the backend priced
+// (scheme_funding), made by components/SchemeFunding.jsx. What a response should put
+// on it is worked out here from the response alone, so a card that drops a scheme, a
+// case or a figure, or that appears for a response which priced nothing, is a
+// finding. The card's headings are the schemes' own names, so cardProbe leaves it out
+// (data-scheme-funding): read as a scheme card it would fail for having no fit label.
+const MUDRA_BANDS_DRAWN = ['shishu', 'kishore', 'tarun', 'tarun_plus', 'above_limit']
+const pricedSchemes = (result) => {
+  const funding = result?.scheme_funding
+  if (funding?.status !== 'ok') return []
+  return (funding.schemes || []).filter((item) =>
+    item.kind === 'subsidy' ? item.cases?.length > 0 : item.kind === 'loan_band' && MUDRA_BANDS_DRAWN.includes(item.band),
+  )
+}
+// A whole rupee prints bare and an amount with paise prints both decimals, as the card does.
+const fundingRupees = (value) =>
+  '₹' + (Number.isInteger(value) ? value.toLocaleString('en-IN') : value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+const fundingFigures = (item) =>
+  item.kind === 'subsidy'
+    ? item.cases.flatMap((c) => [c.own_amount, c.bank_amount, c.subsidy_amount, c.net_loan_amount, ...(c.own_short_by > 0 ? [c.own_short_by] : [])])
+    : [item.loan_amount, ...(item.band === 'above_limit' ? [item.band_limit] : [])]
+// Runs in the page: the card's title, its text, and each scheme's block (name and text).
+const fundingProbe = `(() => {
+  const card = document.querySelector('[data-scheme-funding]')
+  if (!card) return { found: false }
+  return {
+    found: true,
+    title: card.querySelector('h2')?.textContent.trim() || '',
+    text: card.innerText,
+    articles: [...card.querySelectorAll('article')].map((a) => ({ name: a.querySelector('h3')?.textContent.trim() || '', text: a.innerText })),
+  }
+})()`
+
+// --- the compliance card ----------------------------------------------------------
+// /advisory and /report draw one card of the registrations to ask about
+// (result.compliance), made by components/Compliance.jsx. What a response should put on
+// it is worked out here from the response alone, with its own copy of the component's
+// mapping, so a card that drops, reorders or mislabels a step, prints the sentence of
+// another case or loses a source line is a finding. A step, need, kind, place, case or
+// source this file has no wording for throws: a value the backend has added needs
+// wording here first. Money prints as on the funding card (fundingRupees).
+const COMPLIANCE_TITLES = { udyam: 'cl.udyam.title', local: 'cl.local.title', fssai: 'cl.fssai.title', gst: 'cl.gst.title' }
+const COMPLIANCE_NEEDS = { free: 'cl.need.free', ask: 'cl.need.ask', usually: 'cl.need.usually', depends: 'cl.need.depends', not_needed: 'cl.need.notNeeded' }
+const COMPLIANCE_SOURCES = { udyam_2026: 'cl.src.udyam', fssai_2017: 'cl.src.fssai', cbic_2019: 'cl.src.gst' }
+const COMPLIANCE_PLACES = { panchayat: 'cl.local.panchayat', urban_body: 'cl.local.urban' }
+const COMPLIANCE_KINDS = { registration: 'cl.fssai.register', licence: 'cl.fssai.licence' }
+const COMPLIANCE_CASES = { within: 'cl.gst.within', above: 'cl.gst.above', between: 'cl.gst.between', farm_above: 'cl.gst.farmAbove' }
+for (const map of [COMPLIANCE_TITLES, COMPLIANCE_NEEDS, COMPLIANCE_SOURCES, COMPLIANCE_PLACES, COMPLIANCE_KINDS, COMPLIANCE_CASES]) {
+  for (const key of Object.values(map)) {
+    if (typeof RESULT_STRINGS.en[key] !== 'string') throw new Error(`${key} is not defined in resultStrings.js en`)
+  }
+}
+for (const key of ['cl.eyebrow', 'cl.title', 'cl.intro', 'cl.salesUsed', 'cl.caption', 'cl.udyam.what', 'cl.udyam.schemes', 'cl.local.title', 'cl.fssai.skip', 'cl.fssai.ifFood', 'cl.fssai.daily', 'cl.fssai.dairy', 'cl.gst.limits']) {
+  if (typeof RESULT_STRINGS.en[key] !== 'string') throw new Error(`${key} is not defined in resultStrings.js en`)
+}
+const known = (map, value, what) => {
+  if (!Object.hasOwn(map, value)) throw new Error(`compliance ${what} "${value}" has no wording in drive.mjs: add it to the COMPLIANCE_* maps`)
+  return map[value]
+}
+// A page-side string, filled the way t() fills it: {name} replaced, nothing else touched.
+const complianceSay = (lang, key, values = {}) => resultText(lang, key).replace(/\{(\w+)\}/g, (_, name) => String(values[name]))
+// What each step should print: its title, its need badge, its sentences and then its source line.
+const complianceSteps = (compliance, lang) => {
+  const say = (key, values) => complianceSay(lang, key, values)
+  return (compliance?.steps || []).map((step) => {
+    const lines = []
+    if (step.id === 'udyam') {
+      lines.push(say('cl.udyam.what'))
+      if (step.schemes_requiring > 0) lines.push(say('cl.udyam.schemes', { count: step.schemes_requiring }))
+    } else if (step.id === 'local') {
+      lines.push(say(known(COMPLIANCE_PLACES, step.place, 'place')))
+    } else if (step.id === 'fssai') {
+      if (step.need === 'not_needed') {
+        lines.push(say('cl.fssai.skip'))
+      } else {
+        if (step.need === 'depends') lines.push(say('cl.fssai.ifFood'))
+        if (step.kind) lines.push(say(known(COMPLIANCE_KINDS, step.kind, 'kind'), { limit: fundingRupees(step.sales_limit) }))
+        lines.push(say('cl.fssai.daily', { food: step.food_per_day, milk: step.milk_per_day }))
+        if (step.dairy_exemption === true) lines.push(say('cl.fssai.dairy'))
+      }
+    } else if (step.id === 'gst') {
+      lines.push(say('cl.gst.limits', { state: step.state, goods: fundingRupees(step.goods_limit), services: fundingRupees(step.services_limit) }))
+      lines.push(say(known(COMPLIANCE_CASES, step.case, 'case')))
+    }
+    if (step.source) lines.push(say(known(COMPLIANCE_SOURCES, step.source, 'source')))
+    return { id: step.id, title: say(known(COMPLIANCE_TITLES, step.id, 'step')), need: say(known(COMPLIANCE_NEEDS, step.need, 'need')), lines }
+  })
+}
+// The card's own paragraphs, in order. /advisory opens with an eyebrow that /report does not draw.
+const complianceParagraphs = (compliance, lang, route) => [
+  ...(route === '/advisory' ? [complianceSay(lang, 'cl.eyebrow')] : []),
+  complianceSay(lang, 'cl.intro'),
+  ...(Number.isFinite(compliance.yearly_sales) ? [complianceSay(lang, 'cl.salesUsed', { amount: fundingRupees(compliance.yearly_sales) })] : []),
+  complianceSay(lang, 'cl.caption'),
+]
+// Runs in the page, with textContent so the eyebrow's capitals (CSS only) cannot differ from the dictionary.
+const complianceProbe = `(() => {
+  const card = document.querySelector('[data-compliance]')
+  if (!card) return { found: false }
+  const text = (el) => el?.textContent.trim() ?? ''
+  return {
+    found: true,
+    title: text(card.querySelector('h2')),
+    paragraphs: [...card.querySelectorAll(':scope > p')].map(text),
+    steps: [...card.querySelectorAll('li[data-compliance-step]')].map((li) => ({
+      id: li.getAttribute('data-compliance-step'),
+      number: text(li.querySelector('.ui-formsection-num')),
+      title: text(li.querySelector('h3')),
+      need: text(li.querySelector('h3')?.nextElementSibling),
+      lines: [...li.querySelectorAll(':scope > p')].map(text),
+    })),
+  }
+})()`
+const ALL_ROUTES =['/', '/login', '/profile', '/business', '/location', '/finance', ...RESULT_ROUTES, '/privacy', '/no-such-page']
 
 // --- the privacy notice -----------------------------------------------------------
 // /privacy keeps its detail (what is kept, the host logs, the age condition, the
@@ -436,7 +587,7 @@ function textProblems(text, lang) {
   // Lowercase enum values and backend field names must never reach screen.
   for (const raw of [
     'attention_needed', 'break_even', 'not_feasible', 'profit_margin', 'match_level', 'pressure_ratio',
-    'fit_basis', 'wholesale_price_per_kg', 'registered_units', 'count_suppressed',
+    'fit_basis', 'wholesale_price_per_kg', 'registered_units', 'count_suppressed', 'egg_price',
     // The household repayment check: its enum values and field names.
     'household_check', 'within_limit', 'over_limit', 'not_checked',
     'household_repayment_percent', 'household_in_microfinance_range',
@@ -449,7 +600,7 @@ function textProblems(text, lang) {
   return problems
 }
 
-// case, language, routes. 8 passes, 41 page loads: 12 + 4 + 4 + 4 + 4 + 1 + 8 + 4.
+// case, language, routes. 9 passes, 43 page loads: 12 + 4 + 4 + 4 + 4 + 1 + 8 + 4 + 2.
 const PASSES = [
   ['good', 'en', ALL_ROUTES],
   ['good', 'ta', RESULT_ROUTES],
@@ -464,6 +615,8 @@ const PASSES = [
   // so the expected sentence comes from a real translation rather than from the
   // English fallback.
   ['cleared', 'hi', RESULT_ROUTES],
+  // A result stored before the compliance and scheme funding cards existed.
+  ['old', 'en', ['/advisory', '/report']],
 ]
 
 // --- minimal CDP client, session-aware ---------------------------------------
@@ -803,13 +956,105 @@ async function main() {
           })
         }
 
-        report.push({ tag, route, caseName, lang, rendered, chars: text.length, bars: barCount, unitCharts: unitCount, cardsChecked, detailsOpened, problems })
+        // The repayment schedule. Each loan's table on /report must equal the
+        // response's own rows to the paisa, add up to the totals /advisory prints
+        // for that loan, and end owing nothing; and /report must draw no schedule
+        // when the response has none. A table that is not under its heading is
+        // the selector gone stale, not a finding, so it throws.
+        const loans = (RESULTS[caseName]?.financing_options?.options || []).filter((o) => o.schedule?.length)
+        let scheduleChecked = 0
+        if (route === '/advisory') {
+          for (const loan of loans) {
+            if (!text.includes(exactRupees(loan.total_repayment))) {
+              problems.push(`LOAN TOTAL NOT TO THE PAISA: ${exactRupees(loan.total_repayment)} for ${loan.tenure_months} months`)
+            }
+          }
+        }
+        if (route === '/report' && RESULTS[caseName]) {
+          const titled = text.toLowerCase().includes(resultText(lang, 'rp.scheduleTitle').toLowerCase())
+          if (!loans.length && titled) problems.push('SCHEDULE SHOWN WITH NO ROWS')
+          if (loans.length && !titled) problems.push('SCHEDULE MISSING from /report')
+          for (const loan of titled ? loans : []) {
+            const { menu, rows } = await cdp.evaluate(scheduleProbe(loan.tenure_months))
+            if (!rows) throw new Error('/report: the schedule heading is on the page but no table sits under [aria-labelledby="schedule-for"]. Update scheduleProbe in drive.mjs to the markup.')
+            scheduleChecked++
+            const label = `${loan.tenure_months} months`
+            if (loans.length > 1 && !menu) { problems.push('SCHEDULE MENU MISSING'); break }
+            if (rows.length !== loan.schedule.length) { problems.push(`SCHEDULE ROWS: ${rows.length} shown for ${label}, the response has ${loan.schedule.length}`); continue }
+            const bad = rows.findIndex((cells, i) => {
+              const want = loan.schedule[i]
+              return cells.length !== 5 || Number(cells[0]) !== want.month || toPaise(cells[1]) !== inPaise(want.payment) ||
+                toPaise(cells[2]) !== inPaise(want.interest) || toPaise(cells[3]) !== inPaise(want.principal) || toPaise(cells[4]) !== inPaise(want.closing_balance)
+            })
+            if (bad >= 0) problems.push(`SCHEDULE ROW ${bad + 1} of ${label} shows ${JSON.stringify(rows[bad])}, the response has ${JSON.stringify(loan.schedule[bad])}`)
+            const column = (n) => rows.reduce((sum, cells) => sum + toPaise(cells[n]), 0)
+            if (column(1) !== inPaise(loan.total_repayment)) problems.push(`SCHEDULE PAYMENTS for ${label} add up to ${column(1)} paise, the card says ${inPaise(loan.total_repayment)}`)
+            if (column(2) !== inPaise(loan.total_interest)) problems.push(`SCHEDULE INTEREST for ${label} adds up to ${column(2)} paise, the card says ${inPaise(loan.total_interest)}`)
+            if (toPaise(rows[rows.length - 1][4]) !== 0) problems.push(`SCHEDULE for ${label} ends owing ${rows[rows.length - 1][4]}`)
+          }
+        }
+
+        // The scheme funding card: drawn on /advisory and /report when the response
+        // priced a scheme, with every scheme and every figure of every case, and not
+        // drawn when it priced none.
+        let fundingChecked = 0
+        if ((route === '/advisory' || route === '/report') && RESULTS[caseName]) {
+          const priced = pricedSchemes(RESULTS[caseName])
+          const card = await cdp.evaluate(fundingProbe)
+          if (!priced.length && card.found) problems.push('FUNDING CARD SHOWN WITH NOTHING PRICED')
+          if (priced.length && !card.found) problems.push(`FUNDING CARD MISSING from ${route}`)
+          if (priced.length && card.found) {
+            if (card.title !== resultText(lang, 'fs.title')) problems.push(`FUNDING CARD TITLE: "${card.title}"`)
+            if (!card.text.includes(resultText(lang, 'fs.caption'))) problems.push('FUNDING CARD HAS NO ESTIMATE CAPTION')
+            if (card.articles.length !== priced.length) problems.push(`FUNDING CARD SCHEMES: ${card.articles.length} drawn, ${priced.length} priced`)
+            for (const item of priced) {
+              const name = (RESULTS[caseName].scheme_matches || []).find((s) => s.scheme_id === item.scheme_id)?.name
+              const article = card.articles.find((a) => a.name === name)
+              if (!article) { problems.push(`FUNDING CARD: no block for ${item.scheme_id}`); continue }
+              for (const figure of fundingFigures(item)) {
+                if (!article.text.includes(fundingRupees(figure))) problems.push(`FUNDING FIGURE MISSING for ${item.scheme_id}: ${fundingRupees(figure)}`)
+              }
+              fundingChecked++
+            }
+          }
+        }
+
+        // The compliance card: drawn on /advisory and /report when the response has steps,
+        // with each step's number, title, badge, sentences and source line, in order, and
+        // not drawn when it has none (a result stored before the card existed).
+        let complianceChecked = 0
+        if ((route === '/advisory' || route === '/report') && RESULTS[caseName]) {
+          const compliance = RESULTS[caseName].compliance
+          const steps = complianceSteps(compliance, lang)
+          const card = await cdp.evaluate(complianceProbe)
+          if (!steps.length && card.found) problems.push('COMPLIANCE CARD SHOWN WITH NOTHING TO DRAW')
+          if (steps.length && !card.found) problems.push(`COMPLIANCE CARD MISSING from ${route}`)
+          if (steps.length && card.found) {
+            const title = complianceSay(lang, 'cl.title')
+            if (card.title !== title) problems.push(`COMPLIANCE CARD TITLE: "${card.title}", wanted "${title}"`)
+            const wantParagraphs = complianceParagraphs(compliance, lang, route)
+            if (JSON.stringify(card.paragraphs) !== JSON.stringify(wantParagraphs)) {
+              problems.push(`COMPLIANCE CARD TEXT: ${JSON.stringify(card.paragraphs)}, wanted ${JSON.stringify(wantParagraphs)}`)
+            }
+            for (let i = 0; i < Math.max(steps.length, card.steps.length); i++) {
+              const want = steps[i] && JSON.stringify({ id: steps[i].id, number: String(i + 1), title: steps[i].title, need: steps[i].need, lines: steps[i].lines })
+              const got = card.steps[i] && JSON.stringify(card.steps[i])
+              if (got !== want) problems.push(`COMPLIANCE STEP ${i + 1}: ${got}, wanted ${want}`)
+              else complianceChecked++
+            }
+          }
+        }
+
+        report.push({ tag, route, caseName, lang, rendered, chars: text.length, bars: barCount, unitCharts: unitCount, cardsChecked, scheduleChecked, fundingChecked, complianceChecked, detailsOpened, problems })
         if (problems.length) findings.push({ tag, problems })
 
         console.log(
           `${problems.length ? 'FAIL' : 'ok  '}  ${tag.padEnd(32)} ${String(text.length).padStart(5)}c ` +
             `bars=${String(barCount).padStart(2)} coins=${unitCount}` +
             (cardsChecked ? ` cards=${cardsChecked}` : '') +
+            (scheduleChecked ? ` schedules=${scheduleChecked}` : '') +
+            (fundingChecked ? ` funding=${fundingChecked}` : '') +
+            (complianceChecked ? ` compliance=${complianceChecked}` : '') +
             (problems.length ? '  ' + problems.join(' | ') : ''),
         )
       }
